@@ -123,7 +123,7 @@ h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:.005em}
 /* marquee */
 .marquee-card{margin-top:20px;overflow:hidden;padding-bottom:18px}
 .marquee{overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
-.marquee-inner{display:flex;gap:14px;width:max-content;animation:scrollX 90s linear infinite}
+.marquee-inner{display:flex;gap:14px;width:max-content;animation:scrollX 180s linear infinite}
 .marquee:hover .marquee-inner{animation-play-state:paused}
 @keyframes scrollX{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .mini-card{width:240px;flex:none;background:var(--bg);border:1px solid var(--divider);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .25s,transform .25s}
@@ -463,6 +463,7 @@ const THEME = window.SITE_THEME;
 const CAUSE_COLOR = THEME.causeColor;
 const TIER_LABEL = {top:'Top pick', recommended:'Recommended', represented:'Represented'};
 const TIER_RANK = {top:0, recommended:1, represented:2};
+const isShown = o => o.visibility!=='hidden';   // hidden orgs live only in Data Studio
 
 function regionOf(o){
   if (o.countries.length===1 && o.countries[0]==='Global') return 'Global';
@@ -776,7 +777,7 @@ function drawTrend(box, d){
 }
 
 function renderMarquee(){
-  const tops = ORGS.filter(o=>o.tier==='top');
+  const tops = ORGS.filter(o=>o.tier==='top' && isShown(o));
   const cards = tops.map(o=>`
     <div class="mini-card" onclick="go('#/org/${o.id}')">
       <span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[o.causes[0]]}"></span>${o.causes[0]}${o.causes.length>1?" +"+(o.causes.length-1):""}</span>
@@ -792,7 +793,9 @@ const globeState = { built:false, rot:-20, tilt:-16, vel:0.055, dragging:false, 
 const D2R = Math.PI/180;
 const LAND3 = LAND.map(([la,ln])=>({la,ln}));
 function buildPins(){
-  globeState.pins = ORGS.filter(o=>o.tier!=='represented').map(o=>({o, la:o.lat, ln:o.lng}));
+  globeState.pins = ORGS.filter(o=>o.tier!=='represented' && isShown(o)
+    && Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0 && +o.lng===0))
+    .map(o=>({o}));
 }
 function initGlobe(){
   if (globeState.built){ buildPins(); return; }
@@ -826,14 +829,14 @@ function initGlobe(){
   cv.addEventListener('pointermove', e=>{
     if (globeState.dragging){
       globeState.rot += (e.clientX-globeState.lastX)*0.35;
-      globeState.tilt = Math.max(-55, Math.min(35, globeState.tilt - (e.clientY-globeState.lastY)*0.18));
+      globeState.tilt = Math.max(-55, Math.min(35, globeState.tilt + (e.clientY-globeState.lastY)*0.18));
       globeState.lastX=e.clientX; globeState.lastY=e.clientY;
     } else {
       const rect = cv.getBoundingClientRect();
       const mx = e.clientX-rect.left, my = e.clientY-rect.top;
       let best=null, bd=13*13;
       for (const p of globeState.pins){
-        const pr = project(p.la,p.ln);
+        const pr = project(+p.o.lat,+p.o.lng);
         if (pr.z<0.06) continue;
         const dd = (pr.x-mx)**2 + (pr.y-my)**2;
         if (dd<bd){bd=dd;best={...p, px:pr.x, py:pr.y};}
@@ -893,7 +896,7 @@ function initGlobe(){
     // pins
     const t = performance.now()/1000;
     for (const p of globeState.pins){
-      const pr = project(p.la,p.ln);
+      const pr = project(+p.o.lat,+p.o.lng);
       if (pr.z<0.06) continue;
       const isTop = p.o.tier==='top';
       const isH = globeState.hover?.o===p.o;
@@ -1016,15 +1019,17 @@ $('#drawerVeil').addEventListener('click', closeDrawers);
   });
 })();
 function renderLibrary(){
-  const t = ORGS.filter(o=>o.tier==='top').length,
-        r = ORGS.filter(o=>o.tier==='recommended').length,
-        p = ORGS.filter(o=>o.tier==='represented').length;
-  $('#libSummary').innerHTML = `${ORGS.length} organizations · <b style="color:var(--gold-2)">${t}</b> top picks · ${r} recommended · ${p} represented`;
+  const vis = ORGS.filter(isShown);
+  const t = vis.filter(o=>o.tier==='top').length,
+        r = vis.filter(o=>o.tier==='recommended').length,
+        p = vis.filter(o=>o.tier==='represented').length;
+  $('#libSummary').innerHTML = `${vis.length} organizations · <b style="color:var(--gold-2)">${t}</b> top picks · ${r} recommended · ${p} represented`;
   renderLibGrid();
 }
 function libFiltered(){
   const {q,tier,cause,region,sort} = state.lib;
   let list = ORGS.filter(o=>
+    isShown(o) &&
     (tier==='all'||o.tier===tier) &&
     (!cause||o.causes.includes(cause)) &&
     (!region||o.region===region) &&
@@ -1056,8 +1061,19 @@ function renderLibGrid(){
 }
 
 /* ================= ORG BRIEF ================= */
+function hasVal(o, f){
+  switch(f){
+    case 'sufferRange': return o.sufferMin>0 && o.flourishMax>0;
+    default: {
+      const val = o[f];
+      if (Array.isArray(val)) return val.length>0;
+      if (typeof val==='number') return val>0;
+      return !!(val && String(val).trim());
+    }
+  }
+}
 function gWrap(o, field, inner, minH){
-  if (o.gathering?.includes(field))
+  if (!hasVal(o, field))
     return `<div class="gathering" style="min-height:${minH||52}px"><div class="g-blur">${inner}</div>
       <div class="g-note">Data being gathered by our diligence team</div></div>`;
   return inner;
@@ -1076,7 +1092,7 @@ function reachIcons(o){
 function renderOrg(id){
   const o = byId(id);
   const root = $('#orgRoot');
-  if (!o){ root.innerHTML = '<div class="card fade-up"><h3>Organization not found</h3></div>'; return; }
+  if (!o || (!isShown(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
   const insightsEligible = o.tier!=='represented';
   const tab = state.orgTab==='insights' && insightsEligible ? 'insights' : 'overview';
   const confN = {High:3, Moderate:2, Emerging:1}[o.confidence]||1;
@@ -1088,6 +1104,7 @@ function renderOrg(id){
     <div style="flex:1;min-width:300px">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <span class="badge ${o.tier}">${TIER_LABEL[o.tier]}</span>
+        ${!isShown(o)?'<span class="pill" style="border-color:var(--warn);color:var(--ink)">Hidden from members</span>':''}
         <span class="cause-chips">${o.causes.map(c=>`<span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[c]}"></span>${c}</span>`).join('')}</span>
       </div>
       <h1>${esc(o.name)}</h1>
@@ -1104,7 +1121,7 @@ function renderOrg(id){
       <span><span class="muted">HQ</span> &nbsp;${esc(o.hq)}</span>
       <span><span class="muted">Founded</span> &nbsp;${o.founded}</span>
       <span><span class="muted">Team</span> &nbsp;≈ ${o.teamSize} staff</span>
-      <span><span class="muted">Stage</span> &nbsp;${o.stage} · ${o.orgType}</span>
+      ${(o.stage||o.orgType)?`<span><span class="muted">Stage</span> &nbsp;${esc([o.stage,o.orgType].filter(Boolean).join(' · '))}</span>`:''}
       <a href="${esc(o.website)}" target="_blank" rel="noopener">${esc(String(o.website).replace(/^https?:\/\/(www\.)?/,''))} ↗</a>
     </div>
   </div>
@@ -1137,15 +1154,15 @@ function orgOverviewHTML(o, confN){
   return `<div class="brief-grid">
     <div class="outcome-hero fade-up span12">
       <div class="kicker">Intended outcomes — what beneficiaries experience</div>
-      <div class="oc-list">${o.outcomesList.map(c=>`<span class="oc-chip">${checkSVG}${esc(c)}</span>`).join('')}</div>
+      ${gWrap(o,'outcomesList',`<div class="oc-list">${(o.outcomesList||[]).map(c=>`<span class="oc-chip">${checkSVG}${esc(c)}</span>`).join('')||'&nbsp;'}</div>`,44)}
       <div class="oc-cost">
         <div class="item">${gWrap(o,'costPerOutcome',`<div class="l">Avg est. cost per outcome</div>
           <div class="v num">${o.costPerOutcome>0?fmtCost(o.costPerOutcome):'—'}</div>`)}</div>
         <div class="item">${gWrap(o,'costPerOutput',`<div class="l">Cost per output</div>
           <div class="v num">${o.costPerOutput>0?fmtCost(o.costPerOutput):'—'} <span class="unit">/ ${esc(o.outputUnit)}</span></div>`)}</div>
-        <div class="item"><div class="l">Outcome reach rate</div>
+        <div class="item">${gWrap(o,'outcomeReachRate',`<div class="l">Outcome reach rate</div>
           <div class="v num">${o.outcomeReachRate?o.outcomeReachRate+'<span class="unit">%</span>':'—'}</div>
-          <div class="muted" style="font-size:11px">of those reached experience the intended outcome</div></div>
+          <div class="muted" style="font-size:11px">of those reached experience the intended outcome</div>`)}</div>
       </div>
     </div>
     <div class="card fade-up span7">
@@ -1169,22 +1186,24 @@ function orgOverviewHTML(o, confN){
       ${gWrap(o,'outcomesTargeted',`<div class="big num">${o.outcomesTargeted>0?fmtNum(o.outcomesTargeted):'—'}</div>
       <div class="sub">${esc(o.outputUnit)}s</div>`)}
       <div class="hr"></div><div class="label">Annual budget</div>
-      <div class="big num">$${o.budgetM}<span class="unit">M</span></div></div>
+      ${gWrap(o,'budgetM',`<div class="big num">$${o.budgetM}<span class="unit">M</span></div>`)}</div>
     <div class="card fade-up span3 fact"><div class="label">Confidence in outcomes</div>
       ${gWrap(o,'confidence',`<div class="big">${o.confidence}</div>
       <div class="conf-dots">${[1,2,3].map(i=>`<span class="${i<=confN?'on':''}"></span>`).join('')}</div>`)}
-      <div class="sub" style="margin-top:10px">${o.vettingStatus}</div></div>
+      <div class="sub" style="margin-top:10px">${esc(o.vettingStatus||'')}</div></div>
   </div>`;
 }
 function orgInsightsHTML(o){
-  const pct = Math.min(100, o.raisedM/o.goalM*100);
-  const absPct = Math.min(100, o.absorbencyM/o.budgetM*100);
+  const pct = o.goalM>0 ? Math.min(100, o.raisedM/o.goalM*100) : 0;
+  const absPct = o.budgetM>0 ? Math.min(100, o.absorbencyM/o.budgetM*100) : 0;
   return `<div class="brief-grid">
     <div class="card fade-up span5">
       <div class="kicker">Organization type &amp; stage</div>
-      <h3 style="margin-bottom:2px">${o.growthCurve} growth · ${o.stage} stage</h3>
+      ${(o.growthCurve&&o.stage)?`<h3 style="margin-bottom:2px">${o.growthCurve} growth · ${o.stage} stage</h3>
       <div class="muted" style="font-size:12px;margin-bottom:8px">Modeled reach trajectory as capital is deployed</div>
-      <div id="growthChart"></div>
+      <div id="growthChart"></div>`
+      :`<div class="gathering" style="min-height:170px"><div class="g-blur" style="height:170px"></div>
+      <div class="g-note">Data being gathered by our diligence team</div></div>`}
     </div>
     <div class="card fade-up span7">
       <div class="kicker">Absorbency &amp; current fundraise</div>
@@ -1210,14 +1229,14 @@ function orgInsightsHTML(o){
     <div class="card fade-up span12">
       <div class="kicker">Diligence notes</div>
       <p class="dim" style="font-size:13.5px;max-width:900px">
-        ${esc(o.name)} operates as a <b style="color:var(--ink)">${o.orgType.toLowerCase()}</b> organization in the ${o.stage.toLowerCase()} stage.
-        Our confidence in reported outcomes is <b style="color:var(--ink)">${o.confidence.toLowerCase()}</b>${o.confidence==='High'?', supported by independent evaluation and multi-year outcome data':o.confidence==='Moderate'?', with solid internal M&E and partial external validation':' — early data is promising but not yet externally validated'}.
+        ${esc(o.name)} operates as a <b style="color:var(--ink)">${(o.orgType||'direct service').toLowerCase()}</b> organization${o.stage?` in the ${o.stage.toLowerCase()} stage`:''}.
+        Our confidence in reported outcomes is <b style="color:var(--ink)">${(o.confidence||'still forming').toLowerCase()}</b>${o.confidence==='High'?', supported by independent evaluation and multi-year outcome data':o.confidence==='Moderate'?', with solid internal M&E and partial external validation':' — early data is promising but not yet externally validated'}.
         Figures on this page combine reported data with Factory for Good modeling; treat point estimates as directional.</p>
     </div>
   </div>`;
 }
 function relatedHTML(o){
-  const rel = ORGS.filter(x=>x.causes[0]===o.causes[0] && x.id!==o.id)
+  const rel = ORGS.filter(x=>isShown(x) && x.causes[0]===o.causes[0] && x.id!==o.id)
     .sort((a,b)=>TIER_RANK[a.tier]-TIER_RANK[b.tier]).slice(0,6);
   if (!rel.length) return '';
   return `<div style="margin-top:26px" class="fade-up">
@@ -1241,7 +1260,7 @@ function drawGrowth(box, o){
   const f = { 'Flat': i=>0.25+0.12*(i/N), 'Linear': i=>0.08+0.84*(i/N), 'Scalable': i=>0.06+0.9*Math.pow(i/N,2.6) }[o.growthCurve];
   const X=i=>P.l+i/N*(W-P.l-P.r), Y=v=>H-P.b-v*(H-P.t-P.b);
   const path = Array.from({length:N+1},(_,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(f(i)).toFixed(1)).join('');
-  const stagePos = {Pilot:0.22, Growth:0.55, Scale:0.85}[o.stage];
+  const stagePos = {Pilot:0.22, Growth:0.55, Scale:0.85}[o.stage] ?? 0.55;
   const si = Math.round(stagePos*N);
   box.innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}">
     <line x1="${P.l}" x2="${W-P.r}" y1="${H-P.b}" y2="${H-P.b}" stroke="var(--axis)"/>
@@ -1307,6 +1326,7 @@ const FIELDS = [
  {k:'fiscalSponsor', l:'Intermediary (Fiscal Sponsor)', cat:'Identity & Basic Info', desc:'Fiscal sponsor or intermediary name, if the org isn\'t a direct 501(c)(3) or local equivalent.'},
  {k:'orgType', l:'Org Type', cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based'], core:1, desc:'Organization model type.'},
  {k:'tier', l:'Tier', cat:'Identity & Basic Info', sel:['top','recommended','represented'], core:1, desc:'Factory for Good conviction tier: top pick, recommended, or represented.'},
+ {k:'visibility', l:'Display on site', cat:'Identity & Basic Info', sel:['shown','hidden'], core:1, desc:'shown = appears in the library, globe, marquee, and briefs. hidden = tracked in Data Studio only, invisible to members until you flip it. New organizations start hidden.'},
  {k:'founded', l:'Start Date/Year', cat:'Identity & Basic Info', num:1, core:1, desc:'Year the org was founded.'},
  {k:'yearsOp', l:'Years in Operation', cat:'Identity & Basic Info', ro:1, fx:o=>2026-(+o.founded||2026), desc:'Auto-calculated from Start Date/Year.'},
  // Classification & Focus
@@ -1603,7 +1623,7 @@ Provide best-guess values for ONLY these fields, from your knowledge of this rea
       const f = FIELDS.find(x=>x.k===k);
       o[k] = f?.arr ? (Array.isArray(v)?v:String(v).split(/[;|]/).map(s=>s.trim()).filter(Boolean))
            : f?.num ? (parseFloat(v)||0) : String(v);
-      n++;
+      clearGathering(o, k, o[k], f); n++;
     }
     o.lastUpdated = new Date().toISOString().slice(0,10);
     if (typeof o.region!=='undefined') o.region = regionOf(o);
@@ -1612,6 +1632,16 @@ Provide best-guess values for ONLY these fields, from your knowledge of this rea
   }catch(err){
     flash('Auto-fill failed: '+err.message.slice(0,120));
   }
+}
+
+/* any field that now holds a real value is no longer 'being gathered' */
+function clearGathering(o, key, v, col){
+  if (!o.gathering || !o.gathering.length) return;
+  const nonEmpty = Array.isArray(v) ? v.length>0 : (col&&col.num ? v>0 : String(v??'').trim()!=='');
+  if (!nonEmpty) return;
+  const mapped = ({sufferMin:'sufferRange', flourishMax:'sufferRange'})[key] || key;
+  o.gathering = o.gathering.filter(g=>g!==mapped && g!==key &&
+    !(key==='costPerOutcome' && g==='outcomesTargeted'));
 }
 
 /* ---- table ---- */
@@ -1624,7 +1654,7 @@ $('#edTier').addEventListener('change', e=>{ edState.tier = e.target.value; rend
 $('#edAdd').addEventListener('click', ()=>{
   const id = Math.max(...ORGS.map(o=>o.id))+1;
   const blank = {id, name:'New Organization', tier:'represented', sources:['Factory for Good'], causes:['Global Health'],
-    countries:['Global'], lat:0, lng:20, hq:'', founded:2026, blurb:'', outputUnit:'output', costPerOutput:0,
+    countries:['Global'], lat:0, lng:20, hq:'', founded:2026, visibility:'hidden', blurb:'', outputUnit:'output', costPerOutput:0,
     outcomesList:[], costPerOutcome:0, outcomeReachRate:0, annualReach:0, website:'', outcomesTargeted:0,
     sufferMin:3, flourishMax:6, confidence:'Emerging', theoryOfChange:'', orgType:'Direct Service', stage:'Pilot',
     growthCurve:'Linear', budgetM:0, absorbencyM:0, goalM:0, raisedM:0, teamSize:0, gathering:[], region:'Global'};
@@ -1632,7 +1662,7 @@ $('#edAdd').addEventListener('click', ()=>{
   blank.lastUpdated = new Date().toISOString().slice(0,10);
   blank.vettingStatus = 'Not started';
   ORGS.unshift(blank); window.PERSIST&&PERSIST.orgInsert(blank);
-  renderEdRows(); flash('Organization added — fill it in, or use ✦ to auto-fill');
+  renderEdRows(); flash('Organization added (hidden from members until you set Display on site to shown)');
   buildPins();
 });
 $('#edExport').addEventListener('click', ()=>{
@@ -1668,7 +1698,12 @@ function renderEdRows(){
     if (c.k==='name') return `<td class="name-c${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
     if (c.fx) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(c.fx(o))}</td>`;
     if (c.ro) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(o[c.k])}</td>`;
-    if (c.sel) return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${c.sel.map(s=>`<option ${s===String(o[c.k]||'')?'selected':''}>${s}</option>`).join('')}</select></td>`;
+    if (c.sel){
+      const noBlank = c.k==='tier'||c.k==='visibility';
+      const opts = (noBlank?[]:['']).concat(c.sel.filter(s=>s!==''));
+      const cur = c.k==='visibility' ? (o.visibility||'shown') : String(o[c.k]??'');
+      return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></td>`;
+    }
     let v = o[c.k]; if (Array.isArray(v)) v = v.join('; ');
     return `<td class="${noted}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
   }).join('')}</tr>`).join('');
@@ -1680,7 +1715,8 @@ function renderEdRows(){
   body.querySelectorAll('select').forEach(sel=>sel.addEventListener('change', ()=>{
     const o = byId(sel.closest('tr').dataset.id);
     o[sel.dataset.k] = sel.value;
-    if (sel.dataset.k==='tier') buildPins();
+    clearGathering(o, sel.dataset.k, sel.value, FIELDS.find(f=>f.k===sel.dataset.k));
+    if (sel.dataset.k==='tier'||sel.dataset.k==='visibility') buildPins();
     flash('Updated '+o.name); window.PERSIST&&PERSIST.org(o);
   }));
 }
@@ -1698,14 +1734,14 @@ function commitCell(el){
   if (!o || !col || col.ro || col.fx) return;
   let v = el.textContent.trim();
   const old = o[key];
-  if (col.num){ v = parseFloat(v); if (isNaN(v)) { el.textContent = Array.isArray(old)?old.join('; '):old; return; } }
+  if (col.num){ if (v===''){ v = 0; } else { v = parseFloat(v); if (isNaN(v)) { el.textContent = Array.isArray(old)?old.join('; '):old; return; } } }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   const changed = JSON.stringify(v)!==JSON.stringify(old);
   if (!changed) return;
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
   if (key==='lat'||key==='lng'||key==='countries') { o.region = regionOf(o); buildPins(); }
-  if ((key==='costPerOutcome'||key==='costPerOutput')&&v>0) o.gathering = (o.gathering||[]).filter(g=>g!==key);
+  clearGathering(o, key, v, col);
   flash('Updated '+o.name); window.PERSIST&&PERSIST.org(o);
 }
 
@@ -1928,7 +1964,7 @@ function openGiftModal(existing){
   if (APP.demo){ flash('Demo mode is read-only — switch to Live to log real gifts'); return; }
   const veil = $('#modalVeil'), box = $('#modalBox');
   const d = existing || {org:null, amount:100000, date:new Date().toISOString().slice(0,10), status:'logged', note:''};
-  const opts = [...ORGS].sort((a,b)=>a.name.localeCompare(b.name))
+  const opts = ORGS.filter(o=>APP.staff||isShown(o)).sort((a,b)=>a.name.localeCompare(b.name))
     .map(o=>`<option value="${o.id}" ${o.id===d.org?'selected':''}>${esc(o.name)}</option>`).join('');
   box.innerHTML = `<div class="kicker">${existing?'Edit gift':'Log a gift'}</div>
     <h3>${existing?'Update this donation':'Record a donation'}</h3>
@@ -2035,7 +2071,7 @@ window.autofillRow = async function(id){
       const f = FIELDS.find(x=>x.k===k);
       o[k] = f?.arr ? (Array.isArray(v)?v:String(v).split(/[;|]/).map(s=>s.trim()).filter(Boolean))
            : f?.num ? (parseFloat(v)||0) : String(v);
-      n++;
+      clearGathering(o, k, o[k], f); n++;
     }
     o.lastUpdated = new Date().toISOString().slice(0,10);
     o.region = regionOf(o); buildPins(); renderEdRows();
