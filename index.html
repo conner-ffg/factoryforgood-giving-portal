@@ -248,7 +248,7 @@ h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:.005em}
 table.editor{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:2900px}
 table.editor th{position:sticky;top:0;z-index:5;background:var(--surface-3);color:var(--ink-2);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--divider);font-size:11.5px;white-space:nowrap}
 table.editor td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--ink-2);white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-table.editor td.name-c,table.editor th.name-c{position:sticky;left:0;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
+table.editor td.name-c,table.editor th.name-c{position:sticky;left:46px;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
 table.editor th.name-c{z-index:6;background:var(--surface-3)}
 table.editor td[contenteditable=true]{outline:none;cursor:text}
 table.editor td[contenteditable=true]:focus{background:rgba(41,140,192,.07);box-shadow:inset 0 0 0 1px var(--cerulean);color:var(--ink)}
@@ -263,6 +263,14 @@ table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(-
 .calc-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
 .calc-row b{color:var(--ink);font-weight:500}
 .modal input[type=number]{background:#fff;border:1px solid var(--divider);color:var(--ink);border-radius:9px;padding:9px 13px;font-size:14px;width:100%;font-family:inherit;outline:none;margin:10px 0 4px}
+table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:0;z-index:4;background:#fff;width:46px;min-width:46px;max-width:46px;text-align:center;padding:7px 6px}
+table.editor th.vis-c{z-index:7;background:var(--surface-3)}
+.vswitch{display:inline-block;width:30px;height:17px;position:relative;cursor:pointer;vertical-align:middle}
+.vswitch input{display:none}
+.vswitch i{position:absolute;inset:0;border-radius:999px;background:var(--divider);transition:background .2s}
+.vswitch i::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:left .2s}
+.vswitch input:checked+i{background:var(--forest)}
+.vswitch input:checked+i::after{left:15px}
 /* comments & notes */
 td.has-note{position:relative}
 td.has-note::after{content:'';position:absolute;top:0;right:0;border-style:solid;border-width:0 9px 9px 0;border-color:transparent var(--goldenrod) transparent transparent}
@@ -1335,8 +1343,8 @@ const FIELDS = [
  {k:'demographicFocus', l:'Demographic Focus', cat:'Classification & Focus', desc:'Who the org serves (age, gender, income level, refugee status, etc).'},
  {k:'countries', l:'Countries of Operation', cat:'Classification & Focus', arr:1, core:1, desc:'All countries where the org runs programs.'},
  {k:'statesOfOperation', l:'States of Operation', cat:'Classification & Focus', arr:1, desc:'Subnational detail for orgs working in specific US states or equivalent regions.'},
- {k:'lat', l:'Service Lat', cat:'Classification & Focus', num:1, desc:'Latitude of primary geography of service (drives the globe pin).'},
- {k:'lng', l:'Service Lng', cat:'Classification & Focus', num:1, desc:'Longitude of primary geography of service (drives the globe pin).'},
+ {k:'lat', l:'Service Lat', cat:'Classification & Focus', num:1, core:1, desc:'Latitude of primary geography of service (drives the globe pin).'},
+ {k:'lng', l:'Service Lng', cat:'Classification & Focus', num:1, core:1, desc:'Longitude of primary geography of service (drives the globe pin).'},
  {k:'icp', l:'ICP (Ideal Contributor Profile)', cat:'Classification & Focus', desc:'Type of donor this org is the best fit for (2–4 sentences).'},
  // Intervention & Program
  {k:'interventionImage', l:'Intervention/Demographic Image', cat:'Intervention & Program', desc:'Photo representing the intervention or the population served.'},
@@ -1421,9 +1429,11 @@ const FIELDS = [
 const ED_CATS = ['Core', ...[...new Set(FIELDS.map(f=>f.cat))], 'All fields'];
 const edState = {q:'', tier:'', group:'Core'};
 function activeCols(){
-  if (edState.group==='All fields') return FIELDS;
-  if (edState.group==='Core') return FIELDS.filter(f=>f.core||f.k==='name');
-  return [FIELDS.find(f=>f.k==='name'), ...FIELDS.filter(f=>f.cat===edState.group && f.k!=='name')];
+  let cols;
+  if (edState.group==='All fields') cols = FIELDS;
+  else if (edState.group==='Core') cols = FIELDS.filter(f=>f.core||f.k==='name');
+  else cols = [FIELDS.find(f=>f.k==='name'), ...FIELDS.filter(f=>f.cat===edState.group && f.k!=='name')];
+  return cols.filter(f=>f.k!=='visibility');   // rendered as the Show toggle, not a column
 }
 
 /* ---- comments (threaded, resolvable) & notes (lightweight cell annotations) ---- */
@@ -1681,7 +1691,7 @@ $('#edExport').addEventListener('click', ()=>{
 });
 function renderEditor(){
   const cols = activeCols();
-  $('#edTable').innerHTML = `<thead><tr>${cols.map(c=>`<th class="${c.cls||''}" title="${esc(c.desc||'')}">${c.l}${c.ro?' ⓘ':''}</th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
+  $('#edTable').innerHTML = `<thead><tr><th class="vis-c" title="Display on site — on = visible in the library, globe, and briefs; off = tracked in Data Studio only. New organizations start off.">Show</th>${cols.map(c=>`<th class="${c.cls||''}" title="${esc(c.desc||'')}">${c.l}${c.ro?' ⓘ':''}</th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
   $('#edTable').style.minWidth = Math.max(1200, cols.length*150)+'px';
   renderEdRows();
   $('#edBody').addEventListener('contextmenu', onCellContext);
@@ -1693,7 +1703,7 @@ function renderEdRows(){
     (!edState.tier || o.tier===edState.tier) &&
     (!edState.q || (o.name+' '+o.causes.join(' ')+' '+o.countries.join(' ')).toLowerCase().includes(edState.q)));
   $('#edCount').textContent = list.length+' of '+ORGS.length+' rows · '+cols.length+' of '+FIELDS.length+' fields';
-  $('#edBody').innerHTML = list.map(o=>`<tr data-id="${o.id}">${cols.map(c=>{
+  $('#edBody').innerHTML = list.map(o=>`<tr data-id="${o.id}"><td class="vis-c"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'');
     if (c.k==='name') return `<td class="name-c${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
     if (c.fx) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(c.fx(o))}</td>`;
@@ -1712,6 +1722,13 @@ function renderEdRows(){
     td.addEventListener('blur', ()=>commitCell(td));
     td.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); td.blur();} });
   });
+  body.querySelectorAll('input[data-vis]').forEach(cb=>cb.addEventListener('change', ()=>{
+    const o = byId(cb.dataset.vis); if (!o) return;
+    o.visibility = cb.checked ? 'shown' : 'hidden';
+    cb.closest('.vswitch').title = cb.checked ? 'Shown on the site — click to hide' : 'Hidden from members — click to show';
+    buildPins(); window.PERSIST&&PERSIST.org(o);
+    flash(cb.checked ? o.name+' is now live on the site' : o.name+' is now hidden from members');
+  }));
   body.querySelectorAll('select').forEach(sel=>sel.addEventListener('change', ()=>{
     const o = byId(sel.closest('tr').dataset.id);
     o[sel.dataset.k] = sel.value;
