@@ -46,6 +46,23 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.evaluate(() => { const g = MEMBER.donations[0]; editGift(g.id); }); await page.waitForTimeout(300);
   await page.fill('#gAmt', '300000'); await page.click('#gSave'); await page.waitForTimeout(1500);
   check('gift edit persists', await page.evaluate(() => scopeData('me').total) === 300000);
+  // build a shortlist cart + send it to the advisor, then leave without ceremony
+  await page.evaluate(() => { toggleShortlist(4); toggleShortlist(6); });
+  await page.waitForTimeout(900);
+  await page.evaluate(() => sendPlanToAdvisor());
+  await page.waitForTimeout(700);
+  await page.close();
+
+  // ---------- the cart survives leaving and coming back ----------
+  page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
+  page.on('pageerror', e => errs.push('return: ' + e.message));
+  await page.goto(U); await page.waitForTimeout(700);
+  await page.fill('#gateEmail', 'member@example.com');
+  await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
+  await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(400);
+  check('shortlist restored on return', await page.evaluate(() => SHORTLIST.length === 2 && SHORTLIST.some(s => s.id === 4)));
+  await page.evaluate(() => sb.signOut());
   await page.close();
 
   // ---------- second member: personal data stays private ----------
@@ -165,6 +182,25 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     document.querySelector('#modalBox').textContent.includes('giving record') &&
     !!document.querySelector('#dgSave')));
   await page.evaluate(() => closeModal());
+  // staff see the member's saved cart + advisor request, and confirm an item
+  const miaId = await page.evaluate(() => DB.donors.find(d => d.fullName === 'Mia Member').id);
+  check('staff sees member shortlist and advisor request', await page.evaluate(id => {
+    const dn = DB.donors.find(d => d.id === id);
+    return dn.shortlist.length === 2 && dn.notifications.length === 1 && dn.notifications[0].body.includes('total');
+  }, miaId));
+  await page.evaluate(async id => { await confirmShortlistGift(id, 4); }, miaId);
+  await page.waitForTimeout(600);
+  const conf = await page.evaluate(id => {
+    const dn = DB.donors.find(d => d.id === id);
+    return { sl: dn.shortlist.length, hasPlanned: dn.planned.some(g => g.org === 4 && g.amount === 100000) };
+  }, miaId);
+  check('shortlist item confirmed into a planned gift', conf.sl === 1 && conf.hasPlanned);
+  await page.evaluate(async id => {
+    const dn = DB.donors.find(d => d.id === id);
+    await toggleNotifHandled(id, dn.notifications[0].id);
+  }, miaId);
+  check('advisor request marked handled', await page.evaluate(id =>
+    DB.donors.find(d => d.id === id).notifications[0].handled, miaId));
   // Data studio edit persists to backend
   await page.evaluate(() => go('#/editor')); await page.waitForTimeout(900);
   await page.evaluate(() => { const td = document.querySelector('#edBody td[data-k="hq"]'); td.focus(); td.textContent = 'Pune HQ (verified)'; td.blur(); });

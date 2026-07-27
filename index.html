@@ -966,6 +966,7 @@ function toggleShortlist(id){
   const i = SHORTLIST.findIndex(s=>s.id===id);
   if (i>=0){ SHORTLIST.splice(i,1); flash('Removed from shortlist'); }
   else { SHORTLIST.push({id, planned:100000}); flash('Added to your shortlist'); }
+  window.SYNC_SHORTLIST?.(id);
   updateCartBadge(); renderCart();
   const btn = document.querySelector(`.addport[data-org="${id}"]`);
   if (btn) btn.outerHTML = addportBtn(id);
@@ -993,7 +994,7 @@ function renderCart(){
         <span class="rm" onclick="toggleShortlist(${o.id})">remove</span></div>
       <div class="cause-chip" style="margin-top:3px"><span class="dot" style="background:${CAUSE_COLOR[o.causes[0]]}"></span>${o.causes.join(' · ')}</div>
       <div class="plan">Planned gift $<input type="number" value="${s.planned}" step="25000" min="0"
-        onchange="const v=+this.value||0; SHORTLIST.find(x=>x.id===${o.id}).planned=v; renderCart();">
+        onchange="const v=+this.value||0; SHORTLIST.find(x=>x.id===${o.id}).planned=v; window.SYNC_SHORTLIST&&SYNC_SHORTLIST(${o.id}); renderCart();">
         <span class="est num">${est?('≈ '+fmtNum(est)+' outcomes'):'outcome model in diligence'}</span></div>
     </div>`;}).join('');
   const tot = SHORTLIST.reduce((s,x)=>s+x.planned,0);
@@ -1002,8 +1003,8 @@ function renderCart(){
       <span class="dim">Total planned</span><b class="num">${fmtMoney(tot)}</b></div>
     <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px">
       <span class="dim">Estimated outcomes</span><b class="num" style="color:var(--gold-2)">≈ ${fmtNum(totOut)}</b></div>
-    <button class="btn primary" style="width:100%" onclick="flash('Plan shared with your advisor for scheduling');">Send plan to my advisor</button>
-    <div class="muted" style="font-size:11px;margin-top:8px;text-align:center">Shortlist lives in this session — export or send before closing</div>`;
+    <button class="btn primary" style="width:100%" onclick="(window.sendPlanToAdvisor||function(){flash('Plan shared with your advisor for scheduling')})();">Send plan to my advisor</button>
+    <div class="muted" style="font-size:11px;margin-top:8px;text-align:center">Saved to your profile — your shortlist will be here whenever you return</div>`;
 }
 function closeDrawers(){ $$('.drawer').forEach(d=>d.classList.remove('show')); $('#drawerVeil').classList.remove('show'); }
 $('#cartBtn').addEventListener('click', ()=>{ renderCart(); $('#cartDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
@@ -3731,7 +3732,10 @@ window.renderDonorStudio = function(){
       return `<tr data-dn="${dn.id}">
         <td><div class="dn-nm"><span class="dn-ava"${dn.role==='staff'?' style="background:var(--gold-2,#C9A55C)"':''}>${init}</span>
           <span><b class="dn-ed" contenteditable data-f="fullName">${esc(dn.fullName)}</b>${dn.role==='staff'?' <span class="pill" style="font-size:9.5px;padding:1px 7px;vertical-align:1px">Staff</span>':''}<br>
-          <span class="dn-sub">${esc(dn.email||'')}${dn.location?' · '+esc(dn.location):''}</span></span></div></td>
+          <span class="dn-sub">${esc(dn.email||'')}${dn.location?' · '+esc(dn.location):''}</span>${
+            ((dn.shortlist||[]).length || (dn.notifications||[]).some(n=>!n.handled))
+            ? `<br><span class="dn-sub" style="color:var(--gold-2,#9A7B3F)">${(dn.shortlist||[]).length?('◈ '+(dn.shortlist||[]).length+' shortlisted'):''}${(dn.shortlist||[]).length&&(dn.notifications||[]).some(n=>!n.handled)?' · ':''}${(dn.notifications||[]).some(n=>!n.handled)?('✉ '+(dn.notifications||[]).filter(n=>!n.handled).length+' request'+((dn.notifications||[]).filter(n=>!n.handled).length===1?'':'s')):''}</span>` : ''
+          }</span></div></td>
         <td><span class="dn-ed" contenteditable data-f="memberSince">${dn.memberSince||''}</span></td>
         <td style="max-width:210px">${(dn.circles||[]).map(cid=>`<span class="circ-chip on" data-rm="${cid}">${esc(circleById(cid)?.name||cid)} <span class="x">✕</span></span>`).join('')}
           <span class="circ-chip" data-addc="1">+ circle</span></td>
@@ -3910,6 +3914,23 @@ window.openDonorGifts = function(dnId){
           <span class="pill" style="cursor:pointer" data-eg="${g.id}" data-egst="${g.status}">edit</span>
           <span class="pill" style="cursor:pointer;color:var(--crit,#992A13)" data-xg="${g.id}">✕</span></div>`;
       }).join('')||'<div class="muted" style="padding:16px 4px;font-size:13px">No gifts on record yet — add the first one above.</div>'}</div>
+      <div class="kicker" style="margin-top:16px">Shortlist — awaiting confirmation</div>
+      <div>${(dn.shortlist||[]).map(s=>{
+        const o = byId(+s.id);
+        return `<div class="hist-row">
+          <span class="o">${esc(o?o.name:'Org #'+s.id)}</span>
+          <span class="a num">$<input type="number" value="${s.planned}" step="25000" min="0" data-slp="${s.id}"
+            style="width:92px;background:#fff;border:1px solid var(--divider,var(--hairline));border-radius:7px;padding:4px 7px;font-size:12px;font-family:inherit;text-align:right"></span>
+          <span class="pill" style="cursor:pointer" data-slc="${s.id}">✓ Confirm as planned gift</span>
+          <span class="pill" style="cursor:pointer;color:var(--crit,#992A13)" data-slx="${s.id}">✕</span></div>`;
+      }).join('')||'<div class="muted" style="padding:10px 4px;font-size:12.5px">Their shortlist is empty right now — it fills as they tap “Add to portfolio” in the library and briefs.</div>'}</div>
+      <div class="kicker" style="margin-top:16px">Advisor requests</div>
+      <div>${(dn.notifications||[]).slice().reverse().map(n=>`
+        <div class="hist-row ${n.handled?'':'future'}">
+          <span class="d num">${fmtDate(n.date||n.created_at||'')}</span>
+          <span class="o" style="white-space:normal;line-height:1.45">${esc(n.body||'')}</span>
+          <span class="pill ${n.handled?'':'gold'}" style="cursor:pointer" data-nh="${n.id}">${n.handled?'handled ✓':'mark handled'}</span></div>`
+      ).join('')||'<div class="muted" style="padding:10px 4px;font-size:12.5px">No requests yet — “Send plan to my advisor” from their shortlist lands here.</div>'}</div>
       <div style="display:flex;justify-content:flex-end;margin-top:16px;border-top:1px solid var(--hairline);padding-top:13px">
         <button class="btn" onclick="closeModal()">Close</button></div>`;
     box.querySelectorAll('[data-dgst]').forEach(b=>b.addEventListener('click', ()=>{ status = b.dataset.dgst; box.querySelectorAll('[data-dgst]').forEach(x=>x.classList.toggle('active', x===b)); }));
@@ -3933,9 +3954,83 @@ window.openDonorGifts = function(dnId){
       await staffGiftOp(dnId, 'delete', {id: el.dataset.xg});
       flash('Gift removed'); paint(); renderDonorStudio();
     }));
+    box.querySelectorAll('[data-slp]').forEach(el=>el.addEventListener('change', async ()=>{
+      await staffShortlistOp(dnId, +el.dataset.slp, 'set', +el.value||0);
+      flash('Shortlist updated'); paint(); renderDonorStudio();
+    }));
+    box.querySelectorAll('[data-slc]').forEach(el=>el.addEventListener('click', async ()=>{
+      await confirmShortlistGift(dnId, +el.dataset.slc);
+      paint(); renderDonorStudio();
+    }));
+    box.querySelectorAll('[data-slx]').forEach(el=>el.addEventListener('click', async ()=>{
+      await staffShortlistOp(dnId, +el.dataset.slx, 'remove');
+      flash('Removed from their shortlist'); paint(); renderDonorStudio();
+    }));
+    box.querySelectorAll('[data-nh]').forEach(el=>el.addEventListener('click', async ()=>{
+      await toggleNotifHandled(dnId, el.dataset.nh); paint(); renderDonorStudio();
+    }));
   }
   paint();
   veil.classList.add('show');
+};
+
+/* ---------- shortlist persistence + advisor requests (demo fallbacks) ----------
+   The backend layer (loaded after this one in production builds) overrides
+   SYNC_SHORTLIST and sendPlanToAdvisor with real API versions. */
+window.SYNC_SHORTLIST = function(){
+  try{ localStorage.setItem('ffg.shortlist.demo', JSON.stringify(SHORTLIST)); }catch(e){}
+  const dn = typeof currentDonor==='function' && currentDonor();
+  if (dn && dn.shortlist !== SHORTLIST) dn.shortlist = SHORTLIST.map(s=>({...s}));
+};
+window.sendPlanToAdvisor = function(){
+  if (!SHORTLIST.length) return flash('Your shortlist is empty — add organizations first');
+  const items = SHORTLIST.map(s=>({org:s.id, planned:s.planned}));
+  const body = 'Shortlist plan: ' + items.map(i=>{const o=byId(i.org); return (o?o.name:'Org '+i.org)+' ('+fmtMoney(i.planned)+')';}).join(', ')
+    + ' — total ' + fmtMoney(items.reduce((s,i)=>s+i.planned,0));
+  const dn = typeof currentDonor==='function' && currentDonor();
+  if (dn) (dn.notifications = dn.notifications||[]).push({id:'n'+Math.random().toString(36).slice(2,8), date:new Date().toISOString().slice(0,10), body, handled:false});
+  flash('Plan shared with your advisor — it now appears on your profile');
+};
+/* static demo builds: restore the saved cart (production reloads it from the account) */
+setTimeout(()=>{
+  if (window.APP) return;
+  try{
+    const saved = JSON.parse(localStorage.getItem('ffg.shortlist.demo')||'[]');
+    if (saved.length && !SHORTLIST.length){ saved.forEach(s=>SHORTLIST.push(s)); updateCartBadge(); }
+  }catch(e){}
+}, 0);
+
+/* staff: edit a member's shortlist, confirm items into planned gifts, handle requests */
+window.staffShortlistOp = async function(dnId, orgId, action, planned){
+  let dn = donorList().find(x=>x.id===dnId); if (!dn) return null;
+  const live = window.APP && !APP.demo && window.PERSIST && PERSIST.staffShortlist;
+  if (live){
+    await PERSIST.staffShortlist(dn, orgId, action, planned);
+    if (typeof loadDonorRoster==='function') await loadDonorRoster();
+    dn = donorList().find(x=>x.id===dnId);
+  } else {
+    dn.shortlist = dn.shortlist||[];
+    const i = dn.shortlist.findIndex(s=>+s.id===+orgId);
+    if (action==='remove' && i>=0) dn.shortlist.splice(i,1);
+    if (action==='set'){ if (i>=0) dn.shortlist[i].planned = +planned||0; else dn.shortlist.push({id:+orgId, planned:+planned||0}); }
+    // keep a signed-in self donor's live cart in step
+    if (dn.donations===MEMBER.donations && dn.shortlist!==SHORTLIST){ SHORTLIST.length=0; dn.shortlist.forEach(s=>SHORTLIST.push({...s})); updateCartBadge?.(); }
+  }
+  return dn;
+};
+window.confirmShortlistGift = async function(dnId, orgId){
+  const dn = donorList().find(x=>x.id===dnId); if (!dn) return;
+  const it = (dn.shortlist||[]).find(s=>+s.id===+orgId); if (!it) return;
+  const date = new Date(Date.now()+30*864e5).toISOString().slice(0,10);
+  await staffGiftOp(dnId, 'create', {org:+orgId, amount:+it.planned||0, date, status:'planned'});
+  await staffShortlistOp(dnId, orgId, 'remove');
+  flash('Confirmed as a planned gift — scheduled for '+date);
+};
+window.toggleNotifHandled = async function(dnId, notifId){
+  let dn = donorList().find(x=>x.id===dnId); if (!dn) return;
+  const n = (dn.notifications||[]).find(x=>String(x.id)===String(notifId)); if (!n) return;
+  n.handled = !n.handled;
+  if (window.APP && !APP.demo && window.PERSIST?.notifHandled) PERSIST.notifHandled(n.id, n.handled);
 };
 
 /* ---------- staff view-as ---------- */
@@ -4207,6 +4302,13 @@ async function loadLiveData(){
     alloc = (await sb.rest('rpc/network_alloc', {method:'POST', body:{}})).map(a=>({org:a.org_id, amount:+a.total}));
     members = +(await sb.rest('rpc/network_members', {method:'POST', body:{}})) || 0;
   }catch(e){}
+  // the saved shortlist cart — restored on every sign-in, on any device
+  try{
+    const sl = await sb.rest('shortlist?select=*&user_id=eq.'+APP.userId);
+    SHORTLIST.length = 0;
+    sl.forEach(r=>SHORTLIST.push({id:+r.org_id, planned:+r.planned}));
+    if (typeof updateCartBadge==='function') updateCartBadge();
+  }catch(e){}
   // giving circles this user belongs to (aggregates only — RLS never exposes other members' gift rows)
   let myCircles = [];
   try{
@@ -4235,13 +4337,15 @@ async function loadLiveData(){
 async function loadDonorRoster(){
   APP.rosterError = null;
   try{
-    const [profs, allDons, circles, cmem, notes, invites] = await Promise.all([
+    const [profs, allDons, circles, cmem, notes, invites, slAll, notifs] = await Promise.all([
       sb.rest('profiles?select=*&order=created_at'),
       sb.rest('donations?select=*&order=gift_date'),
       sb.rest('circles?select=*').catch(()=>[]),
       sb.rest('circle_members?select=*').catch(()=>[]),
       sb.rest('donor_notes?select=*').catch(()=>[]),
       sb.rest('invites?select=*').catch(()=>[]),
+      sb.rest('shortlist?select=*').catch(()=>[]),
+      sb.rest('notifications?select=*&order=created_at').catch(()=>[]),
     ]);
     DB.circles = circles.map(c=>({id:c.id, name:c.name, desc:c.description||''}));
     DB.donors = profs.map(p=>({
@@ -4252,7 +4356,9 @@ async function loadDonorRoster(){
       circles: cmem.filter(m=>m.user_id===p.id).map(m=>m.circle_id),
       donations: allDons.filter(x=>x.user_id===p.id && x.status==='logged').map(x=>({id:x.id, org:x.org_id, date:x.gift_date, amount:+x.amount})),
       planned: allDons.filter(x=>x.user_id===p.id && x.status==='planned').map(x=>({id:x.id, org:x.org_id, date:x.gift_date, amount:+x.amount})),
-      shortlist:[], staffNotes:(notes.find(n=>n.user_id===p.id)||{}).body||'', tags:[],
+      shortlist: slAll.filter(s=>s.user_id===p.id).map(s=>({id:+s.org_id, planned:+s.planned})),
+      notifications: notifs.filter(n=>n.user_id===p.id).map(n=>({id:n.id, date:(n.created_at||'').slice(0,10), body:n.body||'', handled:!!n.handled})),
+      staffNotes:(notes.find(n=>n.user_id===p.id)||{}).body||'', tags:[],
     })).sort((a,b)=> (a.role==='staff')-(b.role==='staff') || a.fullName.localeCompare(b.fullName));
     const have = new Set(profs.map(p=>(p.email||'').toLowerCase()));
     DB.pendingInvites = invites.filter(iv=>!have.has((iv.email||'').toLowerCase()))
@@ -4328,6 +4434,21 @@ window.PERSIST = {
     sb.rest('invites', {method:'POST', body:{email:dn.email, note:'Invited from Donor studio: '+dn.fullName}})
       .catch(e=>flash('Invite not saved: '+e.message));
   },
+  /* staff edit any member's shortlist (RLS: staff-only beyond own rows) */
+  async staffShortlist(dn, orgId, action, planned){
+    if (APP.demo) return;
+    try{
+      if (action==='set')
+        await sb.rest('shortlist', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates'},
+          body:{user_id:dn.id, org_id:+orgId, planned:+planned||0}});
+      else if (action==='remove')
+        await sb.rest(`shortlist?user_id=eq.${dn.id}&org_id=eq.${+orgId}`, {method:'DELETE'});
+    }catch(e){ flash('Shortlist not saved: '+e.message); throw e; }
+  },
+  notifHandled(id, handled){
+    if (APP.demo) return;
+    sb.rest('notifications?id=eq.'+id, {method:'PATCH', body:{handled:!!handled}}).catch(()=>{});
+  },
   /* staff manage any member's full donation history + plans (RLS: staff-only) */
   async staffGift(dn, action, gift){
     if (APP.demo) return;
@@ -4340,6 +4461,29 @@ window.PERSIST = {
         await sb.rest('donations?id=eq.'+gift.id, {method:'DELETE'});
     }catch(e){ flash('Gift not saved: '+e.message); throw e; }
   },
+};
+
+/* ---------- shortlist + advisor plan (live overrides of the demo layer) ---------- */
+window.SYNC_SHORTLIST = function(orgId){
+  if (APP.demo) return;
+  const uid = window.VIEW_AS ? VIEW_AS.id : APP.userId;
+  if (!uid) return;
+  const it = SHORTLIST.find(x=>x.id===orgId);
+  if (it) sb.rest('shortlist', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates'},
+    body:{user_id:uid, org_id:+orgId, planned:+it.planned||0}}).catch(()=>{});
+  else sb.rest(`shortlist?user_id=eq.${uid}&org_id=eq.${+orgId}`, {method:'DELETE'}).catch(()=>{});
+};
+window.sendPlanToAdvisor = async function(){
+  if (!SHORTLIST.length) return flash('Your shortlist is empty — add organizations first');
+  const items = SHORTLIST.map(s=>({org:s.id, planned:s.planned}));
+  const body = 'Shortlist plan: ' + items.map(i=>{const o=byId(i.org); return (o?o.name:'Org '+i.org)+' ('+fmtMoney(i.planned)+')';}).join(', ')
+    + ' — total ' + fmtMoney(items.reduce((s,i)=>s+i.planned,0));
+  if (APP.demo){ flash('Plan shared with your advisor (demo)'); return; }
+  const uid = window.VIEW_AS ? VIEW_AS.id : APP.userId;
+  try{
+    await sb.rest('notifications', {method:'POST', body:{user_id:uid, kind:'advisor', body, payload:{items}}});
+    flash('Plan sent to your advisor — it now appears on your profile');
+  }catch(e){ flash('Could not send: '+e.message); }
 };
 
 /* ---------- donation logging ---------- */

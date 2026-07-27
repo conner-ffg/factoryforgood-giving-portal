@@ -23,6 +23,7 @@ CIRCLE_MEMBERS = [{'circle_id': 'test-circle', 'user_id': 'u-member'},
                   {'circle_id': 'test-circle', 'user_id': 'u-member2'}]
 DONOR_NOTES = {}
 INVITES = []
+NOTIFS = []
 seq = itertools.count(1)
 
 def circle_stats(cid):
@@ -152,6 +153,18 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             INVITES.append({'email': b.get('email'), 'note': b.get('note', '')})
             return self._send(201, [b])
+        if p.path == '/rest/v1/shortlist':
+            owner = b.get('user_id')
+            if owner != u['id'] and u['role'] != 'staff': return self._send(403, {'message': 'RLS: own rows only'})
+            SHORTLIST[:] = [s for s in SHORTLIST if not (s['user_id'] == owner and s['org_id'] == b['org_id'])]
+            row = {'user_id': owner, 'org_id': b['org_id'], 'planned': b.get('planned', 0)}
+            SHORTLIST.append(row); return self._send(201, [row])
+        if p.path == '/rest/v1/notifications':
+            owner = b.get('user_id')
+            if owner != u['id'] and u['role'] != 'staff': return self._send(403, {'message': 'RLS: own rows only'})
+            n = {'id': next(seq), 'user_id': owner, 'kind': b.get('kind', 'advisor'), 'body': b.get('body', ''),
+                 'payload': b.get('payload'), 'handled': False, 'created_at': '2026-07-27T12:00:00Z'}
+            NOTIFS.append(n); return self._send(201, [n])
         return self._send(404, {'message': 'mock: no route ' + p.path})
 
     def do_GET(self):
@@ -190,6 +203,13 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/invites':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, INVITES)
+        if p.path == '/rest/v1/shortlist':
+            rows = SHORTLIST if u['role'] == 'staff' else [s for s in SHORTLIST if s['user_id'] == u['id']]
+            if 'user_id' in f: rows = [s for s in rows if s['user_id'] == f['user_id']]
+            return self._send(200, rows)
+        if p.path == '/rest/v1/notifications':
+            rows = NOTIFS if u['role'] == 'staff' else [n for n in NOTIFS if n['user_id'] == u['id']]
+            return self._send(200, rows)
         if p.path == '/rest/v1/org_comments':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             rows = [c for c in COMMENTS if not c['resolved']] if f.get('resolved') == 'false' else COMMENTS
@@ -234,6 +254,12 @@ class H(BaseHTTPRequestHandler):
             cid = int(f['id'])
             for c in COMMENTS:
                 if c['id'] == cid: c.update(b); return self._send(200, [c])
+        if p.path == '/rest/v1/notifications':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            nid = int(f['id'])
+            for n in NOTIFS:
+                if n['id'] == nid: n.update(b); return self._send(200, [n])
+            return self._send(404, {'message': 'not found'})
         return self._send(404, {'message': 'mock: no route'})
 
     def do_DELETE(self):
@@ -252,6 +278,11 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             CIRCLE_MEMBERS[:] = [m for m in CIRCLE_MEMBERS
                                  if not (m['circle_id'] == f.get('circle_id') and m['user_id'] == f.get('user_id'))]
+            return self._send(204)
+        if p.path == '/rest/v1/shortlist':
+            owner = f.get('user_id')
+            if owner != u['id'] and u['role'] != 'staff': return self._send(403, {'message': 'RLS: own rows only'})
+            SHORTLIST[:] = [s for s in SHORTLIST if not (s['user_id'] == owner and str(s['org_id']) == f.get('org_id'))]
             return self._send(204)
         return self._send(404, {'message': 'mock: no route'})
 

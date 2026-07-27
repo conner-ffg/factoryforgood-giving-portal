@@ -85,6 +85,35 @@ drop policy if exists donations_staff_delete on public.donations;
 create policy donations_staff_delete on public.donations for delete
   using (public.is_staff());
 
+-- ---- persistent shortlist + advisor requests ------------------
+-- The shortlist table already exists (migration.sql) with owner-only
+-- access; staff additionally manage any member's cart from the studio.
+drop policy if exists shortlist_staff on public.shortlist;
+create policy shortlist_staff on public.shortlist for all
+  using (public.is_staff()) with check (public.is_staff());
+
+-- "Send plan to my advisor" writes a notification onto the profile;
+-- members create/read their own, staff see and handle all of them.
+create table if not exists public.notifications (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null default 'advisor',
+  body text,
+  payload jsonb,
+  handled boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table public.notifications enable row level security;
+drop policy if exists notif_self_read on public.notifications;
+create policy notif_self_read on public.notifications for select
+  using (user_id = auth.uid());
+drop policy if exists notif_self_insert on public.notifications;
+create policy notif_self_insert on public.notifications for insert
+  with check (user_id = auth.uid());
+drop policy if exists notif_staff_all on public.notifications;
+create policy notif_staff_all on public.notifications for all
+  using (public.is_staff()) with check (public.is_staff());
+
 -- ---- circle aggregates ---------------------------------------
 -- Security definer: returns ONLY pooled numbers, and only to staff
 -- or to a member of that circle. No individual gift rows leave the db.
