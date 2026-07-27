@@ -22,6 +22,7 @@ CIRCLES = {'test-circle': {'id': 'test-circle', 'name': 'Test Circle', 'descript
 CIRCLE_MEMBERS = [{'circle_id': 'test-circle', 'user_id': 'u-member'},
                   {'circle_id': 'test-circle', 'user_id': 'u-member2'}]
 DONOR_NOTES = {}
+INVITES = []
 seq = itertools.count(1)
 
 def circle_stats(cid):
@@ -139,6 +140,7 @@ class H(BaseHTTPRequestHandler):
             DONOR_NOTES[b['user_id']] = b.get('body', ''); return self._send(201, [b])
         if p.path == '/rest/v1/invites':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            INVITES.append({'email': b.get('email'), 'note': b.get('note', '')})
             return self._send(201, [b])
         return self._send(404, {'message': 'mock: no route ' + p.path})
 
@@ -175,6 +177,9 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/donor_notes':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, [{'user_id': k, 'body': v} for k, v in DONOR_NOTES.items()])
+        if p.path == '/rest/v1/invites':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            return self._send(200, INVITES)
         if p.path == '/rest/v1/org_comments':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             rows = [c for c in COMMENTS if not c['resolved']] if f.get('resolved') == 'false' else COMMENTS

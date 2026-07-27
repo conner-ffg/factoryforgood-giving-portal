@@ -3699,7 +3699,18 @@ window.renderDonorStudio = function(){
   const yr = String(new Date().getFullYear());
   const donors = donorList().filter(dn=>!dsCircleFilter || (dn.circles||[]).includes(dsCircleFilter));
   const lifetimeAll = donorList().reduce((s,dn)=>s+donorLifetime(dn),0);
-  $('#dsSummary').textContent = `${donorList().length} member profiles · ${circleList().length} giving circles · ${fmtMoney(lifetimeAll)} lifetime combined`;
+  let pend = []; try{ pend = DB.pendingInvites||[]; }catch(e){}
+  $('#dsSummary').textContent = `${donorList().length} profiles · ${circleList().length} giving circles · ${fmtMoney(lifetimeAll)} lifetime combined${pend.length?` · ${pend.length} invite${pend.length===1?'':'s'} pending`:''}`;
+  if (window.APP && APP.ready && !APP.demo && !donorList().length){
+    $('#dsTable').innerHTML = '';
+    $('#dsCircles').innerHTML = `<div class="muted" style="font-size:12.5px;border:1px solid var(--divider,var(--hairline));border-radius:10px;padding:12px 14px">
+      ${APP.rosterError
+        ? 'Couldn’t load live profiles ('+esc(APP.rosterError)+'). Make sure the latest <b>supabase/migration_donorstudio.sql</b> has been run in the Supabase SQL editor — it grants staff read access to profiles.'
+        : 'No profiles yet. Profiles appear here automatically the first time someone signs in; use <b>+ Add profile</b> to invite them.'}</div>`;
+    $('#dsNewCircle').onclick = ()=>openCirclePicker($('#dsNewCircle'), null);
+    $('#dsAddProfile').onclick = addProfileRow;
+    return;
+  }
   $('#dsCircles').innerHTML = circleList().map(c=>{
     const m = circleMembers(c.id);
     const tot = m.reduce((s,dn)=>s+donorLifetime(dn),0);
@@ -3718,8 +3729,8 @@ window.renderDonorStudio = function(){
       const init = (dn.fullName||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const plannedT = (dn.planned||[]).reduce((s,g)=>s+g.amount,0);
       return `<tr data-dn="${dn.id}">
-        <td><div class="dn-nm"><span class="dn-ava">${init}</span>
-          <span><b class="dn-ed" contenteditable data-f="fullName">${esc(dn.fullName)}</b><br>
+        <td><div class="dn-nm"><span class="dn-ava"${dn.role==='staff'?' style="background:var(--gold-2,#C9A55C)"':''}>${init}</span>
+          <span><b class="dn-ed" contenteditable data-f="fullName">${esc(dn.fullName)}</b>${dn.role==='staff'?' <span class="pill" style="font-size:9.5px;padding:1px 7px;vertical-align:1px">Staff</span>':''}<br>
           <span class="dn-sub">${esc(dn.email||'')}${dn.location?' · '+esc(dn.location):''}</span></span></div></td>
         <td><span class="dn-ed" contenteditable data-f="memberSince">${dn.memberSince||''}</span></td>
         <td style="max-width:210px">${(dn.circles||[]).map(cid=>`<span class="circ-chip on" data-rm="${cid}">${esc(circleById(cid)?.name||cid)} <span class="x">✕</span></span>`).join('')}
@@ -3732,7 +3743,13 @@ window.renderDonorStudio = function(){
         <td><div style="display:flex;flex-direction:column;gap:6px">
           <button class="btn dn-open" data-open="${dn.id}">Open dashboard →</button>
           <button class="btn dn-open" data-gifts="${dn.id}">Manage gifts</button></div></td>
-      </tr>`;}).join('')}</tbody>`;
+      </tr>`;}).join('')}
+    ${(!dsCircleFilter?pend:[]).map(iv=>`<tr style="opacity:.62">
+        <td><div class="dn-nm"><span class="dn-ava" style="background:var(--ink-3,#797772)">✉</span>
+          <span><b>${esc((iv.note.match(/Donor studio: (.+)$/)||[])[1]||iv.email.split('@')[0])}</b> <span class="pill" style="font-size:9.5px;padding:1px 7px;vertical-align:1px">Invited</span><br>
+          <span class="dn-sub">${esc(iv.email)} · profile activates at first sign-in</span></span></div></td>
+        <td colspan="7" class="dn-sub" style="vertical-align:middle">Awaiting first sign-in — name, circles, goals and gifts can be filled in once their profile exists.</td>
+        <td></td></tr>`).join('')}</tbody>`;
   const tb = $('#dsTable');
   tb.querySelectorAll('.dn-ed').forEach(el=>el.addEventListener('blur', ()=>{
     const dn = donorList().find(x=>x.id===el.closest('tr').dataset.dn); if (!dn) return;
@@ -3803,12 +3820,19 @@ function addProfileRow(){
   $('#npGo').addEventListener('click', ()=>{
     const name = $('#npName').value.trim(), email = $('#npEmail').value.trim().toLowerCase();
     if (!name || !/.+@.+\..+/.test(email)) return flash('Enter a name and a valid email');
+    if (window.APP && APP.ready && !APP.demo){
+      // live: record an invite — the profile row itself is created by the
+      // database the first time they sign in
+      window.PERSIST?.donorInvite?.({email, fullName:name});
+      (DB.pendingInvites = DB.pendingInvites||[]).push({email, note:'Invited from Donor studio: '+name});
+      closeModal(); renderDonorStudio(); flash('Invite recorded — '+name+' appears here fully once they first sign in');
+      return;
+    }
     const dn = {id:'d'+Math.random().toString(36).slice(2,8), email, name:name.split(' ')[0], fullName:name,
       role:'member', memberSince:new Date().getFullYear(), location:'', circles:[],
       donations:[], planned:[], shortlist:[], goal:0, staffNotes:'', tags:[]};
     (DB.donors = DB.donors||[]).push(dn);
-    window.PERSIST?.donorInvite?.(dn);
-    closeModal(); renderDonorStudio(); flash('Profile created'+(window.APP&&!APP.demo?' — invite recorded':''));
+    closeModal(); renderDonorStudio(); flash('Profile created');
   });
 }
 
@@ -4145,18 +4169,22 @@ async function loadLiveData(){
     await loadDonorRoster();
   }
 }
-/* staff only: the full member roster for the Donor studio (RLS blocks this for members) */
+/* staff only: the full roster for the Donor studio (RLS blocks this for members).
+   Every profile on the platform is listed — member or staff, with or without
+   any donation data — plus pending invites that haven't signed in yet. */
 async function loadDonorRoster(){
+  APP.rosterError = null;
   try{
-    const [profs, allDons, circles, cmem, notes] = await Promise.all([
+    const [profs, allDons, circles, cmem, notes, invites] = await Promise.all([
       sb.rest('profiles?select=*&order=created_at'),
       sb.rest('donations?select=*&order=gift_date'),
-      sb.rest('circles?select=*'),
-      sb.rest('circle_members?select=*'),
+      sb.rest('circles?select=*').catch(()=>[]),
+      sb.rest('circle_members?select=*').catch(()=>[]),
       sb.rest('donor_notes?select=*').catch(()=>[]),
+      sb.rest('invites?select=*').catch(()=>[]),
     ]);
     DB.circles = circles.map(c=>({id:c.id, name:c.name, desc:c.description||''}));
-    DB.donors = profs.filter(p=>p.role==='member').map(p=>({
+    DB.donors = profs.map(p=>({
       id:p.id, email:p.email,
       name:(p.full_name||p.email||'').split(/[@ ]/)[0], fullName:p.full_name||p.email||'',
       role:p.role, memberSince:+(p.member_since|| (p.created_at? new Date(p.created_at).getFullYear() : new Date().getFullYear())),
@@ -4165,8 +4193,13 @@ async function loadDonorRoster(){
       donations: allDons.filter(x=>x.user_id===p.id && x.status==='logged').map(x=>({id:x.id, org:x.org_id, date:x.gift_date, amount:+x.amount})),
       planned: allDons.filter(x=>x.user_id===p.id && x.status==='planned').map(x=>({id:x.id, org:x.org_id, date:x.gift_date, amount:+x.amount})),
       shortlist:[], staffNotes:(notes.find(n=>n.user_id===p.id)||{}).body||'', tags:[],
-    }));
-  }catch(e){}
+    })).sort((a,b)=> (a.role==='staff')-(b.role==='staff') || a.fullName.localeCompare(b.fullName));
+    const have = new Set(profs.map(p=>(p.email||'').toLowerCase()));
+    DB.pendingInvites = invites.filter(iv=>!have.has((iv.email||'').toLowerCase()))
+      .map(iv=>({email:iv.email, note:iv.note||''}));
+  }catch(e){
+    APP.rosterError = e.message;
+  }
 }
 async function loadStudioAnnotations(){
   try{

@@ -98,10 +98,18 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('staff sees Donor studio', await page.evaluate(() =>
     document.querySelector('#mainNav [data-route="#/donors"]').style.display !== 'none'));
   await page.evaluate(() => go('#/donors')); await page.waitForTimeout(900);
-  check('Donor studio lists member profiles only', await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('#dsTable tbody tr')];
-    return rows.length === 2 && !document.querySelector('#dsTable').textContent.includes('Sam Staff');
+  check('Donor studio lists every live profile', await page.evaluate(() => {
+    const t = document.querySelector('#dsTable').textContent;
+    return document.querySelectorAll('#dsTable tbody tr').length === 3 &&
+      t.includes('Mia Member') && t.includes('Noah Chen') && t.includes('Sam Staff');
   }));
+  // invite someone new — they appear as a pending profile immediately
+  await page.evaluate(async () => {
+    await PERSIST.donorInvite({ email: 'truman@example.com', fullName: 'Truman Wells' });
+    await loadDonorRoster(); renderDonorStudio();
+  });
+  await page.waitForTimeout(600);
+  check('pending invite listed until first sign-in', (await page.textContent('#dsTable')).includes('truman@example.com'));
   check('Donor studio shows real lifetime totals', (await page.textContent('#dsTable')).includes('$300k'));
   // view-as: open the first member's dashboard exactly as they see it
   await page.evaluate(() => {
