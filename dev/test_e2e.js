@@ -262,6 +262,17 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.waitForTimeout(1500);
   check('self-set password replaces the starter one', await page.evaluate(() =>
     document.querySelector('#gate').style.display === 'none'));
+  // tools hub: library renders, ph♥nder swipes into the shortlist
+  await page.evaluate(() => go('#/tools')); await page.waitForTimeout(700);
+  check('tools library renders all four tools', await page.evaluate(() =>
+    document.querySelector('#view-tools').classList.contains('active') &&
+    document.querySelectorAll('.tool-card').length === 4));
+  await page.evaluate(() => go('#/tools/phinder')); await page.waitForTimeout(800);
+  check('phinder deals cards from the live library', await page.evaluate(() =>
+    !!document.querySelector('.ph-card[data-id]')));
+  const before = await page.evaluate(() => SHORTLIST.length);
+  await page.evaluate(() => _phAct(true)); await page.waitForTimeout(900);
+  check('phinder right-swipe saves to the shortlist', await page.evaluate(() => SHORTLIST.length) === before + 1);
   await page.close();
 
   console.log('\nPASS', ok.length, '| FAIL', bad.length, bad.length ? bad : '');

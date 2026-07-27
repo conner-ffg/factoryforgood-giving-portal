@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Human Conditions Atlas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #f5f0e8;
+  --panel: #ede8df;
+  --border: #d4cdbf;
+  --ink: #1c1a17;
+  --ink2: #4a4540;
+  --ink3: #8a8278;
+  --shadow: rgba(28,26,23,0.12);
+
+  /* Red→Green scale — 5 tiers (muted/soft) */
+  --c1: #c2685a;   /* lowest / worst */
+  --c2: #d4956a;
+  --c3: #c8b26a;
+  --c4: #7db87a;
+  --c5: #4a8f6f;   /* highest / best */
+  --c0: #ccc5b5;   /* no data */
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────── */
+header {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.logo span {
+  font-weight: 400;
+  opacity: 0.55;
+  font-size: 0.75rem;
+  display: block;
+  letter-spacing: 0.08em;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* ── Layer tabs ──────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 6px 13px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.55);
+  background: transparent;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.tab:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+
+.tab.active {
+  background: var(--bg);
+  color: var(--ink);
+  border-color: var(--bg);
+  font-weight: 500;
+}
+
+/* ── Layout ──────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  height: calc(100vh - 64px);
+}
+
+#map-wrap {
+  position: relative;
+  overflow: hidden;
+  background: #ddd7cc;
+}
+
+#world-map {
+  width: 100%;
+  height: 100%;
+}
+
+.sphere-fill { fill: #c5dde8; }
+.graticule-line { fill: none; stroke: rgba(255,255,255,0.35); stroke-width: 0.3; }
+
+.country {
+  stroke: rgba(255,255,255,0.55);
+  stroke-width: 0.3;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.country:hover { filter: brightness(1.12) drop-shadow(0 0 3px rgba(0,0,0,0.3)); }
+.country.selected { stroke: var(--ink); stroke-width: 1.2; }
+.country.pulse-flare { stroke: rgba(210,70,50,0.85); stroke-width: 1.3; filter: brightness(1.4) drop-shadow(0 0 7px rgba(210,70,50,0.65)); }
+
+/* Pulse scan overlay */
+#pulse-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+#scan-line {
+  position: absolute;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(255,200,150,0.0) 8%,
+    rgba(255,175,90,0.6) 38%,
+    rgba(255,155,70,0.75) 50%,
+    rgba(255,175,90,0.6) 62%,
+    rgba(255,200,150,0.0) 92%,
+    transparent 100%
+  );
+  filter: blur(1px);
+  will-change: left;
+}
+
+#scan-glow {
+  position: absolute;
+  top: 0;
+  width: 140px;
+  height: 100%;
+  background: linear-gradient(to right,
+    transparent 0%,
+    rgba(255,180,80,0.03) 25%,
+    rgba(255,155,55,0.09) 50%,
+    rgba(255,180,80,0.03) 75%,
+    transparent 100%
+  );
+  will-change: left;
+}
+
+/* Bottom pulse status bar */
+#pulse-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 26px;
+  background: rgba(22,20,17,0.86);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 8px;
+  font-size: 0.57rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(245,240,232,0.38);
+  z-index: 3;
+}
+
+#pulse-label {
+  color: rgba(248,195,120,0.92);
+  font-weight: 500;
+  transition: opacity 0.25s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
+  min-width: 0;
+}
+
+.pulse-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(210,120,70,0.85);
+  flex-shrink: 0;
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+.scan-track {
+  position: absolute;
+  bottom: 26px; left: 0; right: 0;
+  height: 2px;
+  background: rgba(255,255,255,0.04);
+  z-index: 3;
+  overflow: hidden;
+}
+
+.scan-track-fill {
+  height: 100%;
+  background: rgba(255,165,80,0.35);
+  width: 0%;
+  transition: width 0.05s linear;
+}
+
+@keyframes blink {
+  0%,100% { opacity:1; } 50% { opacity:0.15; }
+}
+
+/* ── Sidebar ─────────────────────────────────────── */
+.sidebar {
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sec-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+/* Legend */
+.legend-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.legend-seg {
+  flex: 1;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.56rem;
+  color: var(--ink3);
+  margin-bottom: 14px;
+}
+
+.tier-rows { display: flex; flex-direction: column; gap: 5px; }
+
+.tier-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border: 1px solid transparent;
+}
+
+.tier-row:hover { background: rgba(28,26,23,0.05); }
+
+.tier-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tier-info { flex: 1; }
+
+.tier-name {
+  font-size: 0.64rem;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.tier-sub {
+  font-size: 0.56rem;
+  color: var(--ink3);
+  margin-top: 1px;
+}
+
+.tier-count {
+  font-size: 0.58rem;
+  color: var(--ink3);
+  background: rgba(28,26,23,0.07);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+/* Selected country card */
+.country-card {
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border);
+  min-height: 100px;
+}
+
+.card-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.card-tier {
+  display: inline-block;
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.card-metrics { display: flex; flex-direction: column; gap: 4px; }
+
+.card-metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  color: var(--ink2);
+}
+
+.card-metric-val { color: var(--ink); font-weight: 500; }
+
+.card-hint {
+  font-size: 0.6rem;
+  color: var(--ink3);
+  font-style: italic;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* Bottom source */
+.source {
+  padding: 14px 18px;
+  margin-top: auto;
+  font-size: 0.55rem;
+  color: var(--ink3);
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+}
+
+/* Tooltip */
+#tooltip {
+  position: fixed;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 6px;
+  padding: 9px 13px;
+  font-size: 0.68rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s;
+  z-index: 999;
+  max-width: 180px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+#tooltip.show { opacity: 1; }
+.tt-country { font-family: 'Playfair Display',serif; font-size:0.82rem; font-weight:700; margin-bottom:3px; }
+.tt-val { font-size:0.62rem; opacity:0.7; margin-top:2px; }
+.tt-tier { font-size:0.6rem; margin-top:3px; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    Global Human Conditions Atlas
+    <span>Six indicators · ~180 countries · 2022–2024 estimates</span>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-layer="income">Household Income</button>
+    <button class="tab" data-layer="safety">Safety &amp; Stability</button>
+    <button class="tab" data-layer="wellbeing">Wellbeing</button>
+    <button class="tab" data-layer="lifespan">Avg. Lifespan</button>
+    <button class="tab" data-layer="food">Food Security</button>
+    <button class="tab" data-layer="water">Water Security</button>
+    <button class="tab" data-layer="education">Education</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div id="map-wrap">
+    <svg id="world-map" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg>
+    <div id="pulse-overlay">
+      <div id="scan-glow"></div>
+      <div id="scan-line"></div>
+    </div>
+    <div class="scan-track"><div class="scan-track-fill" id="scan-track-fill"></div></div>
+    <div id="pulse-bar">
+      <div class="pulse-dot"></div>
+      <span>Scanning</span>
+      <div id="pulse-label">—</div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <!-- Selected country -->
+    <div class="country-card" id="country-card">
+      <div class="card-hint" id="card-hint">Hover a country to preview, click to pin details here.</div>
+    </div>
+
+    <!-- Legend -->
+    <div class="sidebar-section">
+      <div class="sec-label" id="legend-title">Household Income (PPP-adj.)</div>
+      <div class="legend-bar">
+        <div class="legend-seg" style="background:var(--c1)"></div>
+        <div class="legend-seg" style="background:var(--c2)"></div>
+        <div class="legend-seg" style="background:var(--c3)"></div>
+        <div class="legend-seg" style="background:var(--c4)"></div>
+        <div class="legend-seg" style="background:var(--c5)"></div>
+      </div>
+      <div class="legend-labels">
+        <span id="leg-lo">Lowest</span>
+        <span id="leg-hi">Highest</span>
+      </div>
+
+      <div class="tier-rows" id="tier-rows">
+        <div class="tier-row"><div class="tier-dot" style="background:var(--c5)"></div><div class="tier-info"><div class="tier-name" id="t5-name">High</div><div class="tier-sub" id="t5-sub"></div></div><span class="tier-count" id="t5-ct">—</span></div>
+        <div class="tier-row"><div class="tier-dot" style="background:var(--c4)"></div><div class="tier-info"><div class="tier-name" id="t4-name">Upper-Mid</div><div class="tier-sub" id="t4-sub"></div></div><span class="tier-count" id="t4-ct">—</span></div>
+        <div class="tier-row"><div class="tier-dot" style="background:var(--c3)"></div><div class="tier-info"><div class="tier-name" id="t3-name">Mid</div><div class="tier-sub" id="t3-sub"></div></div><span class="tier-count" id="t3-ct">—</span></div>
+        <div class="tier-row"><div class="tier-dot" style="background:var(--c2)"></div><div class="tier-info"><div class="tier-name" id="t2-name">Lower-Mid</div><div class="tier-sub" id="t2-sub"></div></div><span class="tier-count" id="t2-ct">—</span></div>
+        <div class="tier-row"><div class="tier-dot" style="background:var(--c1)"></div><div class="tier-info"><div class="tier-name" id="t1-name">Low</div><div class="tier-sub" id="t1-sub"></div></div><span class="tier-count" id="t1-ct">—</span></div>
+        <div class="tier-row"><div class="tier-dot" style="background:var(--c0)"></div><div class="tier-info"><div class="tier-name" style="color:var(--ink3)">No Data</div></div><span class="tier-count" id="t0-ct">—</span></div>
+      </div>
+    </div>
+
+    <div class="source" id="src-note">
+      Sources: World Bank GNI/PPP, UNODC, Gallup World Poll / WHR, WHO, FAO, AQUASTAT. Tiers are illustrative estimates; exact scores vary by methodology and year.
+    </div>
+  </aside>
+</div>
+
+<div id="tooltip">
+  <div class="tt-country" id="tt-country"></div>
+  <div class="tt-tier" id="tt-tier"></div>
+  <div class="tt-val" id="tt-val"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// LAYER DEFINITIONS
+// ══════════════════════════════════════════════════════════════════
+const LAYERS = {
+  income: {
+    title: "Household Income (PPP-adjusted)",
+    loLabel: "Extreme Poverty", hiLabel: "High Income",
+    tiers: [
+      { name: "High Income",       sub: ">$25k GNI/cap PPP" },
+      { name: "Upper-Middle",      sub: "$10k–$25k" },
+      { name: "Middle",            sub: "$4k–$10k" },
+      { name: "Lower-Middle",      sub: "$1.5k–$4k" },
+      { name: "Low / Poverty",     sub: "<$1.5k" },
+    ],
+    source: "World Bank GNI per capita (PPP, current intl. $), 2022–2023.",
+  },
+  safety: {
+    title: "Safety, Crime & Gov. Stability",
+    loLabel: "Conflict / High Crime", hiLabel: "Very Safe",
+    tiers: [
+      { name: "Very Safe",         sub: "Low crime, stable gov." },
+      { name: "Safe",              sub: "Moderate risk" },
+      { name: "Mixed",             sub: "Elevated crime or tension" },
+      { name: "Unsafe",            sub: "High crime / instability" },
+      { name: "Conflict / Failed", sub: "War, collapse, extreme crime" },
+    ],
+    source: "Global Peace Index 2023, UNODC homicide rates, Fragile States Index 2023.",
+  },
+  wellbeing: {
+    title: "Subjective Wellbeing (Life Satisfaction)",
+    loLabel: "Very Low", hiLabel: "Very High",
+    tiers: [
+      { name: "Very High",         sub: "Cantril ladder 6.8+" },
+      { name: "High",              sub: "5.8–6.8" },
+      { name: "Moderate",          sub: "4.8–5.8" },
+      { name: "Low",               sub: "3.8–4.8" },
+      { name: "Very Low",          sub: "< 3.8" },
+    ],
+    source: "World Happiness Report 2023 (Gallup World Poll Cantril ladder).",
+  },
+  lifespan: {
+    title: "Average Life Expectancy at Birth",
+    loLabel: "< 60 yrs", hiLabel: "> 80 yrs",
+    tiers: [
+      { name: "80+ years",         sub: "Exceptional longevity" },
+      { name: "75–80 years",       sub: "High" },
+      { name: "68–75 years",       sub: "Moderate" },
+      { name: "60–68 years",       sub: "Below average" },
+      { name: "< 60 years",        sub: "Low — disease burden" },
+    ],
+    source: "WHO Global Health Observatory 2022; UN Population Division.",
+  },
+  food: {
+    title: "Food Security & Nutrition",
+    loLabel: "Severe Hunger", hiLabel: "Fully Secure",
+    tiers: [
+      { name: "Fully Secure",      sub: "< 2.5% undernourished" },
+      { name: "Mostly Secure",     sub: "2.5–7.5%" },
+      { name: "Moderate Risk",     sub: "7.5–20%" },
+      { name: "Food Insecure",     sub: "20–35%" },
+      { name: "Severe Hunger",     sub: "> 35% undernourished" },
+    ],
+    source: "FAO State of Food Security 2023; IFPRI Global Food Security Index.",
+  },
+  water: {
+    title: "Water Security & Access",
+    loLabel: "Severe Scarcity", hiLabel: "Full Access",
+    tiers: [
+      { name: "Full Access",       sub: ">95% safe water" },
+      { name: "Good Access",       sub: "80–95%" },
+      { name: "Partial Access",    sub: "60–80%" },
+      { name: "Poor Access",       sub: "40–60%" },
+      { name: "Severe Scarcity",   sub: "< 40% or crisis" },
+    ],
+    source: "WHO/UNICEF JMP 2022; FAO AQUASTAT; Water Risk Atlas.",
+  },
+  education: {
+    title: "Education Outcomes (PISA / Literacy)",
+    loLabel: "Very Poor", hiLabel: "Exceptional",
+    tiers: [
+      { name: "Exceptional",       sub: "PISA 540+ / top systems" },
+      { name: "High",              sub: "PISA 510–539" },
+      { name: "Average",           sub: "PISA 470–509" },
+      { name: "Below Average",     sub: "PISA 400–469" },
+      { name: "Poor",              sub: "PISA < 400 or low literacy" },
+    ],
+    source: "OECD PISA 2022; UNESCO literacy rates; World Bank education index.",
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// COUNTRY DATA  (tier 5=best/green, 1=worst/red, 0=no data)
+// Keyed by country name matching Natural Earth 110m
+// ══════════════════════════════════════════════════════════════════
+const DATA = {
+  // ── INCOME ──────────────────────────────────────────────────────
+  income: {
+    "United States of America":5,"Canada":5,"Australia":5,"New Zealand":5,
+    "United Kingdom":5,"Germany":5,"France":5,"Netherlands":5,"Belgium":5,
+    "Switzerland":5,"Austria":5,"Sweden":5,"Norway":5,"Denmark":5,"Finland":5,
+    "Iceland":5,"Ireland":5,"Luxembourg":5,"Japan":5,"South Korea":5,
+    "Singapore":5,"Hong Kong":5,"Israel":5,"United Arab Emirates":5,"Qatar":5,
+    "Kuwait":5,"Bahrain":5,"Saudi Arabia":4,"Oman":4,
+    "Italy":5,"Spain":5,"Portugal":4,"Greece":4,"Czech Republic":4,
+    "Poland":4,"Slovakia":4,"Hungary":4,"Estonia":4,"Latvia":4,"Lithuania":4,
+    "Slovenia":4,"Croatia":4,"Malta":5,"Cyprus":4,
+    "Russia":3,"Turkey":3,"Mexico":3,"Brazil":3,"China":3,"Argentina":3,
+    "Chile":3,"Colombia":3,"Peru":3,"Kazakhstan":3,"Malaysia":4,
+    "Thailand":3,"Romania":3,"Bulgaria":3,"Serbia":3,"Montenegro":3,
+    "Bosnia and Herz.":3,"Albania":3,"North Macedonia":3,"Kosovo":2,
+    "Iran":3,"Jordan":3,"Lebanon":2,"Libya":2,"Tunisia":3,"Algeria":3,
+    "Egypt":2,"Morocco":3,"Ecuador":3,"Paraguay":3,"Bolivia":2,
+    "Venezuela":2,"Cuba":2,"Jamaica":3,"Dominican Republic":3,"Panama":4,
+    "Costa Rica":4,"Guatemala":2,"Honduras":2,"El Salvador":2,"Nicaragua":2,
+    "South Africa":3,"Botswana":3,"Namibia":3,"Gabon":3,"Angola":2,
+    "Nigeria":2,"Ghana":3,"Côte d'Ivoire":2,"Cameroon":2,"Kenya":2,
+    "Tanzania":2,"Ethiopia":1,"Uganda":1,"Rwanda":2,"Mozambique":1,
+    "Zimbabwe":1,"Zambia":2,"Malawi":1,"Madagascar":1,"Sudan":1,
+    "S. Sudan":1,"Somalia":1,"Mali":1,"Niger":1,"Burkina Faso":1,
+    "Guinea":1,"Sierra Leone":1,"Liberia":1,"Dem. Rep. Congo":1,
+    "Central African Rep.":1,"Chad":1,"Eritrea":1,
+    "India":2,"Pakistan":2,"Bangladesh":2,"Sri Lanka":2,"Nepal":1,
+    "Afghanistan":1,"Myanmar":1,"Laos":2,"Cambodia":2,"Vietnam":2,
+    "Indonesia":2,"Philippines":2,"Mongolia":2,"Uzbekistan":1,
+    "Kyrgyzstan":2,"Tajikistan":1,"Turkmenistan":2,"Azerbaijan":3,
+    "Georgia":3,"Armenia":3,"Ukraine":2,"Belarus":3,"Moldova":2,
+    "Papua New Guinea":2,"Fiji":3,"Iraq":3,"Syria":1,"Yemen":1,
+    "Palestine":2,"Bhutan":2,"Timor-Leste":1,
+    "Haiti":1,"Djibouti":2,"Comoros":1,"Lesotho":1,"Swaziland":2,
+  },
+
+  // ── SAFETY / GOV STABILITY ──────────────────────────────────────
+  safety: {
+    "Iceland":5,"New Zealand":5,"Denmark":5,"Austria":5,"Norway":5,
+    "Portugal":5,"Finland":5,"Switzerland":5,"Canada":5,"Japan":5,
+    "Slovenia":5,"Czech Republic":5,"Singapore":5,"Australia":5,
+    "Ireland":5,"Netherlands":5,"Sweden":5,"Germany":5,"Belgium":4,
+    "Poland":4,"Estonia":4,"Latvia":4,"Lithuania":4,"Slovakia":4,
+    "Hungary":4,"Romania":4,"Croatia":4,"Bulgaria":4,"Serbia":4,
+    "Malta":5,"Cyprus":4,"Greece":4,"Italy":4,"France":4,
+    "United Kingdom":4,"Spain":4,"Luxembourg":5,"Bhutan":4,
+    "United States of America":3,"South Korea":4,"Taiwan":4,
+    "Costa Rica":4,"Uruguay":4,"Chile":4,"Panama":3,"Cuba":3,
+    "Argentina":3,"Brazil":2,"Mexico":2,"Colombia":2,"Peru":3,
+    "Bolivia":3,"Ecuador":3,"Paraguay":3,"Dominican Republic":3,
+    "Jamaica":2,"El Salvador":2,"Honduras":1,"Guatemala":2,
+    "Nicaragua":2,"Venezuela":2,"Haiti":1,
+    "China":3,"Mongolia":4,"Vietnam":4,"Laos":3,"Thailand":3,
+    "Malaysia":4,"Indonesia":3,"Philippines":2,"Cambodia":3,
+    "Myanmar":1,"Sri Lanka":3,"India":3,"Maldives":4,"Bhutan":5,
+    "Bangladesh":3,"Nepal":3,"Timor-Leste":3,
+    "Australia":5,"New Zealand":5,"Fiji":4,"Papua New Guinea":2,
+    "Russia":2,"Ukraine":1,"Belarus":2,"Moldova":3,"Georgia":3,
+    "Armenia":3,"Azerbaijan":3,"Kazakhstan":3,"Uzbekistan":3,
+    "Kyrgyzstan":3,"Tajikistan":2,"Turkmenistan":2,
+    "Israel":3,"Jordan":3,"Lebanon":1,"Syria":1,"Iraq":1,
+    "Iran":2,"Turkey":3,"Saudi Arabia":3,"UAE":5,"Qatar":5,
+    "Kuwait":4,"Bahrain":3,"Oman":4,"Yemen":1,"Palestine":1,
+    "Egypt":3,"Libya":1,"Tunisia":3,"Algeria":3,"Morocco":3,
+    "South Africa":2,"Botswana":4,"Namibia":4,"Zimbabwe":2,
+    "Zambia":3,"Malawi":3,"Mozambique":2,"Angola":2,
+    "Tanzania":3,"Kenya":3,"Uganda":3,"Rwanda":4,"Ethiopia":2,
+    "Nigeria":2,"Ghana":4,"Côte d'Ivoire":3,"Cameroon":2,
+    "Senegal":4,"Guinea":2,"Sierra Leone":3,"Liberia":3,
+    "Dem. Rep. Congo":1,"Central African Rep.":1,"Chad":1,
+    "Sudan":1,"S. Sudan":1,"Somalia":1,"Eritrea":1,"Mali":1,
+    "Niger":1,"Burkina Faso":1,"Djibouti":3,"Gabon":3,
+    "United Arab Emirates":5, "Pakistan":2,"Afghanistan":1,
+  },
+
+  // ── WELLBEING ────────────────────────────────────────────────────
+  wellbeing: {
+    "Finland":5,"Denmark":5,"Iceland":5,"Sweden":5,"Israel":5,
+    "Netherlands":5,"Norway":5,"Luxembourg":5,"Switzerland":5,
+    "Australia":5,"New Zealand":5,"Canada":5,"Austria":4,
+    "United States of America":4,"Germany":4,"Czech Republic":4,
+    "Belgium":4,"United Kingdom":4,"Ireland":4,"France":4,
+    "Slovenia":4,"Romania":4,"Serbia":4,"Estonia":4,"Poland":4,
+    "Slovakia":4,"Latvia":4,"Lithuania":4,"Hungary":4,"Croatia":4,
+    "Kosovo":4,"Montenegro":4,"North Macedonia":4,"Albania":4,
+    "Bulgaria":4,"Moldova":4,"Ukraine":3,"Belarus":3,"Russia":3,
+    "Kazakhstan":3,"China":3,"Japan":4,"South Korea":4,"Singapore":5,
+    "Thailand":3,"Vietnam":3,"Malaysia":3,"Indonesia":3,"Philippines":3,
+    "Mongolia":3,"Cambodia":3,"Laos":3,"Myanmar":2,"Bangladesh":3,
+    "India":3,"Pakistan":3,"Nepal":3,"Sri Lanka":3,"Bhutan":4,
+    "Mexico":4,"Costa Rica":5,"Panama":4,"Guatemala":4,
+    "El Salvador":4,"Honduras":4,"Nicaragua":4,"Cuba":4,
+    "Dominican Republic":4,"Jamaica":4,"Haiti":2,
+    "Brazil":4,"Argentina":4,"Colombia":4,"Chile":4,"Peru":4,
+    "Bolivia":3,"Ecuador":3,"Paraguay":3,"Venezuela":2,"Uruguay":4,
+    "Saudi Arabia":4,"UAE":4,"Qatar":4,"Kuwait":3,"Bahrain":3,
+    "Oman":3,"Jordan":3,"Iran":3,"Iraq":2,"Syria":1,"Yemen":1,
+    "Lebanon":2,"Palestine":2,"Turkey":3,"Israel":5,
+    "Egypt":3,"Morocco":3,"Algeria":3,"Tunisia":3,"Libya":2,
+    "South Africa":3,"Botswana":3,"Namibia":3,"Zimbabwe":2,
+    "Nigeria":3,"Ghana":3,"Senegal":3,"Kenya":3,"Tanzania":2,
+    "Uganda":3,"Rwanda":3,"Ethiopia":3,"Mozambique":2,
+    "Mali":2,"Niger":2,"Burkina Faso":2,"Chad":1,"Somalia":1,
+    "S. Sudan":1,"Central African Rep.":1,"Dem. Rep. Congo":2,
+    "Cameroon":2,"Sierra Leone":2,"Liberia":3,"Côte d'Ivoire":3,
+    "Guinea":2,"Angola":3,"Zambia":3,"Malawi":2,"Madagascar":2,
+    "Eritrea":2,"Djibouti":2,"Comoros":2,"Lesotho":2,
+    "Afghanistan":1,"Pakistan":2,"Tajikistan":3,"Kyrgyzstan":3,
+    "Uzbekistan":3,"Turkmenistan":2,"Azerbaijan":4,"Georgia":4,
+    "Armenia":4,"United Kingdom":4,"Portugal":4,"Spain":4,
+    "Italy":4,"Greece":3,"Cyprus":4,"Malta":4,
+    "Papua New Guinea":3,"Fiji":4,"Timor-Leste":2,
+    "United Arab Emirates":4,
+  },
+
+  // ── LIFESPAN ─────────────────────────────────────────────────────
+  lifespan: {
+    "Japan":5,"Switzerland":5,"Singapore":5,"South Korea":5,"Australia":5,
+    "Iceland":5,"Spain":5,"Italy":5,"Sweden":5,"France":5,"Norway":5,
+    "Israel":5,"New Zealand":5,"Canada":5,"Netherlands":5,"Ireland":5,
+    "Luxembourg":5,"Austria":5,"Germany":5,"Belgium":5,"Denmark":5,
+    "Finland":5,"United Kingdom":4,"United States of America":4,
+    "Portugal":5,"Greece":5,"Slovenia":5,"Cyprus":5,"Malta":5,
+    "Czech Republic":4,"Poland":4,"Slovakia":4,"Hungary":4,
+    "Estonia":4,"Latvia":4,"Lithuania":4,"Croatia":4,"Romania":4,
+    "Bulgaria":4,"Serbia":4,"Montenegro":4,"Albania":4,
+    "Bosnia and Herz.":4,"North Macedonia":4,"Kosovo":4,"Moldova":3,
+    "Russia":3,"Ukraine":3,"Belarus":4,"Kazakhstan":3,"Georgia":4,
+    "Armenia":4,"Azerbaijan":4,"Turkey":4,"China":4,"Vietnam":4,
+    "Thailand":4,"Malaysia":4,"Sri Lanka":4,"Maldives":4,"Brazil":4,
+    "Mexico":4,"Argentina":4,"Chile":5,"Costa Rica":4,"Cuba":5,
+    "Panama":4,"Uruguay":5,"Colombia":4,"Ecuador":4,"Peru":4,
+    "El Salvador":4,"Honduras":4,"Nicaragua":4,"Guatemala":3,
+    "Dominican Republic":4,"Jamaica":4,"Bolivia":3,"Paraguay":4,
+    "Venezuela":4,"Iran":4,"Jordan":4,"Saudi Arabia":4,"UAE":4,
+    "Qatar":5,"Kuwait":4,"Bahrain":4,"Oman":4,"Lebanon":4,
+    "Syria":3,"Iraq":3,"Egypt":3,"Algeria":4,"Tunisia":4,
+    "Libya":4,"Morocco":3,"Indonesia":3,"Philippines":3,
+    "Mongolia":3,"India":3,"Bangladesh":3,"Pakistan":3,"Nepal":3,
+    "Myanmar":3,"Cambodia":3,"Laos":3,"Bhutan":4,"Timor-Leste":3,
+    "Papua New Guinea":3,"Fiji":4,"Uzbekistan":3,"Kyrgyzstan":3,
+    "Tajikistan":3,"Turkmenistan":3,"Palestine":3,"Afghanistan":2,
+    "Yemen":2,"Haiti":2,"South Africa":2,"Botswana":3,
+    "Namibia":3,"Zimbabwe":2,"Zambia":2,"Malawi":2,"Mozambique":2,
+    "Tanzania":3,"Uganda":3,"Kenya":3,"Rwanda":3,"Ethiopia":2,
+    "Nigeria":3,"Ghana":3,"Senegal":3,"Côte d'Ivoire":3,
+    "Cameroon":2,"Angola":2,"Dem. Rep. Congo":2,"Chad":2,
+    "Sudan":2,"S. Sudan":1,"Somalia":1,"Mali":2,"Niger":2,
+    "Burkina Faso":2,"Central African Rep.":1,"Sierra Leone":1,
+    "Liberia":2,"Guinea":2,"Eritrea":2,"Madagascar":3,
+    "Comoros":3,"Lesotho":2,"Djibouti":3,"Gabon":3,
+    "United Arab Emirates":5,
+  },
+
+  // ── FOOD SECURITY ────────────────────────────────────────────────
+  food: {
+    "United States of America":5,"Canada":5,"Australia":5,"New Zealand":5,
+    "Norway":5,"Sweden":5,"Denmark":5,"Finland":5,"Iceland":5,
+    "Netherlands":5,"Germany":5,"France":5,"Switzerland":5,"Austria":5,
+    "Belgium":5,"Luxembourg":5,"United Kingdom":5,"Ireland":5,
+    "Japan":5,"Singapore":5,"South Korea":5,"Israel":5,
+    "Czech Republic":5,"Poland":5,"Slovenia":5,"Slovak Rep.":5,
+    "Slovakia":5,"Hungary":4,"Romania":4,"Bulgaria":4,"Croatia":4,
+    "Estonia":4,"Latvia":4,"Lithuania":4,"Portugal":5,"Spain":5,
+    "Italy":5,"Greece":4,"Malta":5,"Cyprus":4,
+    "Chile":4,"Brazil":3,"Argentina":4,"Mexico":4,"Colombia":3,
+    "Peru":3,"Ecuador":3,"Uruguay":4,"Bolivia":3,"Paraguay":3,
+    "Venezuela":2,"Panama":4,"Costa Rica":4,"Cuba":4,
+    "Dominican Republic":3,"El Salvador":3,"Honduras":2,
+    "Guatemala":3,"Nicaragua":3,"Jamaica":3,"Haiti":1,
+    "Russia":4,"Ukraine":3,"Belarus":4,"Kazakhstan":3,"China":4,
+    "Vietnam":4,"Thailand":4,"Malaysia":4,"Indonesia":3,
+    "Philippines":3,"India":3,"Sri Lanka":3,"Bangladesh":2,
+    "Pakistan":2,"Nepal":2,"Myanmar":2,"Cambodia":3,"Laos":3,
+    "Mongolia":3,"Iran":3,"Turkey":4,"Jordan":3,"Lebanon":2,
+    "Egypt":3,"Morocco":3,"Algeria":3,"Tunisia":3,
+    "Saudi Arabia":4,"UAE":4,"Qatar":4,"Kuwait":4,"Bahrain":4,
+    "Oman":4,"Iraq":2,"Syria":1,"Yemen":1,"Afghanistan":1,
+    "South Africa":3,"Botswana":3,"Namibia":3,"Zimbabwe":2,
+    "Ghana":3,"Nigeria":2,"Senegal":3,"Kenya":3,"Tanzania":2,
+    "Uganda":2,"Rwanda":3,"Ethiopia":1,"Mozambique":1,
+    "Angola":2,"Zambia":2,"Malawi":1,"Madagascar":2,
+    "Dem. Rep. Congo":1,"Sudan":1,"S. Sudan":1,"Somalia":1,
+    "Chad":1,"Mali":1,"Niger":1,"Burkina Faso":2,
+    "Central African Rep.":1,"Eritrea":1,"Sierra Leone":2,
+    "Liberia":2,"Guinea":2,"Côte d'Ivoire":3,"Cameroon":2,
+    "Djibouti":2,"Comoros":2,"Lesotho":2,"Gabon":3,
+    "Palestine":2,"Georgia":4,"Armenia":3,"Azerbaijan":3,
+    "Uzbekistan":3,"Tajikistan":2,"Kyrgyzstan":3,"Turkmenistan":3,
+    "Moldova":3,"Serbia":4,"Montenegro":4,"North Macedonia":3,
+    "Albania":3,"Bosnia and Herz.":4,"Kosovo":3,
+    "Papua New Guinea":2,"Fiji":3,"Timor-Leste":2,
+    "United Arab Emirates":4,
+  },
+
+  // ── WATER SECURITY ───────────────────────────────────────────────
+  water: {
+    "United States of America":5,"Canada":5,"Australia":5,"New Zealand":5,
+    "Norway":5,"Sweden":5,"Denmark":5,"Finland":5,"Iceland":5,
+    "Netherlands":5,"Germany":5,"France":5,"Switzerland":5,"Austria":5,
+    "Belgium":5,"Luxembourg":5,"United Kingdom":5,"Ireland":5,
+    "Japan":5,"Singapore":5,"South Korea":5,"Israel":4,
+    "Czech Republic":5,"Poland":5,"Hungary":4,"Romania":4,
+    "Bulgaria":4,"Croatia":4,"Estonia":5,"Latvia":5,"Lithuania":5,
+    "Slovenia":5,"Slovakia":5,"Portugal":5,"Spain":5,"Italy":5,
+    "Greece":4,"Malta":4,"Cyprus":4,"Belgium":5,
+    "Chile":4,"Brazil":3,"Argentina":4,"Mexico":3,"Colombia":3,
+    "Peru":3,"Ecuador":3,"Uruguay":5,"Bolivia":2,"Paraguay":3,
+    "Venezuela":2,"Cuba":4,"Panama":4,"Costa Rica":4,
+    "Dominican Republic":3,"El Salvador":3,"Honduras":2,
+    "Guatemala":2,"Nicaragua":3,"Jamaica":3,"Haiti":1,
+    "Russia":4,"Ukraine":4,"Belarus":5,"Kazakhstan":3,
+    "China":3,"Vietnam":3,"Thailand":3,"Malaysia":4,
+    "Indonesia":2,"Philippines":3,"India":2,"Sri Lanka":3,
+    "Bangladesh":2,"Pakistan":2,"Nepal":2,"Myanmar":2,
+    "Cambodia":2,"Laos":3,"Mongolia":3,"Iran":3,
+    "Turkey":3,"Jordan":2,"Lebanon":2,"Iraq":2,"Syria":2,
+    "Yemen":1,"Afghanistan":1,"Palestine":1,
+    "Saudi Arabia":2,"UAE":3,"Qatar":3,"Kuwait":2,"Bahrain":2,
+    "Oman":2,"Egypt":2,"Morocco":3,"Algeria":2,"Libya":2,
+    "Tunisia":3,"South Africa":3,"Botswana":3,"Namibia":2,
+    "Zimbabwe":2,"Ghana":3,"Nigeria":2,"Kenya":2,"Tanzania":2,
+    "Uganda":2,"Rwanda":3,"Ethiopia":1,"Mozambique":1,
+    "Angola":1,"Zambia":2,"Malawi":2,"Madagascar":2,
+    "Dem. Rep. Congo":1,"Sudan":1,"S. Sudan":1,"Somalia":1,
+    "Chad":1,"Mali":1,"Niger":1,"Burkina Faso":1,
+    "Central African Rep.":1,"Eritrea":1,"Sierra Leone":2,
+    "Liberia":2,"Guinea":1,"Côte d'Ivoire":2,"Cameroon":2,
+    "Senegal":3,"Djibouti":1,"Comoros":2,"Lesotho":2,"Gabon":3,
+    "Georgia":4,"Armenia":3,"Azerbaijan":3,"Uzbekistan":2,
+    "Tajikistan":2,"Kyrgyzstan":3,"Turkmenistan":2,"Moldova":3,
+    "Serbia":4,"Montenegro":4,"Albania":3,"Bosnia and Herz.":4,
+    "North Macedonia":3,"Kosovo":3,
+    "Papua New Guinea":3,"Fiji":3,"Timor-Leste":2,
+    "United Arab Emirates":3,
+  },
+
+  // ── EDUCATION ────────────────────────────────────────────────────
+  education: {
+    // Tier 5 — Exceptional (PISA 540+)
+    "Singapore":5,"Taiwan":5,"Hong Kong":5,
+    // Tier 4 — High (PISA 510–539)
+    "Japan":4,"South Korea":4,"Estonia":4,"Switzerland":4,"Canada":4,
+    "Finland":4,"Ireland":4,"Netherlands":4,"Norway":4,"United Kingdom":4,
+    "Germany":4,"Australia":4,"Sweden":4,"Iceland":4,"Luxembourg":4,
+    "China":4,"Vietnam":4,
+    // Tier 3 — Average (PISA 470–509)
+    "Austria":3,"Czech Republic":3,"New Zealand":3,"France":3,"Denmark":3,
+    "Poland":3,"Belgium":3,"Hungary":3,"Slovakia":3,"Spain":3,"Slovenia":3,
+    "Italy":3,"Latvia":3,"United States of America":3,"Lithuania":3,
+    "Portugal":3,"Croatia":3,"Israel":3,"Serbia":3,"Montenegro":3,
+    "Russia":3,"Ukraine":3,"Belarus":3,"Kazakhstan":3,"Malta":3,"Cyprus":3,
+    "Bulgaria":3,
+    // Tier 2 — Below Average (PISA 400–469)
+    "Turkey":2,"Greece":2,"Malaysia":2,"Brazil":2,"Mexico":2,"Chile":2,
+    "Romania":2,"Colombia":2,"Uruguay":2,"Thailand":2,"Jordan":2,"Egypt":2,
+    "Morocco":2,"Dominican Republic":2,"Bolivia":2,"Peru":2,"Paraguay":2,
+    "South Africa":2,"Indonesia":2,"Kyrgyzstan":2,"Azerbaijan":2,
+    "Georgia":2,"Armenia":2,"Moldova":2,"Albania":2,"Bosnia and Herz.":2,
+    "North Macedonia":2,"Kosovo":2,"Iran":2,"Algeria":2,"Tunisia":2,
+    "Saudi Arabia":2,"United Arab Emirates":2,"Qatar":2,"Kuwait":2,
+    "Bahrain":2,"Oman":2,"Namibia":2,"Botswana":2,"Ghana":2,
+    "Kenya":2,"Rwanda":2,"Senegal":2,"Nigeria":2,"Mongolia":2,
+    "Venezuela":2,"Cuba":2,"Panama":2,"Costa Rica":2,"Jamaica":2,
+    "Ecuador":2,"Guatemala":2,"Argentina":2,"Uzbekistan":2,"Tajikistan":2,
+    "Turkmenistan":2,"Sri Lanka":2,"Bhutan":2,"India":2,
+    // Tier 1 — Poor (< 400 / very low literacy)
+    "Philippines":1,"Cambodia":1,"El Salvador":1,"Honduras":1,"Myanmar":1,
+    "Laos":1,"Bangladesh":1,"Pakistan":1,"Nepal":1,"Afghanistan":1,
+    "Haiti":1,"Nicaragua":1,"Somalia":1,"Mali":1,"Niger":1,
+    "Burkina Faso":1,"Chad":1,"Central African Rep.":1,"Dem. Rep. Congo":1,
+    "S. Sudan":1,"Sudan":1,"Eritrea":1,"Ethiopia":1,"Mozambique":1,
+    "Malawi":1,"Madagascar":1,"Angola":1,"Sierra Leone":1,"Guinea":1,
+    "Liberia":1,"Timor-Leste":1,"Papua New Guinea":1,"Djibouti":1,
+    "Comoros":1,"Lesotho":1,"Zimbabwe":1,"Zambia":1,"Uganda":1,
+    "Tanzania":1,"Cameroon":1,"Côte d'Ivoire":1,"Benin":1,
+    "Iraq":1,"Syria":1,"Yemen":1,"Libya":1,"Lebanon":2,
+    "Palestine":2,"Gabon":2,"Angola":1,"Togo":1,
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// DISPLAY LABELS PER LAYER
+// ══════════════════════════════════════════════════════════════════
+function getTierLabel(layer, tier, countryName) {
+  const t = LAYERS[layer].tiers;
+  if (!t || tier === 0) return "No data";
+  return t[5 - tier]?.name || "—";
+}
+
+function getTierValue(layer, tier) {
+  const t = LAYERS[layer].tiers;
+  if (!t || tier === 0) return "";
+  return t[5 - tier]?.sub || "";
+}
+
+const TIER_COLORS = ["#ccc5b5","#c2685a","#d4956a","#c8b26a","#7db87a","#4a8f6f"];
+
+// ══════════════════════════════════════════════════════════════════
+// MAP RENDER
+// ══════════════════════════════════════════════════════════════════
+let currentLayer = "income";
+let worldData = null;
+let selectedCountry = null;
+let pathSelection = null;
+let nameIndex = {};
+
+async function init() {
+  const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json");
+  worldData = await res.json();
+
+  const svg = d3.select("#world-map");
+  const W = 960, H = 500;
+  const proj = d3.geoNaturalEarth1().scale(153).translate([W/2, H/2]);
+  const path = d3.geoPath().projection(proj);
+
+  svg.append("path").datum({type:"Sphere"}).attr("class","sphere-fill").attr("d",path);
+  svg.append("path").datum(d3.geoGraticule()()).attr("class","graticule-line").attr("d",path);
+
+  const countries = topojson.feature(worldData, worldData.objects.countries).features;
+
+  // Build name lookup
+  countries.forEach(f => {
+    const n = f.properties?.name;
+    if (n) nameIndex[n] = f;
+  });
+
+  pathSelection = svg.selectAll(".country")
+    .data(countries)
+    .enter().append("path")
+    .attr("class","country")
+    .attr("d", path)
+    .on("mousemove", onMouseMove)
+    .on("mouseleave", onMouseLeave)
+    .on("click", onClick);
+
+  renderLayer(currentLayer);
+
+  // Tab clicks
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      currentLayer = tab.dataset.layer;
+      renderLayer(currentLayer);
+      if (selectedCountry) updateCard(selectedCountry, currentLayer);
+    });
+  });
+}
+
+function getTier(countryName, layer) {
+  const d = DATA[layer];
+  return d[countryName] ?? 0;
+}
+
+function renderLayer(layer) {
+  const counts = {0:0,1:0,2:0,3:0,4:0,5:0};
+
+  pathSelection
+    .transition().duration(300)
+    .style("fill", d => {
+      const name = d.properties?.name;
+      const tier = getTier(name, layer);
+      counts[tier]++;
+      return TIER_COLORS[tier];
+    });
+
+  // Update legend
+  const L = LAYERS[layer];
+  document.getElementById("legend-title").textContent = L.title;
+  document.getElementById("leg-lo").textContent = L.loLabel;
+  document.getElementById("leg-hi").textContent = L.hiLabel;
+  document.getElementById("src-note").textContent = "Source: " + L.source;
+
+  const t = L.tiers;
+  [5,4,3,2,1].forEach((tier, i) => {
+    document.getElementById(`t${tier}-name`).textContent = t[i]?.name || "";
+    document.getElementById(`t${tier}-sub`).textContent = t[i]?.sub || "";
+    document.getElementById(`t${tier}-ct`).textContent = counts[tier];
+  });
+  document.getElementById("t0-ct").textContent = counts[0];
+}
+
+function onMouseMove(event, d) {
+  const name = d.properties?.name || "Unknown";
+  const tier = getTier(name, currentLayer);
+  const label = getTierLabel(currentLayer, tier, name);
+  const val = getTierValue(currentLayer, tier);
+
+  document.getElementById("tt-country").textContent = name;
+  document.getElementById("tt-tier").textContent = tier > 0 ? label : "No data";
+  document.getElementById("tt-tier").style.color = TIER_COLORS[tier];
+  document.getElementById("tt-val").textContent = val;
+
+  const tt = document.getElementById("tooltip");
+  tt.classList.add("show");
+  tt.style.left = (event.clientX + 14) + "px";
+  tt.style.top  = (event.clientY - 10) + "px";
+}
+
+function onMouseLeave() {
+  document.getElementById("tooltip").classList.remove("show");
+}
+
+function onClick(event, d) {
+  d3.selectAll(".country").classed("selected", false);
+  d3.select(this).classed("selected", true);
+  selectedCountry = d.properties?.name;
+  updateCard(selectedCountry, currentLayer);
+}
+
+function updateCard(name, layer) {
+  const tier = getTier(name, layer);
+  const label = getTierLabel(layer, tier, name);
+  const val = getTierValue(layer, tier);
+  const color = TIER_COLORS[tier];
+
+  // Gather all layer scores for this country
+  const allLayers = Object.keys(LAYERS);
+  const metricRows = allLayers.map(lk => {
+    const t = getTier(name, lk);
+    const lbl = LAYERS[lk].tiers[5-t]?.name || "No data";
+    return `<div class="card-metric">
+      <span>${LAYERS[lk].title.split(" ")[0]}${LAYERS[lk].title.split(" ")[1] ? " " + LAYERS[lk].title.split(" ")[1] : ""}</span>
+      <span class="card-metric-val" style="color:${TIER_COLORS[t]}">${t > 0 ? lbl : "—"}</span>
+    </div>`;
+  }).join("");
+
+  document.getElementById("country-card").innerHTML = `
+    <div class="card-name">${name}</div>
+    <span class="card-tier" style="background:${color}22;color:${color}">${tier > 0 ? label : "No data"}</span>
+    <div class="card-metrics">${metricRows}</div>
+  `;
+}
+
+init();
+
+// ══════════════════════════════════════════════════════════════════
+// PULSE SCAN ENGINE
+// ══════════════════════════════════════════════════════════════════
+(function() {
+  const SCAN_DURATION = 9000;   // ms for one full left→right sweep
+  const PAUSE_DURATION = 2200;  // rest at end before restarting
+  const FLARE_RADIUS = 52;      // px either side of scan line that can flare
+  const FLARE_TIERS = [1, 2];   // tiers that get highlighted
+
+  let scanStart = null;
+  let pausing = false;
+  let pauseStart = null;
+  let flaredSet = new Set();
+  let flareCooldown = new Map(); // name → timestamp last flared
+
+  // Cache bounding boxes for each country path once map is ready
+  let countryBBoxes = []; // { el, cx, name, tier }
+
+  function buildBBoxCache() {
+    const mapWrap = document.getElementById('map-wrap');
+    const wrapRect = mapWrap.getBoundingClientRect();
+    countryBBoxes = [];
+    document.querySelectorAll('.country').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const cx = rect.left - wrapRect.left + rect.width / 2;
+      const name = el.__data__?.properties?.name;
+      if (!name) return;
+      countryBBoxes.push({ el, cx, name, rect, wrapLeft: wrapRect.left });
+    });
+  }
+
+  function getScanX(progress, wrapWidth) {
+    // Goes from -5% to 105% of wrap width
+    return (progress * 1.1 - 0.05) * wrapWidth;
+  }
+
+  const scanLine = document.getElementById('scan-line');
+  const scanGlow = document.getElementById('scan-glow');
+  const scanFill = document.getElementById('scan-track-fill');
+  const pulseLabel = document.getElementById('pulse-label');
+
+  let labelQueue = [];
+  let labelTimer = null;
+
+  function flashLabel(text) {
+    labelQueue.push(text);
+    if (labelTimer) return;
+    function next() {
+      if (labelQueue.length === 0) { labelTimer = null; return; }
+      const t = labelQueue.shift();
+      pulseLabel.style.opacity = '0';
+      setTimeout(() => {
+        pulseLabel.textContent = t;
+        pulseLabel.style.opacity = '1';
+        labelTimer = setTimeout(next, 900);
+      }, 180);
+    }
+    next();
+  }
+
+  function clearFlares() {
+    flaredSet.forEach(el => {
+      if (!el.classList.contains('selected')) {
+        el.classList.remove('pulse-flare');
+      }
+    });
+    flaredSet.clear();
+  }
+
+  function tick(ts) {
+    const mapWrap = document.getElementById('map-wrap');
+    const wrapWidth = mapWrap.offsetWidth;
+
+    if (pausing) {
+      if (!pauseStart) pauseStart = ts;
+      if (ts - pauseStart >= PAUSE_DURATION) {
+        pausing = false;
+        pauseStart = null;
+        scanStart = ts;
+        clearFlares();
+        buildBBoxCache(); // refresh on each new sweep
+        pulseLabel.textContent = '—';
+        scanFill.style.width = '0%';
+      }
+      requestAnimationFrame(tick);
+      return;
+    }
+
+    if (!scanStart) scanStart = ts;
+    const elapsed = ts - scanStart;
+    const progress = Math.min(elapsed / SCAN_DURATION, 1);
+
+    const scanX = getScanX(progress, wrapWidth);
+
+    scanLine.style.left = scanX + 'px';
+    scanGlow.style.left = (scanX - 70) + 'px';
+    scanFill.style.width = (progress * 100).toFixed(1) + '%';
+
+    // Check which at-risk countries are within the flare radius
+    const now = Date.now();
+    countryBBoxes.forEach(({ el, cx, name }) => {
+      const tier = getTier(name, currentLayer);
+      if (!FLARE_TIERS.includes(tier)) return;
+
+      const dist = Math.abs(cx - scanX);
+      if (dist < FLARE_RADIUS) {
+        if (!flaredSet.has(el)) {
+          const lastFlare = flareCooldown.get(name) || 0;
+          if (now - lastFlare > SCAN_DURATION * 0.6) {
+            el.classList.add('pulse-flare');
+            flaredSet.add(el);
+            flareCooldown.set(name, now);
+            flashLabel(name);
+            // Auto-remove flare after 1.1s
+            setTimeout(() => {
+              el.classList.remove('pulse-flare');
+              flaredSet.delete(el);
+            }, 1100);
+          }
+        }
+      }
+    });
+
+    if (progress >= 1) {
+      pausing = true;
+      scanLine.style.left = '105%';
+      scanGlow.style.left = 'calc(105% - 70px)';
+      requestAnimationFrame(tick);
+      return;
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  // Wait until map paths are rendered
+  setTimeout(() => {
+    buildBBoxCache();
+    requestAnimationFrame(tick);
+  }, 1200);
+})();
+</script>
+</body>
+</html>

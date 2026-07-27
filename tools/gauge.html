@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Generosity Gauge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0D1526;
+    --navy-mid: #162038;
+    --navy-light: #1E2D4A;
+    --gold: #D4A843;
+    --gold-dim: #9B7B30;
+    --cream: #F0EAD8;
+    --cream-dim: #A89F8C;
+    --red: #C0392B;
+    --orange: #E07B39;
+    --amber: #D4A843;
+    --lime: #7AB648;
+    --green: #2E8B57;
+    --teal: #1A6B6B;
+  }
+
+  body {
+    background: var(--navy);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 60px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+    max-width: 560px;
+  }
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0.8;
+  }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 6vw, 44px);
+    line-height: 1.05;
+    color: var(--cream);
+    margin-bottom: 10px;
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--cream-dim);
+    line-height: 1.6;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(212,168,67,0.15);
+    border-radius: 16px;
+    padding: 28px 28px 32px;
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 20px;
+  }
+
+  /* TOGGLE */
+  .mode-toggle {
+    display: flex;
+    background: var(--navy);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 28px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .mode-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--cream-dim);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    letter-spacing: 0.01em;
+  }
+  .mode-btn.active {
+    background: var(--gold);
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .mode-btn:not(.active):hover {
+    color: var(--cream);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* INPUTS */
+  .field-group {
+    margin-bottom: 18px;
+  }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    margin-bottom: 7px;
+    display: block;
+  }
+  .field-hint {
+    font-size: 11px;
+    color: var(--cream-dim);
+    opacity: 0.6;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-prefix {
+    position: absolute;
+    left: 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--gold);
+    pointer-events: none;
+  }
+  .input-field {
+    width: 100%;
+    background: var(--navy);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 9px;
+    color: var(--cream);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 12px 14px 12px 30px;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+  .input-field::-webkit-outer-spin-button,
+  .input-field::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .input-field:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(212,168,67,0.15);
+  }
+  .input-field::placeholder { color: rgba(240,234,216,0.2); }
+
+  .fields-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .per-person-display {
+    background: var(--navy);
+    border: 1px dashed rgba(212,168,67,0.25);
+    border-radius: 9px;
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--gold);
+    margin-top: 6px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  .per-person-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    opacity: 0.5;
+    margin-right: 10px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* GAUGE CARD */
+  .gauge-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(212,168,67,0.15);
+    border-radius: 16px;
+    padding: 28px 28px 32px;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .gauge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .gauge-label-block {}
+  .gauge-section-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    opacity: 0.7;
+    margin-bottom: 4px;
+  }
+  .gauge-pct-display {
+    font-family: 'DM Serif Display', serif;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--cream);
+  }
+  .gauge-pct-display .pct-num { }
+  .gauge-pct-display .pct-sym {
+    font-size: 22px;
+    color: var(--gold);
+    vertical-align: top;
+    margin-top: 6px;
+    display: inline-block;
+  }
+  .gauge-amount-block {
+    text-align: right;
+  }
+  .gauge-amount-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    opacity: 0.5;
+    margin-bottom: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+  .gauge-amount-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  /* THE GAUGE */
+  .gauge-track-wrap {
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .gauge-track {
+    height: 28px;
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(to right,
+      #C0392B 0%,
+      #C0392B 5%,
+      #E07B39 5%,
+      #E07B39 12%,
+      #D4A843 12%,
+      #D4A843 22%,
+      #7AB648 22%,
+      #7AB648 35%,
+      #2E8B57 35%,
+      #2E8B57 60%,
+      #1A6B6B 60%,
+      #1A6B6B 100%
+    );
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .gauge-track-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--navy);
+    transform-origin: left;
+    transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .gauge-needle {
+    position: absolute;
+    top: -4px;
+    width: 4px;
+    height: 36px;
+    background: white;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    left: 0%;
+    box-shadow: 0 0 8px rgba(255,255,255,0.6);
+    z-index: 10;
+  }
+  .gauge-needle::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+  }
+
+  .gauge-zones {
+    display: flex;
+    margin-top: 7px;
+    gap: 2px;
+  }
+  .zone-pip {
+    height: 5px;
+    border-radius: 3px;
+    flex: 1;
+  }
+  .zone-tick-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .zone-tick {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--cream-dim);
+    opacity: 0.4;
+  }
+
+  /* RATING BADGE */
+  .rating-display {
+    margin-top: 24px;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: all 0.4s ease;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .rating-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .rating-text {}
+  .rating-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .rating-desc {
+    font-size: 12px;
+    color: var(--cream-dim);
+    line-height: 1.5;
+    opacity: 0.75;
+  }
+
+  /* BENCHMARKS */
+  .benchmarks {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .bench-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    opacity: 0.4;
+    margin-bottom: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+  .bench-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .bench-name {
+    font-size: 12px;
+    color: var(--cream-dim);
+    opacity: 0.65;
+  }
+  .bench-bar-wrap {
+    flex: 1;
+    margin: 0 12px;
+    height: 5px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bench-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .bench-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--cream-dim);
+    opacity: 0.5;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* EMPTY STATE */
+  .empty-gauge {
+    text-align: center;
+    padding: 20px 0;
+    color: var(--cream-dim);
+    opacity: 0.35;
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 22px 0;
+  }
+
+  /* WHAT COULD I DO */
+  .potential-banner {
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: rgba(212,168,67,0.07);
+    border: 1px solid rgba(212,168,67,0.18);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .potential-icon { font-size: 20px; }
+  .potential-text {
+    font-size: 12px;
+    color: var(--cream-dim);
+    line-height: 1.5;
+  }
+  .potential-text strong {
+    color: var(--gold);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    .fields-row { grid-template-columns: 1fr; }
+    .gauge-pct-display { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">Factory for Good · Giving Calibration</div>
+  <h1>The Generosity <em>Gauge</em></h1>
+  <p>Where do you actually land on the spectrum of human generosity? No judgment. (Well, a little.)</p>
+</div>
+
+<!-- INPUT CARD -->
+<div class="card">
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-income" onclick="setMode('income')">Annual Income</button>
+    <button class="mode-btn" id="btn-nw" onclick="setMode('nw')">Net Worth</button>
+  </div>
+
+  <!-- Primary Amount -->
+  <div class="field-group">
+    <label class="field-label" id="primary-label">Household Annual Income</label>
+    <div class="input-wrap">
+      <span class="input-prefix">$</span>
+      <input class="input-field" type="number" id="primary-amount" placeholder="0" oninput="recalculate()" />
+    </div>
+  </div>
+
+  <!-- Household Size + Per-person -->
+  <div class="fields-row">
+    <div class="field-group">
+      <label class="field-label">Household Members</label>
+      <div class="input-wrap">
+        <span class="input-prefix" style="left:12px; font-family:Inter; font-size:13px;">👥</span>
+        <input class="input-field" type="number" id="household-size" placeholder="1" min="1" max="20" value="1" style="padding-left:36px;" oninput="recalculate()" />
+      </div>
+      <div class="field-hint">You + spouse + dependents</div>
+    </div>
+    <div class="field-group">
+      <label class="field-label" id="per-person-label">Per Person</label>
+      <div class="per-person-display" id="per-person-display">
+        <span class="per-person-label">—</span>
+        <span id="per-person-val">enter values above</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charitable Giving -->
+  <div class="field-group">
+    <label class="field-label">Annual Charitable Deployments</label>
+    <div class="input-wrap">
+      <span class="input-prefix">$</span>
+      <input class="input-field" type="number" id="giving-amount" placeholder="0" oninput="recalculate()" />
+    </div>
+    <div class="field-hint">Actual $ to orgs — excludes DAF/foundation unfinished contributions</div>
+  </div>
+
+</div>
+
+<!-- GAUGE CARD -->
+<div class="gauge-card">
+
+  <div id="results-area">
+    <div class="empty-gauge">Fill in your numbers above to see where you land.</div>
+  </div>
+
+</div>
+
+<script>
+  let mode = 'income';
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btn-income').classList.toggle('active', m === 'income');
+    document.getElementById('btn-nw').classList.toggle('active', m === 'nw');
+    document.getElementById('primary-label').textContent = m === 'income' ? 'Household Annual Income' : 'Total Net Worth';
+    document.getElementById('per-person-label').textContent = m === 'income' ? 'Income / Person' : 'NW / Person';
+    recalculate();
+  }
+
+  function fmt(n) {
+    if (n >= 1e9) return '$' + (n/1e9).toFixed(1).replace(/\.0$/,'') + 'B';
+    if (n >= 1e6) return '$' + (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+    if (n >= 1e3) return '$' + (n/1e3).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',') + 'K';
+    return '$' + n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  }
+
+  function fmtFull(n) {
+    return '$' + Math.round(n).toLocaleString();
+  }
+
+  // Poverty line 2025 approx: ~$15k/person/year
+  const POVERTY_PER_PERSON = 15000;
+
+  function getRatingData(pct, perPerson, isNW) {
+    // Dynamic tiers based on wealth level
+    // For income: poverty-aware scaling
+    // For NW: absolute thresholds matter more
+
+    const ratings = [
+      {
+        min: 0, max: 0.5,
+        title: "Technically Alive",
+        icon: "🪨",
+        color: "#8B3A3A",
+        bg: "rgba(192,57,43,0.12)",
+        border: "rgba(192,57,43,0.3)",
+        desc: "Zero. Nothing. The philanthropic equivalent of standing outside a bakery and just… smelling. Your charitable footprint is a rounding error on someone's tax return."
+      },
+      {
+        min: 0.5, max: 2,
+        title: "Bless Your Heart",
+        icon: "🍞",
+        color: "#C0392B",
+        bg: "rgba(192,57,43,0.12)",
+        border: "rgba(192,57,43,0.3)",
+        desc: "You gave something. A crumb. A noble crumb. The soup kitchen appreciates your $47 check. Truly. You're basically a saint. (You're not a saint.)"
+      },
+      {
+        min: 2, max: 4,
+        title: "Participation Trophy",
+        icon: "🥉",
+        color: "#E07B39",
+        bg: "rgba(224,123,57,0.1)",
+        border: "rgba(224,123,57,0.28)",
+        desc: "You're giving! Sort of. Enough to mention at parties but not enough to back it up when pressed. 'I give to charity' technically checks out. Barely."
+      },
+      {
+        min: 4, max: 8,
+        title: "Respectable Human Being",
+        icon: "👔",
+        color: "#D4A843",
+        bg: "rgba(212,168,67,0.1)",
+        border: "rgba(212,168,67,0.25)",
+        desc: "Hey now, look at you. You crossed the 4% line. People who actually care about this stuff would nod approvingly at you. Not clap, but nod."
+      },
+      {
+        min: 8, max: 12,
+        title: "Decent, Actually",
+        icon: "✅",
+        color: "#7AB648",
+        bg: "rgba(122,182,72,0.1)",
+        border: "rgba(122,182,72,0.25)",
+        desc: "You're doing the thing. Double digits. Your generosity could survive public scrutiny. The sector thanks you. Some lives have genuinely been changed here."
+      },
+      {
+        min: 12, max: 18,
+        title: "Generosity Goals",
+        icon: "🌟",
+        color: "#2E8B57",
+        bg: "rgba(46,139,87,0.12)",
+        border: "rgba(46,139,87,0.28)",
+        desc: "Okay, now we're talking. You are the person others quietly benchmark against. You've made it past the 'dabbling' phase into actual commitment territory."
+      },
+      {
+        min: 18, max: 30,
+        title: "Trailblazing Leader",
+        icon: "🚀",
+        color: "#1A8A8A",
+        bg: "rgba(26,138,138,0.12)",
+        border: "rgba(26,138,138,0.28)",
+        desc: "You're pulling serious weight in the philanthropic ecosystem. This is leadership-class giving. People talk about you (admiringly) in donor circles. You've earned it."
+      },
+      {
+        min: 30, max: Infinity,
+        title: "Alarming Generosity",
+        icon: "🌊",
+        color: "#1A6B6B",
+        bg: "rgba(26,107,107,0.14)",
+        border: "rgba(26,107,107,0.3)",
+        desc: "At this level you're either a saint, restructuring your estate, or deeply committed to the cause. Either way, the nonprofit sector is naming a wing after you. Probably."
+      }
+    ];
+
+    return ratings.find(r => pct >= r.min && pct < r.max) || ratings[ratings.length - 1];
+  }
+
+  function getExpectationNote(perPerson, isNW) {
+    if (isNW) {
+      if (perPerson < 100000) return null;
+      if (perPerson < 1000000) return { note: "With modest wealth, even 2–5% annually is meaningful and achievable.", threshold: 2 };
+      if (perPerson < 5000000) return { note: "At millionaire-level NW, a 5–10% annual giving rate is genuinely impactful and increasingly common among high-performers.", threshold: 5 };
+      return { note: "At $5M+ NW per capita, the philanthropic sector considers 10%+ giving rate to be table stakes for serious donors.", threshold: 10 };
+    } else {
+      if (perPerson < POVERTY_PER_PERSON * 2) return { note: "Near poverty line — any giving is genuinely sacrificial. Even 1% matters enormously.", threshold: 1 };
+      if (perPerson < POVERTY_PER_PERSON * 4) return { note: "Moderate income — the historical 10% tithe benchmark is aspirational but meaningful here.", threshold: 10 };
+      if (perPerson < 100000) return { note: "Middle-income range — financial advisors and impact researchers typically cite 5–10% as the 'serious giving' zone.", threshold: 5 };
+      if (perPerson < 200000) return { note: "High income — 10–15% giving is increasingly expected of those who track effective giving benchmarks.", threshold: 10 };
+      return { note: "At $200K+/person income, the philanthropic community considers 10–20%+ as the marker of genuine commitment.", threshold: 15 };
+    }
+  }
+
+  function recalculate() {
+    const primary = parseFloat(document.getElementById('primary-amount').value) || 0;
+    const size = Math.max(1, parseInt(document.getElementById('household-size').value) || 1);
+    const giving = parseFloat(document.getElementById('giving-amount').value) || 0;
+    const isNW = mode === 'nw';
+
+    const perPerson = primary / size;
+
+    // Update per-person display
+    const ppEl = document.getElementById('per-person-val');
+    const ppDisplay = document.getElementById('per-person-display');
+    if (primary > 0) {
+      ppEl.textContent = fmtFull(perPerson);
+      ppDisplay.querySelector('.per-person-label').textContent = isNW ? 'NW/head' : '$/yr';
+    } else {
+      ppEl.textContent = 'enter values above';
+      ppDisplay.querySelector('.per-person-label').textContent = '—';
+    }
+
+    const resultsArea = document.getElementById('results-area');
+
+    if (primary <= 0 || giving <= 0) {
+      const pct = primary > 0 && giving === 0 ? 0 : null;
+      if (pct === null) {
+        resultsArea.innerHTML = '<div class="empty-gauge">Fill in your numbers above to see where you land.</div>';
+        return;
+      }
+    }
+
+    const pct = primary > 0 ? (giving / primary) * 100 : 0;
+    const needlePos = Math.min(Math.max(pct, 0), 100);
+    const rating = getRatingData(pct, perPerson, isNW);
+    const expNote = getExpectationNote(perPerson, isNW);
+
+    // Thresholds for gauge labels (dynamic)
+    let ticks, tickLabels;
+    if (isNW && perPerson > 5000000) {
+      ticks = [0, 5, 10, 20, 30, 50];
+      tickLabels = ['0%', '5%', '10%', '20%', '30%', '50%+'];
+    } else if (!isNW && perPerson > 200000) {
+      ticks = [0, 5, 10, 15, 25, 40];
+      tickLabels = ['0%', '5%', '10%', '15%', '25%', '40%+'];
+    } else if (!isNW && perPerson < POVERTY_PER_PERSON * 2) {
+      ticks = [0, 1, 3, 5, 8, 15];
+      tickLabels = ['0%', '1%', '3%', '5%', '8%', '15%+'];
+    } else {
+      ticks = [0, 2, 5, 10, 15, 25];
+      tickLabels = ['0%', '2%', '5%', '10%', '15%', '25%+'];
+    }
+
+    // What 10% / 20% would look like
+    const tenPct = primary * 0.10;
+    const twentyPct = primary * 0.20;
+    const fivePct = primary * 0.05;
+
+    // Benchmarks
+    const benchmarks = [
+      { name: "Average American household", pct: 2.1, color: '#555' },
+      { name: "Tithe / 10% standard", pct: 10, color: '#D4A843' },
+      { name: "Giving What We Can pledge", pct: 10, color: '#7AB648' },
+      { name: "UHNW 'serious donor' bar", pct: isNW ? 5 : 15, color: '#2E8B57' },
+    ];
+
+    const maxDisplay = isNW ? (perPerson > 5000000 ? 50 : 30) : (perPerson > 200000 ? 40 : 25);
+
+    resultsArea.innerHTML = `
+      <div class="gauge-header">
+        <div class="gauge-label-block">
+          <div class="gauge-section-label">Your Giving Rate</div>
+          <div class="gauge-pct-display">
+            <span class="pct-num">${pct.toFixed(1)}</span><span class="pct-sym">%</span>
+          </div>
+        </div>
+        <div class="gauge-amount-block">
+          <div class="gauge-amount-label">Annual Giving</div>
+          <div class="gauge-amount-val">${fmtFull(giving)}</div>
+        </div>
+      </div>
+
+      <div class="gauge-track-wrap">
+        <div class="gauge-track">
+          <div class="gauge-track-bg" id="gauge-bg"></div>
+          <div class="gauge-needle" id="gauge-needle"></div>
+        </div>
+        <div class="zone-tick-row">
+          ${tickLabels.map(t => `<span class="zone-tick">${t}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="rating-display" id="rating-display" style="background:${rating.bg}; border-color:${rating.border};">
+        <div class="rating-icon">${rating.icon}</div>
+        <div class="rating-text">
+          <div class="rating-title" style="color:${rating.color};">${rating.title}</div>
+          <div class="rating-desc">${rating.desc}</div>
+        </div>
+      </div>
+
+      ${expNote ? `
+      <div class="potential-banner" style="margin-top:16px;">
+        <div class="potential-icon">📍</div>
+        <div class="potential-text">${expNote.note}</div>
+      </div>
+      ` : ''}
+
+      <div class="divider"></div>
+
+      <div class="benchmarks">
+        <div class="bench-label">What these numbers look like in dollars</div>
+        ${[
+          { name: '5% of ' + (isNW ? 'NW' : 'income'), val: fivePct, color: '#E07B39' },
+          { name: '10% of ' + (isNW ? 'NW' : 'income'), val: tenPct, color: '#D4A843' },
+          { name: '20% of ' + (isNW ? 'NW' : 'income'), val: twentyPct, color: '#7AB648' },
+        ].map(b => `
+          <div class="bench-row">
+            <div class="bench-name">${b.name}</div>
+            <div class="bench-bar-wrap">
+              <div class="bench-bar" style="width:${Math.min(100,(b.val/primary)*100)}%; background:${b.color};"></div>
+            </div>
+            <div class="bench-val">${fmt(b.val)}</div>
+          </div>
+        `).join('')}
+        <div class="bench-row" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05);">
+          <div class="bench-name" style="color:var(--gold); opacity:1;">Your actual giving</div>
+          <div class="bench-bar-wrap">
+            <div class="bench-bar" style="width:${Math.min(100, pct/maxDisplay*100)}%; background:${rating.color};"></div>
+          </div>
+          <div class="bench-val" style="color:var(--gold);">${fmt(giving)}</div>
+        </div>
+      </div>
+
+      ${primary > 0 && giving < primary * 0.1 ? `
+      <div style="margin-top:14px; padding:12px 16px; background:rgba(212,168,67,0.06); border:1px solid rgba(212,168,67,0.12); border-radius:10px;">
+        <div style="font-size:11px; color:var(--cream-dim); line-height:1.6; opacity:0.7;">
+          💡 Closing the gap to 10% would mean giving an additional <span style="color:var(--gold); font-family:'DM Mono',monospace;">${fmtFull(Math.max(0, primary * 0.10 - giving))}/yr</span> more. At $100/mo average grant, that's roughly <span style="color:var(--gold);">${Math.round(Math.max(0, primary * 0.10 - giving) / 1200)} organizations</span> fully funded at that level.
+        </div>
+      </div>
+      ` : ''}
+    `;
+
+    // Animate needle
+    requestAnimationFrame(() => {
+      const maxPct = isNW ? (perPerson > 5000000 ? 50 : 30) : (perPerson > 200000 ? 40 : 25);
+      const gaugePos = Math.min(needlePos / maxPct * 100, 100);
+      const needle = document.getElementById('gauge-needle');
+      const bg = document.getElementById('gauge-bg');
+      if (needle) needle.style.left = gaugePos + '%';
+      if (bg) bg.style.transform = `scaleX(${1 - gaugePos / 100})`;
+    });
+  }
+
+  // Init
+  recalculate();
+</script>
+</body>
+</html>
