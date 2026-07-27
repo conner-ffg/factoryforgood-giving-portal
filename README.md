@@ -39,7 +39,7 @@ about a donor are in a staff-only table the member cannot read. Safe to re-run.
 ### 2. Auth configuration (5 minutes)
 Supabase dashboard → Authentication:
 - **URL configuration** → Site URL: your production URL (e.g. `https://portal.factoryforgood.com`). Add the Vercel preview URL (`https://<project>.vercel.app`) to the redirect allow list too.
-- **Providers → Email**: leave email sign-in enabled. "Confirm email" can stay on; magic links double as confirmation.
+- **Providers → Email**: leave email sign-in enabled. **Turn "Confirm email" OFF** — invited guests' accounts are created from the Donor Studio with the starter password (`FFGwelcome2026!`), and with confirmation on they would be blocked from password sign-in until they click an email link, defeating the point. Guests set their own password after first sign-in (click the avatar in the top bar).
 - Before inviting real members: **Settings → SMTP** — configure a custom sender (Resend, or Google Workspace SMTP) so sign-in emails come from your domain instead of Supabase's shared sender.
 
 ### 3. Deploy (10 minutes)

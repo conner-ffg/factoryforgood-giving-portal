@@ -110,6 +110,14 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   });
   await page.waitForTimeout(600);
   check('pending invite listed until first sign-in', (await page.textContent('#dsTable')).includes('truman@example.com'));
+  // + Add profile creates the account immediately with the starter password
+  await page.evaluate(async () => {
+    await createInvitedAccount('truman2@example.com', 'Truman Wells');
+    await loadDonorRoster(); renderDonorStudio();
+  });
+  await page.waitForTimeout(600);
+  check('invited account appears as a full editable profile', await page.evaluate(() =>
+    DB.donors.some(d => d.email === 'truman2@example.com' && d.fullName === 'Truman Wells')));
   check('Donor studio shows real lifetime totals', (await page.textContent('#dsTable')).includes('$300k'));
   // view-as: open the first member's dashboard exactly as they see it
   await page.evaluate(() => {
@@ -196,6 +204,28 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
   check('comments restored after fresh login', await page.evaluate(() => NOTES.length) === 1);
   check('cell notes restored', await page.evaluate(() => Object.keys(CELLNOTES).length) === 1);
+  await page.close();
+
+  // ---------- invited guest: starter password, then set their own ----------
+  page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
+  page.on('pageerror', e => errs.push('invited: ' + e.message));
+  await page.goto(U); await page.waitForTimeout(700);
+  await page.fill('#gateEmail', 'truman2@example.com');
+  await page.click('#gatePwToggle'); await page.fill('#gatePw', 'FFGwelcome2026!'); await page.click('#gatePwGo');
+  await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(400);
+  check('invited guest signs in with the starter password', await page.evaluate(() =>
+    document.querySelector('#gate').style.display === 'none'));
+  // set their own password via the avatar modal, sign out, sign back in with it
+  await page.evaluate(() => document.querySelector('#topAvatar').click()); await page.waitForTimeout(300);
+  await page.fill('#pw1', 'myOwnPass9'); await page.fill('#pw2', 'myOwnPass9');
+  await page.click('#pwGo'); await page.waitForTimeout(600);
+  await page.evaluate(async () => { await sb.signOut(); location.reload(); }); await page.waitForTimeout(1200);
+  await page.fill('#gateEmail', 'truman2@example.com');
+  await page.click('#gatePwToggle'); await page.fill('#gatePw', 'myOwnPass9'); await page.click('#gatePwGo');
+  await page.waitForTimeout(1500);
+  check('self-set password replaces the starter one', await page.evaluate(() =>
+    document.querySelector('#gate').style.display === 'none'));
   await page.close();
 
   console.log('\nPASS', ok.length, '| FAIL', bad.length, bad.length ? bad : '');

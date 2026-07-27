@@ -77,7 +77,7 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/auth/v1/token':
             b = self._body()
             u = USERS.get((b.get('email') or '').lower())
-            if not u or b.get('password') != 'pw':
+            if not u or b.get('password') != u.get('pw', 'pw'):
                 if b.get('refresh_token'):
                     for t, usr in TOKENS.items():
                         if t == b['refresh_token']: u = usr; break
@@ -85,6 +85,16 @@ class H(BaseHTTPRequestHandler):
             tok = 'tok-' + u['id']
             TOKENS[tok] = u
             return self._send(200, {'access_token': tok, 'refresh_token': tok, 'user': {'id': u['id'], 'email': u['email']}})
+        if p.path == '/auth/v1/signup':
+            b = self._body()
+            e = (b.get('email') or '').lower()
+            if e in USERS: return self._send(400, {'msg': 'User already registered'})
+            invited = e.endswith('@factoryforgood.com') or any(i['email'].lower() == e for i in INVITES)
+            if not invited: return self._send(400, {'msg': 'This portal is invite-only. Ask Factory for Good to invite ' + e})
+            USERS[e] = {'id': 'u-' + e.split('@')[0], 'email': e,
+                        'role': 'staff' if e.endswith('@factoryforgood.com') else 'member',
+                        'full_name': (b.get('data') or {}).get('full_name', ''), 'pw': b.get('password')}
+            return self._send(200, {'user': {'id': USERS[e]['id'], 'email': e}})
         if p.path == '/auth/v1/otp':
             b = self._body()
             e = (b.get('email') or '').lower()
@@ -188,6 +198,16 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, [{'org_id': k[0], 'field': k[1], 'body': v} for k, v in NOTES.items()])
         return self._send(404, {'message': 'mock: no route ' + p.path})
+
+    def do_PUT(self):
+        p = urllib.parse.urlparse(self.path)
+        u = user_from(self.headers)
+        if not u: return self._send(401, {'message': 'JWT required'})
+        b = self._body()
+        if p.path == '/auth/v1/user':
+            if b.get('password'): u['pw'] = b['password']
+            return self._send(200, {'id': u['id'], 'email': u['email']})
+        return self._send(404, {'message': 'mock: no route'})
 
     def do_PATCH(self):
         p = urllib.parse.urlparse(self.path)

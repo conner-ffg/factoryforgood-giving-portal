@@ -3813,19 +3813,29 @@ function addProfileRow(){
     <input id="npName" style="width:100%;margin:5px 0 12px">
     <label style="font-size:12px;color:var(--ink-3)">Email (they'll sign in with this)</label>
     <input id="npEmail" type="email" style="width:100%;margin:5px 0 12px">
-    <div class="muted" style="font-size:11.5px;margin-bottom:14px">On the live site this creates an invite — the profile activates the first time they sign in. Their personal dashboard stays private to them.</div>
+    <div class="muted" style="font-size:11.5px;margin-bottom:14px">On the live site this creates their account immediately. They sign in with their email and the starter password <b>${esc(window.FFG_STARTER_PW||'FFGwelcome2026!')}</b> — no email link needed — and can set their own password afterwards by clicking their avatar.</div>
     <div style="display:flex;justify-content:flex-end;gap:10px"><button class="btn" onclick="closeModal()">Cancel</button>
     <button class="btn primary" id="npGo">Create profile</button></div>`;
   veil.classList.add('show');
-  $('#npGo').addEventListener('click', ()=>{
+  $('#npGo').addEventListener('click', async ()=>{
     const name = $('#npName').value.trim(), email = $('#npEmail').value.trim().toLowerCase();
     if (!name || !/.+@.+\..+/.test(email)) return flash('Enter a name and a valid email');
     if (window.APP && APP.ready && !APP.demo){
-      // live: record an invite — the profile row itself is created by the
-      // database the first time they sign in
-      window.PERSIST?.donorInvite?.({email, fullName:name});
-      (DB.pendingInvites = DB.pendingInvites||[]).push({email, note:'Invited from Donor studio: '+name});
-      closeModal(); renderDonorStudio(); flash('Invite recorded — '+name+' appears here fully once they first sign in');
+      // live: create the account right now with the starter password —
+      // the database trigger validates the invite and builds the profile row
+      const btn = $('#npGo'); btn.disabled = true; btn.textContent = 'Creating…';
+      try{
+        await createInvitedAccount(email, name);
+        if (typeof loadDonorRoster==='function') await loadDonorRoster();
+        closeModal(); renderDonorStudio();
+        flash(name+"'s account is ready — they sign in with the starter password "+(window.FFG_STARTER_PW||''));
+      }catch(e){
+        // fall back to a plain invite (profile appears at their first sign-in)
+        window.PERSIST?.donorInvite?.({email, fullName:name});
+        (DB.pendingInvites = DB.pendingInvites||[]).push({email, note:'Invited from Donor studio: '+name});
+        closeModal(); renderDonorStudio();
+        flash('Account not created ('+String(e.message).slice(0,80)+') — invite recorded; they can use the email link instead');
+      }
       return;
     }
     const dn = {id:'d'+Math.random().toString(36).slice(2,8), email, name:name.split(' ')[0], fullName:name,
@@ -4008,6 +4018,13 @@ const sb = {
     const j = await this.auth('token?grant_type=password', {email, password});
     this.session = j; this.save(); return j;
   },
+  async updatePassword(pw){
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify({password:pw})});
+    if (r.status===401 && await this.refresh()) return this.updatePassword(pw);
+    const t = await r.text(); let j = {}; try{ j = t?JSON.parse(t):{}; }catch(e){}
+    if (!r.ok) throw new Error(j.msg || j.message || ('Error '+r.status));
+    return j;
+  },
   async sendMagicLink(email){
     return this.auth('otp', {email, create_user:true, options:{email_redirect_to: location.origin + location.pathname}});
   },
@@ -4061,6 +4078,49 @@ const APP = {
 window.APP = APP;
 const DEMO_DB = window.__DEMO_DATA__;   // the illustrative dataset, staff-only sandbox
 
+/* Every invited guest's account is created with this starter password, so
+   they can sign in immediately without waiting on an email link. They should
+   set their own password after first sign-in (click your avatar). */
+const FFG_STARTER_PW = 'FFGwelcome2026!';
+window.FFG_STARTER_PW = FFG_STARTER_PW;
+
+/* Staff: record the invite, then create the account itself with the starter
+   password. The database trigger validates the invite and builds the profile
+   row instantly, so the new member appears in the Donor studio right away. */
+window.createInvitedAccount = async function(email, fullName){
+  await sb.rest('invites', {method:'POST', body:{email, note:'Invited from Donor studio: '+fullName}}).catch(()=>{});
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {method:'POST',
+    headers:{'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON, 'Content-Type':'application/json'},
+    body: JSON.stringify({email, password:FFG_STARTER_PW, data:{full_name:fullName}})});
+  const t = await r.text(); let j = {}; try{ j = t?JSON.parse(t):{}; }catch(e){}
+  if (!r.ok) throw new Error(j.msg || j.error_description || j.message || ('Signup failed '+r.status));
+  return j;
+};
+
+/* Any signed-in user: set their own password (replaces the starter one). */
+window.openPasswordModal = function(){
+  if (!window.APP || !APP.ready) return;
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width = 'min(400px,94vw)'; box.style.maxHeight = ''; box.style.overflow = '';
+  box.innerHTML = `<div class="kicker">Your account</div><h3>Set a new password</h3>
+    <div class="muted" style="font-size:12.5px;margin-bottom:14px">Replaces your current password (including the starter password from your invitation).</div>
+    <label style="font-size:12px;color:var(--ink-3)">New password (8+ characters)</label>
+    <input id="pw1" type="password" autocomplete="new-password" style="width:100%;margin:5px 0 12px">
+    <label style="font-size:12px;color:var(--ink-3)">Repeat it</label>
+    <input id="pw2" type="password" autocomplete="new-password" style="width:100%;margin:5px 0 16px">
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="pwGo">Save password</button></div>`;
+  veil.classList.add('show');
+  $('#pwGo').addEventListener('click', async ()=>{
+    const a = $('#pw1').value, b = $('#pw2').value;
+    if (a.length < 8) return flash('Use at least 8 characters');
+    if (a !== b) return flash('The two entries don’t match');
+    try{ await sb.updatePassword(a); closeModal(); flash('Password updated — use it next time you sign in'); }
+    catch(e){ flash('Could not update: '+e.message); }
+  });
+};
+
 function setData(d){
   ORGS.length = 0; d.orgs.forEach(o=>o&&ORGS.push(o));
   ORGS.forEach(o=>o.region = regionOf(o));
@@ -4100,7 +4160,7 @@ function injectGate(){
         <input id="gatePw" type="password" autocomplete="current-password" style="width:100%;background:#F7F5F1;border:1px solid #DEDBD6;border-radius:9px;padding:11px 13px;font-size:14px;font-family:inherit;outline:none;margin:5px 0 12px">
         <button id="gatePwGo" class="btn primary" style="width:100%;padding:12px">Sign in</button>
       </div>
-      <div style="font-size:11.5px;color:#797772;margin-top:18px;border-top:1px solid #DEDBD6;padding-top:12px">Access is by invitation. Factory for Good staff sign in with their @factoryforgood.com email.</div>
+      <div style="font-size:11.5px;color:#797772;margin-top:18px;border-top:1px solid #DEDBD6;padding-top:12px">Access is by invitation. Invited members: choose "Use a password instead" and sign in with the starter password Factory for Good shared with you — you can set your own afterwards by clicking your avatar. Staff sign in with their @factoryforgood.com email.</div>
     </div>
   </div>`);
   const msg = (t, bad)=>{ const m=$('#gateMsg'); m.style.display='block'; m.textContent=t;
@@ -4373,6 +4433,12 @@ function applyRole(){
   if (!$('#signOutBtn')){
     document.querySelector('.top-right').insertAdjacentHTML('beforeend',
       `<button id="signOutBtn" class="btn" style="padding:7px 14px" onclick="sb.signOut().then(()=>location.reload())">Sign out</button>`);
+  }
+  const av = $('#topAvatar');
+  if (av && !av.dataset.pwWired){
+    av.dataset.pwWired = '1'; av.style.cursor = 'pointer';
+    av.title = 'Change your password';
+    av.addEventListener('click', ()=>openPasswordModal());
   }
 }
 
