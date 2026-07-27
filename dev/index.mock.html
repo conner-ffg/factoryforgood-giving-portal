@@ -20,10 +20,10 @@
   /* accent slots repurposed: dark ink carries all chrome accents (dark ~15%) */
   --gold:#141413; --gold-2:#141413; --gold-dim:rgba(20,20,19,.06);
   /* impact-area palette (data marks only) */
-  --navy:#263759; --cerulean:#298CC0; --seafoam:#64BC98; --forest:#115E41;
-  --umber:#76480D; --sienna:#992A13; --coral:#F6906D; --scarlet:#EE0D0E; --goldenrod:#F2B705;
+  --navy:#91A5C6; --cerulean:#92C1DC; --seafoam:#9ED1BB; --forest:#7FAD96;
+  --umber:#C4A47C; --sienna:#CB9A8B; --coral:#F3BFA4; --scarlet:#E1938D; --goldenrod:#EFCB67;
   --s1:var(--cerulean);
-  --good:#115E41; --warn:#F2B705; --crit:#EE0D0E;
+  --good:#6FA58C; --warn:#EFCB67; --crit:#D98B84;
   --grid:rgba(20,20,19,.07); --axis:rgba(20,20,19,.22);
   --serif:'PP Fragment Glare','Fragment Glare','Iowan Old Style',Georgia,'Times New Roman',serif;
   --sans:'PP Fragment Sans','Fragment Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -298,13 +298,13 @@ td.has-cellnote::before{content:'';position:absolute;top:0;left:0;border-style:s
 </style>
 <script>
 window.SITE_THEME = {
-  causeColor: {'Global Health':'#EE0D0E','Poverty & Livelihoods':'#115E41','Education':'#263759','Agriculture & Food':'#76480D','Mental Health':'#5A6E96','Climate & Environment':'#298CC0','Animal Welfare':'#992A13','Water & Sanitation':'#1D6489','Rights & Justice':'#64BC98','Humanitarian Relief':'#F6906D'},
-  causeHex: {'Global Health':'#EE0D0E','Poverty & Livelihoods':'#115E41','Education':'#263759','Agriculture & Food':'#76480D','Mental Health':'#5A6E96','Climate & Environment':'#298CC0','Animal Welfare':'#992A13','Water & Sanitation':'#1D6489','Rights & Justice':'#64BC98','Humanitarian Relief':'#F6906D'},
+  causeColor: {'Global Health':'#E1938D','Poverty & Livelihoods':'#7FAD96','Education':'#91A5C6','Agriculture & Food':'#C4A47C','Mental Health':'#A8B4CE','Climate & Environment':'#92C1DC','Animal Welfare':'#CB9A8B','Water & Sanitation':'#7FA9C4','Rights & Justice':'#9ED1BB','Humanitarian Relief':'#F3BFA4'},
+  causeHex: {'Global Health':'#E1938D','Poverty & Livelihoods':'#7FAD96','Education':'#91A5C6','Agriculture & Food':'#C4A47C','Mental Health':'#A8B4CE','Climate & Environment':'#92C1DC','Animal Welfare':'#CB9A8B','Water & Sanitation':'#7FA9C4','Rights & Justice':'#9ED1BB','Humanitarian Relief':'#F3BFA4'},
   other:'#797772',
   trendFillTop:'rgba(38,55,89,.16)', trendFillBot:'rgba(38,55,89,0)',
   globe:{ g0:'rgba(255,255,255,.95)', g1:'rgba(247,245,241,.9)', g2:'rgba(222,219,214,.9)',
     ring:'rgba(20,20,19,.28)', ring2:'rgba(20,20,19,.08)', landRGB:'121,119,114',
-    pulseRGB:'20,20,19', pinTop:'#141413', pinRec:'#797772',
+    pulseRGB:'20,20,19', pinTop:'#54749E', pinRec:'#9AA5B5',
     pinByCause:true, pinTopStroke:'#141413', hover:'rgba(20,20,19,.85)' }
 };
 </script>
@@ -1324,7 +1324,7 @@ const FIELDS = [
  {k:'id', l:'Record ID', cat:'Identity & Basic Info', ro:1, desc:'Internal system identifier. Do not change once assigned.'},
  {k:'name', l:'Display Name', cat:'Identity & Basic Info', cls:'name-c', core:1, desc:'Shorter public-facing name, if different from the legal name.'},
  {k:'legalName', l:'Legal Organization Name', cat:'Identity & Basic Info', desc:'Full registered legal name.'},
- {k:'logoUrl', l:'Logo Image', cat:'Identity & Basic Info', desc:'Link to the org\'s logo file.'},
+ {k:'logoUrl', l:'Logo Image', cat:'Identity & Basic Info', img:1, desc:'Link to the org\'s logo file. Click the camera to paste a URL or upload a file.'},
  {k:'ein', l:'EIN', cat:'Identity & Basic Info', desc:'US tax ID (XX-XXXXXXX). Primary identifier for domestic orgs.'},
  {k:'charityEquivId', l:'Charity Equivalency ID', cat:'Identity & Basic Info', desc:'Equivalency determination reference for non-US orgs without an EIN.'},
  {k:'blurb', l:'Description', cat:'Identity & Basic Info', core:1, desc:'Full narrative description of the org and its work.'},
@@ -1347,7 +1347,7 @@ const FIELDS = [
  {k:'lng', l:'Service Lng', cat:'Classification & Focus', num:1, core:1, desc:'Longitude of primary geography of service (drives the globe pin).'},
  {k:'icp', l:'ICP (Ideal Contributor Profile)', cat:'Classification & Focus', desc:'Type of donor this org is the best fit for (2–4 sentences).'},
  // Intervention & Program
- {k:'interventionImage', l:'Intervention/Demographic Image', cat:'Intervention & Program', desc:'Photo representing the intervention or the population served.'},
+ {k:'interventionImage', l:'Intervention/Demographic Image', cat:'Intervention & Program', img:1, desc:'Photo representing the intervention or the population served. Click the camera to paste a URL or upload.'},
  {k:'interventionName', l:'Intervention Name', cat:'Intervention & Program', desc:'Short name (3–8 words) for the specific program being evaluated.'},
  {k:'interventionDescription', l:'Intervention Description', cat:'Intervention & Program', desc:'Description of the problem and the org\'s solution (2–3 sentences).'},
  {k:'outputUnit', l:'Primary Output Unit', cat:'Intervention & Program', core:1, desc:'The org\'s core countable output (nets distributed, meals served, classes taught).'},
@@ -1715,6 +1715,7 @@ function renderEdRows(){
       return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></td>`;
     }
     let v = o[c.k]; if (Array.isArray(v)) v = v.join('; ');
+    if (c.img) return `<td class="${noted}" data-k="${c.k}" title="${esc(c.desc||'')}"><span style="cursor:pointer;margin-right:6px" onclick="window.pickImage&&pickImage(${o.id},'${c.k}')">📷</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(v)}</span></td>`;
     return `<td class="${noted}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
   }).join('')}</tr>`).join('');
   const body = $('#edBody');
@@ -1764,6 +1765,1689 @@ function commitCell(el){
 
 /* boot handled by backend layer */
 updateCartBadge();
+</script>
+<script>
+/* ================================================================
+   FFG v2 layer — brand polish, impact overlay, dashboard redesign.
+   Loaded after the base app; overrides render functions in place.
+   ================================================================ */
+const IS_LIGHT = (window.SITE_THEME.other === '#797772');   // FFG light theme vs Factory for Good dark
+
+/* ---------- injected styles (theme-agnostic via vars + fallbacks) ---------- */
+(function(){
+const css = `
+/* brand background layers: thin grid hint + factory roofline */
+.view::before{content:'';position:absolute;left:0;right:0;top:0;height:0}
+.roofline{display:block;width:100%;height:14px;margin:26px 0 2px;opacity:.5}
+.tracker{border:1px solid var(--divider, var(--hairline-2));border-radius:12px;padding:13px 16px 11px;margin-bottom:14px;background:var(--surface)}
+.tracker .t-top{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-3);margin-bottom:8px}
+.tracker .t-top b{color:var(--ink);font-weight:500}
+.tracker .t-bar{position:relative;height:12px;border-radius:6px;background:var(--surface-3, rgba(255,255,255,.08));overflow:visible}
+.tracker .t-fill{position:absolute;top:0;left:0;bottom:0;border-radius:6px;background:var(--good);transition:width 1s cubic-bezier(.2,.7,.2,1)}
+.tracker .t-antic{position:absolute;top:0;bottom:0;border-radius:0 6px 6px 0;background:repeating-linear-gradient(45deg,var(--good),var(--good) 3px,transparent 3px,transparent 7px);opacity:.45;transition:all 1s}
+.tracker .t-goal{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink);border-radius:2px}
+.tracker .t-goal i{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;font-style:normal;color:var(--ink-3);white-space:nowrap}
+.tracker .t-legend{display:flex;gap:16px;font-size:10.5px;color:var(--ink-3);margin-top:9px;flex-wrap:wrap}
+.tracker .t-legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tracker .t-edit{cursor:pointer;text-decoration:underline dotted}
+/* composition tiles */
+.ctiles{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.ctile{position:relative;min-width:96px;height:108px;border-radius:11px;border:1px solid var(--divider, var(--hairline));background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;cursor:default;transition:transform .2s,border-color .2s;overflow:hidden}
+.ctile:hover{transform:translateY(-2px);border-color:var(--ink)}
+.ctile .bar{position:absolute;top:0;left:0;right:0;height:4px}
+.ctile .ic{opacity:.85;margin:4px 0 auto}
+.ctile .amt{font-family:var(--serif);font-size:17px;color:var(--ink)}
+.ctile .pc{font-size:10.5px;color:var(--ink-3)}
+.ctile .nm{font-size:10.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctile-solid{height:86px;align-items:center;justify-content:center;display:flex}
+#impactOverlay .io-grid10 .ph{display:block;width:100%;aspect-ratio:11/15;border-radius:2px;background:${IS_LIGHT?'rgba(20,20,19,.06)':'rgba(255,255,255,.07)'}}
+.clegend{margin-top:14px}
+.donut-wrap .clegend{max-height:300px;overflow:auto;padding-right:6px}
+.clegend .orgrows{max-height:130px;overflow:auto}
+.clegend details{border-bottom:1px solid var(--hairline)}
+.clegend summary{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-2);padding:7px 2px;cursor:pointer;list-style:none}
+.clegend summary::-webkit-details-marker{display:none}
+.clegend summary .car{transition:transform .2s;font-size:9px;color:var(--ink-3)}
+.clegend details[open] summary .car{transform:rotate(90deg)}
+.clegend .amt{margin-left:auto;color:var(--ink);font-variant-numeric:tabular-nums}
+.clegend .orgrow{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);padding:4px 2px 4px 26px}
+.clegend .orgrow span:first-child{cursor:pointer}
+.clegend .orgrow span:first-child:hover{color:var(--ink);text-decoration:underline}
+/* top picks pager */
+.tp-page{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;opacity:0;transition:opacity 1.6s ease}
+.tp-page.on{opacity:1}
+.tp-dots{display:flex;gap:7px;justify-content:center;margin-top:14px}
+.tp-dots i{width:7px;height:7px;border-radius:50%;background:var(--divider, rgba(255,255,255,.2));cursor:pointer;transition:all .3s}
+.tp-dots i.on{background:var(--ink);transform:scale(1.25)}
+/* partner updates */
+.updates-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.upd-card{border:1px solid var(--divider, var(--hairline));border-radius:14px;overflow:hidden;background:var(--surface);transition:transform .25s,border-color .25s;cursor:pointer;display:flex;flex-direction:column}
+.upd-card:hover{transform:translateY(-3px);border-color:var(--ink)}
+.upd-hero{position:relative;height:130px}
+.upd-hero .nm{position:absolute;left:14px;bottom:10px;color:#fff;font-family:var(--serif);font-size:15px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.upd-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;flex:1}
+.upd-body .ttl{font-family:var(--serif);font-size:15.5px;line-height:1.35;color:var(--ink)}
+.upd-card:hover .ttl{text-decoration:underline;text-underline-offset:2px}
+.upd-body .sum{font-size:12.5px;color:var(--ink-3);line-height:1.5}
+.upd-body .pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+/* impact overlay */
+#impactOverlay{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;
+  background:${IS_LIGHT?'rgba(247,245,241,.72)':'rgba(13,16,23,.78)'};backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px)}
+#impactOverlay .io-card{width:min(880px,96vw);text-align:center;padding:30px 20px}
+#impactOverlay .io-3col{display:grid;grid-template-columns:1fr 240px 1fr;gap:30px;align-items:center;margin-top:18px;min-height:240px}
+#impactOverlay .io-left{text-align:right}
+#impactOverlay .io-right{text-align:left;min-height:130px}
+#impactOverlay .io-grid10{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;width:220px;margin:0 auto;transition:opacity .3s}
+#impactOverlay .io-grid10 svg{width:100%;height:auto}
+#impactOverlay .io-unit{font-size:11px;color:var(--ink-3);margin-top:9px;transition:opacity .3s}
+#impactOverlay .io-cor2{transition:opacity .35s}
+#impactOverlay .io-cor2 .cl{font-family:var(--serif);font-size:21px;color:var(--ink);line-height:1.3;display:block;margin-top:10px}
+#impactOverlay .io-cor2 .pre{font-size:12.5px;color:var(--ink-3)}
+#impactOverlay .io-cor2 svg{display:block;margin-bottom:4px}
+@media (max-width:760px){#impactOverlay .io-3col{grid-template-columns:1fr;gap:14px}#impactOverlay .io-left{text-align:center}#impactOverlay .io-right{text-align:center}}
+#impactOverlay .io-num{font-family:var(--serif);font-size:74px;line-height:1;color:var(--ink);letter-spacing:-.01em}
+#impactOverlay .io-lbl{font-size:14px;color:var(--ink-3);margin-top:6px}
+#impactOverlay .io-cor{margin-top:20px;min-height:64px;display:flex;align-items:center;justify-content:center;gap:14px;transition:opacity .3s}
+#impactOverlay .io-cor .cl{font-family:var(--serif);font-size:19px;color:var(--ink)}
+#impactOverlay .io-grid{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;max-width:440px;margin:18px auto 0;min-height:52px}
+#impactOverlay .io-sub{font-size:13px;color:var(--ink-3);margin-top:16px}
+#impactOverlay .io-ask{margin-top:24px;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+#impactOverlay input{background:var(--surface);border:1px solid var(--divider, var(--hairline-2));color:var(--ink);border-radius:9px;padding:10px 14px;font-size:15px;width:150px;font-family:inherit;outline:none;text-align:right}
+#impactOverlay .io-skip{position:absolute;top:22px;right:28px;font-size:12.5px;color:var(--ink-3);cursor:pointer;text-decoration:underline}
+/* odometer pieces reused outside the overlay (Accomplishments tab, tour) */
+.io-grid10{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;transition:opacity .3s}
+.io-grid10 svg{width:100%;height:auto;display:block}
+.io-grid10 .ph{display:block;width:100%;aspect-ratio:11/15;border-radius:2px;background:${IS_LIGHT?'rgba(20,20,19,.06)':'rgba(255,255,255,.07)'}}
+.io-unit{font-size:11px;color:var(--ink-3);margin-top:9px;transition:opacity .3s}
+.io-num{font-family:var(--serif);color:var(--ink);letter-spacing:-.01em;line-height:1}
+.io-lbl{font-size:13px;color:var(--ink-3);margin-top:6px}
+.io-cor2{transition:opacity .35s}
+.io-cor2 .cl{font-family:var(--serif);font-size:18px;color:var(--ink);line-height:1.3;display:block;margin-top:8px}
+.io-cor2 .pre{font-size:12px;color:var(--ink-3)}
+.io-cor2 svg{display:block;margin-bottom:4px}
+.io-sub{font-size:12.5px;color:var(--ink-3)}
+.io-oval{display:flex;flex-direction:column;gap:2px;align-items:center}
+.io-oval .orow{display:flex;gap:2px}
+.io-oval svg{width:14px;height:auto;display:block}
+.io-oval .ph{display:inline-block;width:14px;aspect-ratio:11/15;border-radius:2px;background:${IS_LIGHT?'rgba(20,20,19,.05)':'rgba(255,255,255,.06)'}}
+.io-cor-big svg{width:132px;height:132px;margin:0 auto 4px;display:block}
+.io-cor-big .cl{font-size:21px}
+.io-cor-big .pre{font-size:13px}
+/* globe controls */
+.gfilters{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 4px}
+.gfilters .chip{padding:4px 12px;font-size:11.5px}
+.gfilters select{background:var(--surface);border:1px solid var(--divider, var(--hairline-2));color:var(--ink-2);border-radius:999px;padding:4px 10px;font-size:11.5px;font-family:inherit;outline:none}
+.gmode{display:flex;background:var(--surface);border:1px solid var(--divider, var(--hairline-2));border-radius:999px;padding:3px;margin-left:auto}
+.gmode button{padding:4px 13px;border-radius:999px;font-size:11.5px;color:var(--ink-3)}
+.gmode button.on{background:var(--ink);color:${IS_LIGHT?'#F7F5F1':'#0d1017'}}
+/* brief v2 */
+.geo-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 2px;font-size:12.5px}
+.geo-line .reg{background:var(--ink);color:${IS_LIGHT?'#F7F5F1':'#0d1017'};border-radius:999px;padding:3px 12px;font-size:11px}
+.est-panel{flex:none;width:300px;border-left:1px solid var(--divider, var(--hairline));padding-left:22px}
+.est-panel .boxes{display:flex;flex-wrap:wrap;gap:3px;margin:8px 0 2px;min-height:20px}
+.est-panel .boxes i{width:11px;height:11px;border-radius:3px;background:var(--cerulean, var(--s1));opacity:0;animation:popin .3s forwards}
+.est-panel .figs{display:flex;flex-wrap:wrap;gap:3px;margin:8px 0 2px;min-height:20px}
+.stars{letter-spacing:2px;font-size:14px;color:var(--goldenrod, #c98500)}
+.stars .off{opacity:.25}
+.meter5{display:flex;gap:4px;margin-top:6px}
+.meter5 i{width:26px;height:6px;border-radius:3px;background:var(--surface-3, rgba(255,255,255,.09))}
+.meter5 i.on{background:var(--cerulean, var(--s1))}
+.rate-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 26px}
+.rate-grid .rr{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--hairline);padding:6px 0}
+.mini-tabs{display:flex;gap:4px;margin-bottom:12px}
+.mini-tabs button{padding:5px 13px;border-radius:999px;border:1px solid var(--divider, var(--hairline-2));font-size:12px;color:var(--ink-3)}
+.mini-tabs button.on{background:var(--ink);color:${IS_LIGHT?'#F7F5F1':'#0d1017'};border-color:var(--ink)}
+.upd-link{display:flex;gap:10px;align-items:baseline;padding:8px 2px;border-bottom:1px solid var(--hairline);font-size:13px}
+.upd-link a{color:var(--ink)}
+.upd-link .d{color:var(--ink-3);font-size:11.5px;margin-left:auto;white-space:nowrap}
+.info-i{display:inline-flex;width:14px;height:14px;border:1px solid var(--ink-3);border-radius:50%;align-items:center;justify-content:center;font-size:9.5px;color:var(--ink-3);cursor:help;vertical-align:1px;margin-left:5px;font-style:normal}
+@media (max-width:1120px){.updates-grid{grid-template-columns:1fr}.tp-page{grid-template-columns:repeat(2,minmax(0,1fr))}.est-panel{width:100%;border-left:none;padding-left:0;border-top:1px solid var(--hairline);padding-top:16px}}
+`;
+const el = document.createElement('style'); el.textContent = css; document.head.appendChild(el);
+})();
+
+/* ---------- brand: real logo (runtime fetch w/ typed fallback) + roofline motif ---------- */
+(function(){
+  if (!IS_LIGHT) return;
+  const mark = document.querySelector('.brand .mark');
+  if (mark){
+    const img = new Image();
+    img.src = 'https://www.truekeep.ai/api/asset-proxy/page-media/35d80f0e-bbd4-408b-a303-20c8badd882a/ea11c1db-b455-43cf-84d2-204d33e1a4b0.svg';
+    img.alt = 'Factory for Good'; img.style.height = '22px'; img.style.display = 'block';
+    img.onload = ()=>{ mark.replaceChildren(img); const c=document.querySelector('.brand .check'); if(c) c.style.display='none'; };
+  }
+})();
+const ROOFLINE = `<svg class="roofline" viewBox="0 0 1200 14" preserveAspectRatio="none" fill="none"
+  stroke="${IS_LIGHT?'#DEDBD6':'rgba(255,255,255,.14)'}" stroke-width="1">
+  <path d="M0 13 h180 l20-11 20 11 h80 l20-11 20 11 h240 l20-11 20 11 h80 l20-11 20 11 h180 l20-11 20 11 h240"/></svg>`;
+
+/* ---------- helpers ---------- */
+function livesFor(orgId, amount){
+  // lives impacted = people who experience >=1 outcome. One life can hold several
+  // outcomes, so lives is always below outcomes created.
+  const o = byId(orgId); if (!o) return 0;
+  const outs = o.costPerOutcome>0 ? amount/o.costPerOutcome
+             : (o.costPerOutput>0 ? amount/o.costPerOutput*0.5 : 0);
+  const outcomesPerPerson = 1 + Math.max(0, ((o.outcomesList||[]).length-1)) * 0.4;
+  return outs / Math.max(1.15, outcomesPerPerson);
+}
+function scopeLives(scope){
+  if (scope==='me') return MEMBER.donations.reduce((s,g)=>s+livesFor(g.org,g.amount),0);
+  return NETWORK.alloc.reduce((s,a)=>s+livesFor(a.org,a.amount),0);
+}
+function goalKey(sfx){ return 'ffg.goal.'+(sfx||((window.APP&&APP.userId)||'demo')); }
+function getGoal(d, sfx){
+  try{ const v = +localStorage.getItem(goalKey(sfx)); if (v>0) return v; }catch(e){}
+  if (sfx==='network') return 0;
+  const years = {};
+  MEMBER.donations.forEach(g=>{ const y=g.date.slice(0,4); years[y]=(years[y]||0)+g.amount; });
+  const nowYr = new Date().getFullYear();
+  const past = Object.entries(years).filter(([y])=>+y<nowYr).map(([,v])=>v);
+  const avg = past.length? past.reduce((a,b)=>a+b,0)/past.length : 0;
+  return Math.max(250000, Math.round((avg||d.planned+d.total*0.2)/50000)*50000);
+}
+function setGoal(v, sfx){ try{ localStorage.setItem(goalKey(sfx), String(v)); }catch(e){} }
+
+/* ---------- stats: lives impacted replaces planned commitments ---------- */
+function renderStats(){
+  const d = scopeData(state.scope);
+  const lives = scopeLives(state.scope);
+  const years = Math.max(1, new Set(MEMBER.donations.map(x=>x.date.slice(0,4))).size);
+  $('#statRow').style.gridTemplateColumns = 'minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)';
+  $('#statRow').innerHTML = `
+    <div class="stat"><div class="label">${state.scope==='me'?'Lifetime giving':'Collective giving'}</div>
+      <div class="value num"><span data-cu="${d.total}" data-f="m">${fmtMoney(d.total)}</span> <span class="unit" style="font-size:15px">| ${d.orgCount} supported orgs</span></div>
+      <div class="foot">${state.scope==='me'?`across ${years} years of membership`:`deployed by ${NETWORK.members} members`}</div></div>
+    <div class="stat"><div class="label">Impact created</div>
+      <div class="value num" style="font-size:21px;line-height:1.25;margin-top:10px">est. <b style="font-size:32px;font-weight:650"><span data-cu="${d.outcomes}" data-f="n">${fmtNum(d.outcomes)}</span></b> outcomes<br>impacting <b style="font-size:32px;font-weight:650"><span data-cu="${lives}" data-f="n">${fmtNum(lives)}</span></b> lives</div>
+      <div class="foot">according to our analysis of organization data</div></div>
+    <div class="stat" id="trackerHost"></div>`;
+  $$('#statRow [data-cu]').forEach(el=>countUp(el, +el.dataset.cu, {fmt: el.dataset.f==='m'?fmtMoney:fmtNum, dur:1400}));
+  renderTracker();
+}
+/* ---------- giving tracker (thermometer) ---------- */
+function renderTracker(){
+  const box = $('#trackerHost'); if (!box) return;
+  const yr = String(new Date().getFullYear());
+  const net = state.scope!=='me';
+  let ytd, plannedYr, goal;
+  if (net){
+    const total = NETWORK.alloc.reduce((s,a)=>s+a.amount,0);
+    ytd = Math.round(total*0.16); plannedYr = Math.round(total*0.06);
+    goal = getGoal(null, 'network') || Math.round((ytd+plannedYr)*1.2/1e5)*1e5;
+  } else {
+    ytd = MEMBER.donations.filter(g=>g.date.startsWith(yr)).reduce((s,g)=>s+g.amount,0);
+    plannedYr = MEMBER.planned.filter(g=>g.date.startsWith(yr)).reduce((s,g)=>s+g.amount,0);
+    goal = getGoal(scopeData('me'));
+  }
+  const antic = ytd + plannedYr;
+  const scaleMax = Math.max(goal, antic)*1.06 || 1;
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="font-size:19px;font-weight:600;margin:0">${yr} giving progress${net?' · our collective':''}</h3>
+      <button class="btn primary" style="padding:6px 14px;font-size:12px" onclick="window.openGiftModal?openGiftModal():go('#/orgs')">Plan next gift</button>
+    </div>
+    <div class="tracker" id="trackerBox" style="border:none;padding:0;margin:0;background:none;position:relative">
+    <div class="t-bar" style="height:14px" title="Remaining to goal: ${fmtMoney(Math.max(0,goal-antic))}">
+      <div class="t-antic" style="left:0;width:0" data-w="${Math.min(100,antic/scaleMax*100)}" title="Committed for ${yr}: ${fmtMoney(antic)} — ${fmtMoney(ytd)} given + ${fmtMoney(plannedYr)} planned"></div>
+      <div class="t-fill" style="width:0" data-w="${Math.min(100,ytd/scaleMax*100)}" title="Given so far in ${yr}: ${fmtMoney(ytd)}"></div>
+      <div class="t-goal" style="left:${Math.min(99,goal/scaleMax*100)}%" title="Minimum giving goal: ${fmtMoney(goal)}"></div>
+    </div>
+    <div class="t-legend" style="margin-top:11px">
+      <span><span class="sw" style="background:var(--good)"></span>given so far · <b class="num" style="color:var(--ink)">${fmtMoney(ytd)}</b></span>
+      <span><span class="sw" style="background:repeating-linear-gradient(45deg,var(--good),var(--good) 3px,transparent 3px,transparent 6px)"></span>committed · <b class="num" style="color:var(--ink)">${fmtMoney(antic)}</b></span>
+      <span class="t-edit" id="goalEdit" title="Click to change the goal"><span class="sw" style="background:var(--ink);width:2px;border-radius:1px"></span>goal · <b class="num" style="color:var(--ink)">${fmtMoney(goal)}</b></span>
+      ${antic>=goal?`<span style="color:var(--good)">on track to exceed the goal</span>`:`<span>${fmtMoney(goal-antic)} to go</span>`}
+    </div></div>`;
+  box.insertAdjacentHTML('beforeend', '<div id="ipSub" style="font-size:11.5px;color:var(--ink-3);font-style:italic;min-height:16px;margin-top:12px;transition:opacity .9s"></div>');
+  startSayings();
+  $('#goalEdit').addEventListener('click', e=>editGoal(e, net?'network':null, goal));
+  // rich hover: highlight the hovered segment and explain it
+  const seg = [
+    ['.t-fill',  `<b>Given so far in ${yr}</b> · ${fmtMoney(ytd)}<br><span style="color:var(--ink-3)">Gifts already completed this calendar year.</span>`],
+    ['.t-antic', `<b>Committed for ${yr}</b> · ${fmtMoney(antic)}<br>${fmtMoney(ytd)} given + ${fmtMoney(plannedYr)} planned<br><span style="color:var(--ink-3)">Everything you have given or scheduled.</span>`],
+    ['.t-goal',  `<b>Minimum giving goal</b> · ${fmtMoney(goal)}<br><span style="color:var(--ink-3)">Click the legend entry to change it.</span>`],
+  ];
+  seg.forEach(([sel, html])=>{
+    const el = box.querySelector(sel); if (!el) return;
+    el.removeAttribute('title');
+    el.style.cursor = 'help';
+    el.addEventListener('mousemove', e=>{ e.stopPropagation();
+      showTip(`<div style="white-space:normal;max-width:250px;line-height:1.5">${html}</div>`, e.clientX, e.clientY);
+      el.style.filter = 'brightness(1.18)'; el.style.boxShadow = '0 0 0 2px rgba(20,20,19,.25)';
+    });
+    el.addEventListener('mouseleave', ()=>{ hideTip(); el.style.filter=''; el.style.boxShadow=''; });
+  });
+  const barEl = box.querySelector('.t-bar');
+  barEl.removeAttribute('title');
+  barEl.addEventListener('mousemove', e=>{
+    if (e.target!==barEl) return;
+    showTip(`<div style="white-space:normal;max-width:230px;line-height:1.5"><b>Remaining to goal</b> · ${fmtMoney(Math.max(0,goal-antic))}<br><span style="color:var(--ink-3)">Commit ${fmtMoney(Math.max(0,goal-antic))} more to reach ${fmtMoney(goal)}.</span></div>`, e.clientX, e.clientY);
+  });
+  barEl.addEventListener('mouseleave', hideTip);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    box.querySelectorAll('[data-w]').forEach(el=>el.style.width = el.dataset.w+'%');
+  }));
+}
+const SAYINGS = [
+  'making giving the most important part of your net worth',
+  'philanthropy is investing, with the returns delegated to those who need them most',
+  'finding and funding the best organizations on earth',
+  'reducing suffering and increasing flourishing, at scale',
+  'supporting the world’s most vulnerable',
+  'purchasing the change we want to see in the world',
+  '“Love means to be willing to give until it hurts.” — Mother Teresa',
+  '“If our charities do not at all pinch or hamper us, I should say they are too small.” — C.S. Lewis',
+  '“There ought to be things we should like to do and cannot do because our charitable expenditure excludes them.” — C.S. Lewis',
+  '“I am afraid the only safe rule is to give more than we can spare.” — C.S. Lewis',
+];
+let sayIdx = 0;
+function startSayings(){
+  const el = $('#ipSub'); if (!el) return;
+  el.textContent = SAYINGS[sayIdx % SAYINGS.length];
+  clearInterval(window._ipSubT);
+  window._ipSubT = setInterval(()=>{
+    const e2 = $('#ipSub'); if (!e2){ clearInterval(window._ipSubT); return; }
+    e2.style.opacity = 0;
+    setTimeout(()=>{ sayIdx = (sayIdx+1)%SAYINGS.length; e2.textContent = SAYINGS[sayIdx]; e2.style.opacity = 1; }, 900);
+  }, 7000);
+}
+window.editGoal = function(ev, sfx, cur){
+  document.getElementById('goalPop')?.remove();
+  const r = ev.currentTarget.getBoundingClientRect();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="goalPop" style="position:fixed;left:${Math.min(innerWidth-250,Math.max(10,r.left-30))}px;top:${r.bottom+8}px;z-index:120;background:var(--surface);border:1px solid var(--divider,var(--hairline-2));border-radius:11px;padding:12px 14px;box-shadow:0 12px 34px rgba(20,20,19,.16);display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;color:var(--ink-3)">Goal $</span>
+      <input id="goalIn" type="number" value="${cur||''}" step="50000" min="0"
+        style="width:120px;background:var(--bg,rgba(255,255,255,.05));border:1px solid var(--divider,var(--hairline-2));color:var(--ink);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit;outline:none;text-align:right">
+      <button class="btn primary" style="padding:6px 13px;font-size:12px" id="goalSave">Save</button>
+    </div>`);
+  const pop = document.getElementById('goalPop');
+  pop.querySelector('#goalIn').focus();
+  const save = ()=>{ const v = +pop.querySelector('#goalIn').value;
+    if (v>0){ setGoal(v, sfx); flash('Goal updated'); } pop.remove(); renderTracker(); };
+  pop.querySelector('#goalSave').addEventListener('click', save);
+  pop.querySelector('#goalIn').addEventListener('keydown', e=>{ if(e.key==='Enter') save(); if(e.key==='Escape') pop.remove(); });
+  setTimeout(()=>document.addEventListener('click', function h(e){ if(!pop.contains(e.target)){ pop.remove(); document.removeEventListener('click',h);} }), 50);
+};
+
+/* ---------- composition tiles ---------- */
+const CAUSE_ICON_SCALE = 0.32;
+function tileIcon(cause){
+  return sketchFor({causes:[cause], id: CAUSES.indexOf(cause)+1}, 46).replace('height="38"','height="34"');
+}
+function ensurePortfolioChrome(){
+  const card = $('#portfolioCard'); if (!card) return;
+  if (!$('#ipTitle')) card.insertAdjacentHTML('afterbegin',
+    '<h3 id="ipTitle" style="font-size:19px;font-weight:600;margin-bottom:10px">Impact Portfolio</h3>');
+  const tabs = $('#dashTabs');
+  if (tabs && !tabs.querySelector('[data-tab="accomplish"]')){
+    tabs.innerHTML = `<button data-tab="accomplish">Accomplishments</button>
+      <button data-tab="composition">Composition</button>
+      <button data-tab="history">History &amp; commitments</button>
+      <button data-tab="trend">Giving over time</button>`;
+  }
+  $$('#dashTabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===state.dashTab));
+}
+function renderDashPanel(){
+  const d = scopeData(state.scope);
+  ensurePortfolioChrome();
+  const panel = $('#dashPanel');
+  if (state.dashTab==='accomplish'){
+    renderAccomplish(panel, d); return;
+  }
+  if (state.dashTab==='composition'){
+    if (!d.total){ panel.innerHTML = '<div class="muted" style="padding:26px 4px;font-size:13px">No giving recorded yet. Log your first gift from the History tab and your allocation will appear here.</div>'; return; }
+    const entries = Object.entries(d.byCause).sort((a,b)=>b[1]-a[1]);
+    const shown = entries.slice(0,7);
+    const rest = entries.slice(7);
+    if (rest.length) shown.push(['Other', rest.reduce((s,e)=>s+e[1],0)]);
+    const orgAmts = state.scope==='me'
+      ? MEMBER.donations.reduce((m,g)=>{m[g.org]=(m[g.org]||0)+g.amount; return m;},{})
+      : NETWORK.alloc.reduce((m,a)=>{m[a.org]=(m[a.org]||0)+a.amount; return m;},{});
+    const orgsByCause = c => Object.entries(orgAmts)
+      .map(([id,amt])=>({o:byId(+id), amt})).filter(x=>x.o&&x.o.causes[0]===c)
+      .sort((a,b)=>b.amt-a.amt);
+    panel.innerHTML = `<div class="donut-wrap">
+      <svg id="donutSvg" width="210" height="210" viewBox="0 0 230 230"></svg>
+      <div class="legend clegend" style="margin-top:0">${entries.map(([c,v])=>`
+        <details><summary><span class="car">▶</span>
+          <span class="swatch" style="width:9px;height:9px;border-radius:3px;background:${CAUSE_COLOR[c]}"></span>
+          ${esc(c)}<span class="amt num">${fmtMoney(v)} · ${(v/d.total*100).toFixed(0)}%</span></summary>
+          <div class="orgrows">${orgsByCause(c).map(x=>`<div class="orgrow"><span onclick="go('#/org/${x.o.id}')">${esc(x.o.name)}</span><span class="num">${fmtMoney(x.amt)}</span></div>`).join('')||'<div class="orgrow muted">—</div>'}</div>
+        </details>`).join('')}</div></div>`;
+    panel.querySelectorAll('.clegend details').forEach(dt=>dt.addEventListener('toggle', ()=>{
+      if (dt.open) panel.querySelectorAll('.clegend details').forEach(x=>{ if (x!==dt) x.open=false; });
+    }));
+    drawDonut(shown, d.total);
+  } else if (state.dashTab==='history'){
+    renderHistoryPanel(panel, d);
+  } else {
+    panel.innerHTML = `<div id="trendBox" style="margin-top:6px"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">Bars: dollars given each year (faded = planned). Lines: cumulative $ given (left axis), cumulative outcomes and lives impacted (right axis). Hover a year for the full picture.</div>`;
+    drawAnnual($('#trendBox'), d);
+  }
+}
+window.commitNewGift = async function(){
+  const nm = ($('#cgOrg').value||'').trim().toLowerCase();
+  const org = ORGS.find(o=>o.name.toLowerCase()===nm) || ORGS.find(o=>o.name.toLowerCase().includes(nm)&&nm.length>3);
+  const orgId = org?.id, amt = +$('#cgAmt').value||0;
+  if (!orgId || amt<=0) return flash('Pick an organization and amount');
+  const date = '2026-'+String(Math.min(12,new Date().getMonth()+2)).padStart(2,'0')+'-15';
+  if (window.APP && !APP.demo && window.sb){
+    try{ await sb.rest('donations', {method:'POST', body:{org_id:orgId, amount:amt, gift_date:date, status:'planned', user_id:APP.userId}});
+      await loadLiveData(); }catch(e){ return flash('Could not save: '+e.message); }
+  } else {
+    MEMBER.planned.push({org:orgId, date, amount:amt}); MEMBER.planned.sort((a,b)=>a.date<b.date?-1:1);
+  }
+  if (!inShortlist(orgId)) SHORTLIST.push({id:orgId, planned:amt});
+  updateCartBadge(); renderDashboard(); flash('Gift committed and added to your shortlist');
+};
+/* ---- Accomplishments tab: inline odometer + replay + invitation ---- */
+function baselineBefore(year){
+  let lv=0, ot=0;
+  MEMBER.donations.filter(g=>g.date < year+'-01').forEach(g=>{ lv+=livesFor(g.org,g.amount); ot+=outcomesFor(g.org,g.amount); });
+  return {lives:Math.round(lv), outs:Math.round(ot)};
+}
+function renderAccomplish(panel, d){
+  const lives = Math.round(scopeLives(state.scope)), outs = Math.round(d.outcomes);
+  if (!lives && !outs){ panel.innerHTML = '<div class="muted" style="padding:26px 4px;font-size:13px">Once your first gift is logged, this is where its impact takes shape.</div>'; return; }
+  const goal = getGoal(scopeData('me'));
+  const yrNow = String(new Date().getFullYear());
+  const ytd = MEMBER.donations.filter(g=>g.date.startsWith(yrNow)).reduce((s,g)=>s+g.amount,0);
+  const antic = ytd + MEMBER.planned.filter(g=>g.date.startsWith(yrNow)).reduce((s,g)=>s+g.amount,0);
+  panel.innerHTML = `
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:center;margin-top:4px">
+      <div style="text-align:center;min-width:0">
+        <div class="io-num num" id="acNum" style="font-size:40px">0</div>
+        <div class="io-lbl" id="acLbl" style="margin-bottom:10px">lives impacted</div>
+        <div class="io-oval" id="acGrid" style="margin:0 auto 6px"></div>
+        <div class="io-unit" id="acUnit"></div>
+      </div>
+      <div style="text-align:center;min-width:0">
+        <div class="io-cor2 io-cor-big" id="acCor" style="min-height:190px;display:flex;flex-direction:column;justify-content:center"></div>
+      </div>
+    </div>
+    <div class="io-sub" id="acSub" style="margin-top:8px;text-align:center"></div>
+    <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:12px">
+      <button class="btn" style="padding:7px 14px;font-size:12.5px" onclick="playAccomplish(true)">▶ Play from the beginning</button>
+      <button class="btn primary" style="padding:7px 14px;font-size:12.5px" onclick="window.openGiftModal?openGiftModal():go('#/orgs')">Plan your next gift</button>
+      <span class="muted" style="font-size:11.5px">${antic>=goal?'On track to exceed this year’s goal.':fmtMoney(goal-antic)+' more reaches your '+fmtMoney(goal)+' goal.'}</span>
+    </div>`;
+  playAccomplish(false);
+}
+window.playAccomplish = function(fromZero){
+  const d = scopeData(state.scope);
+  const lives = Math.round(scopeLives(state.scope)), outs = Math.round(d.outcomes);
+  const base = fromZero ? {lives:0, outs:0} : baselineBefore('2025');
+  runImpactAnim({prefix:'ac', from: fromZero?0:base.lives, target: lives, outs, ladder: LADDER_A,
+    oval:true, iconSize:112,
+    holds: fromZero?{cor:1200,dec:500}:{cor:900,dec:400},
+    subText: fromZero?null:`in the last two years alone · ${fmtNum(outs-base.outs)} new outcomes · lifetime total ${fmtNum(lives)} lives`}, ()=>{});
+};
+function renderHistoryPanel(panel, d){
+  if (state.scope==='me'){
+    const gifts = [...MEMBER.donations].reverse();
+    const opts = ORGS.filter(o=>isShown(o)).sort((a,b)=>a.name.localeCompare(b.name))
+      .map(o=>`<option value="${esc(o.name)}"></option>`).join('');
+    panel.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg,rgba(255,255,255,.04));border:1px solid var(--divider,var(--hairline));border-radius:11px;padding:11px 13px;margin:4px 0 12px">
+        <span style="font-size:12.5px;color:var(--ink-2)">Plan a new gift</span>
+        <input id="cgOrg" list="cgList" placeholder="Search organizations…" style="flex:1;min-width:180px;background:var(--surface);border:1px solid var(--divider,var(--hairline-2));color:var(--ink);border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;outline:none"><datalist id="cgList">${opts}</datalist>
+        $<input id="cgAmt" type="number" value="25000" step="5000" min="1000" style="width:100px;background:var(--surface);border:1px solid var(--divider,var(--hairline-2));color:var(--ink);border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;text-align:right">
+        <button class="btn primary" style="padding:7px 15px;font-size:12.5px" onclick="commitNewGift()">Commit</button>
+      </div>
+      <div class="kicker" style="margin-top:4px">Planned &amp; upcoming</div>
+      <div class="hist-list" style="max-height:120px">${MEMBER.planned.map(p=>{
+        const o = byId(p.org); if(!o) return ''; return `<div class="hist-row future">
+          <span class="d num">${fmtDate(p.date)}</span>
+          <span class="o" onclick="go('#/org/${o.id}')">${esc(o.name)}</span>
+          <span class="pill gold" ${(p.id&&!(window.APP&&APP.demo))?`style="cursor:pointer" onclick="editGift(${p.id})" title="Edit"`:''}>Scheduled</span>
+          <span class="a num">${fmtMoney(p.amount)}</span></div>`;}).join('')||'<div class="muted" style="padding:12px 4px;font-size:12.5px">No upcoming gifts scheduled.</div>'}</div>
+      <div class="hr"></div>
+      <div class="kicker" style="display:flex;justify-content:space-between;align-items:center"><span>Running history · ${gifts.length} gifts</span>${window.openGiftModal?'<button class="btn" style="padding:5px 12px;font-size:12px" onclick="openGiftModal()">+ Log a gift</button>':''}</div>
+      <div class="hist-list" style="max-height:200px">${gifts.map(g=>{
+        const o = byId(g.org); if(!o) return ''; return `<div class="hist-row">
+          <span class="d num">${fmtDate(g.date)}</span>
+          <span class="o" onclick="go('#/org/${o.id}')">${esc(o.name)}</span>
+          ${(g.id&&window.editGift&&!(window.APP&&APP.demo))?`<span class="pill" style="cursor:pointer" onclick="editGift(${g.id})">edit</span>`:''}
+          <span class="a num">${fmtMoney(g.amount)}</span></div>`;}).join('')||'<div class="muted" style="padding:16px 4px;font-size:13px">No gifts logged yet.</div>'}</div>`;
+    const hl = panel.querySelectorAll('.hist-list')[1];
+    if (hl){ hl.scrollTop = hl.scrollHeight;
+      const t0 = performance.now(), from = hl.scrollTop;
+      (function tw(t){ const p = Math.min(1,(t-t0)/700), e = 1-Math.pow(1-p,3);
+        hl.scrollTop = from*(1-e); if (p<1) requestAnimationFrame(tw); })(performance.now());
+    }
+  } else {
+    const rows = [...NETWORK.alloc].sort((a,b)=>b.amount-a.amount).slice(0,24);
+    panel.innerHTML = `<div class="kicker" style="margin-top:4px">Largest collective positions</div>
+      <div class="hist-list" style="max-height:344px">${rows.map(a=>{
+        const o = byId(a.org); if(!o) return ''; return `<div class="hist-row">
+          <span class="o" onclick="go('#/org/${o.id}')">${esc(o.name)}</span>
+          <span class="pill">${TIER_LABEL[o.tier]}</span>
+          <span class="a num">${fmtMoney(a.amount)}</span></div>`;}).join('')}</div>`;
+  }
+}
+
+/* ---------- quarterly giving chart with outcomes/lives lines + forecast ---------- */
+function drawAnnual(box, d){
+  if (!d.total){ box.innerHTML = '<div class="muted" style="padding:26px 4px;font-size:13px">Nothing to chart yet.</div>'; return; }
+  const ys = {};
+  const blank = () => ({given:0, planned:0, out:0, lives:0, byCause:{}});
+  const add = (g, planned) => {
+    const o = byId(g.org); if (!o) return;
+    const y = g.date.slice(0,4), c = o.causes[0];
+    ys[y] = ys[y] || blank();
+    if (planned) ys[y].planned += g.amount; else ys[y].given += g.amount;
+    ys[y].out += outcomesFor(g.org,g.amount); ys[y].lives += livesFor(g.org,g.amount);
+    ys[y].byCause[c] = (ys[y].byCause[c]||0) + g.amount;
+  };
+  if (state.scope==='me'){
+    MEMBER.donations.forEach(g=>add(g,false));
+    MEMBER.planned.forEach(g=>add(g,true));
+  } else {
+    const fr = Object.entries(d.byCause).map(([c,v])=>[c, v/d.total]);
+    const netLives = scopeLives('network');
+    let prev = 0;
+    ['2021','2022','2023','2024','2025','2026'].forEach((y,i,arr)=>{
+      const cum = d.total*Math.pow((i+1)/arr.length,1.5);
+      const dy = cum-prev; prev = cum;
+      ys[y] = blank(); ys[y].given = dy;
+      ys[y].out = dy/d.total*d.outcomes; ys[y].lives = dy/d.total*netLives;
+      fr.forEach(([c,f])=>ys[y].byCause[c]=dy*f);
+    });
+  }
+  const keys = Object.keys(ys).sort();
+  const W=560, H=270, P={l:56,r:52,t:18,b:28};
+  const gw = (W-P.l-P.r)/keys.length;
+  const bw = Math.min(40, gw*0.5);
+  let cum=0, co=0, cl=0;
+  const rows = keys.map(k=>{ cum+=ys[k].given+ys[k].planned; co+=ys[k].out; cl+=ys[k].lives;
+    return {k, ...ys[k], cum, co, cl}; });
+  const maxBar = Math.max(...rows.map(r=>r.given+r.planned), cum)*1.1||1;
+  const maxC = Math.max(co, cl)*1.1||1;
+  const Y$ = v => H-P.b - v/maxBar*(H-P.t-P.b);
+  const YC = v => H-P.b - v/maxC*(H-P.t-P.b);
+  const gx = i => P.l + i*gw + gw/2;
+  const line = fn => rows.map((r,i)=>(i?'L':'M')+gx(i).toFixed(1)+' '+fn(r).toFixed(1)).join('');
+  const area = fn => line(fn) + `L${gx(rows.length-1).toFixed(1)} ${H-P.b}L${gx(0).toFixed(1)} ${H-P.b}Z`;
+  box.innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+    <defs>
+      <linearGradient id="lead1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#54749E" stop-opacity="0"/><stop offset="1" stop-color="#54749E" stop-opacity="1"/></linearGradient>
+      <linearGradient id="lead2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#82A3C6" stop-opacity="0"/><stop offset="1" stop-color="#82A3C6" stop-opacity="1"/></linearGradient>
+      <linearGradient id="lead3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#AFC8DE" stop-opacity="0"/><stop offset="1" stop-color="#AFC8DE" stop-opacity="1"/></linearGradient>
+      <linearGradient id="omb1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#54749E" stop-opacity=".16"/><stop offset="1" stop-color="#54749E" stop-opacity="0"/></linearGradient>
+      <linearGradient id="omb2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#82A3C6" stop-opacity=".13"/><stop offset="1" stop-color="#82A3C6" stop-opacity="0"/></linearGradient>
+      <linearGradient id="omb3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#AFC8DE" stop-opacity=".12"/><stop offset="1" stop-color="#AFC8DE" stop-opacity="0"/></linearGradient>
+    </defs>
+    ${[0.33,0.66,1].map(f=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y$(maxBar*f/1.1)}" y2="${Y$(maxBar*f/1.1)}" stroke="var(--grid)"/>
+      <text x="${P.l-7}" y="${Y$(maxBar*f/1.1)+4}" text-anchor="end" font-size="10" fill="var(--ink-3)" class="num">${fmtMoney(maxBar*f/1.1)}</text>
+      <text x="${W-P.r+7}" y="${YC(maxC*f/1.1)+4}" font-size="10" fill="var(--ink-3)" class="num">${fmtNum(maxC*f/1.1)}</text>`).join('')}
+    <line x1="${P.l}" x2="${W-P.r}" y1="${H-P.b}" y2="${H-P.b}" stroke="var(--axis)"/>
+    ${rows.map((r,i)=>`
+      <rect class="ybar grow" data-i="${i}" x="${gx(i)-bw/2}" y="${Y$(r.given)}" width="${bw}" height="${Math.max(0,(H-P.b)-Y$(r.given))}" fill="#B9CFE2" rx="3" style="transform-origin:${gx(i)}px ${H-P.b}px"/>
+      ${r.planned?`<rect class="ybar grow" data-i="${i}" x="${gx(i)-bw/2}" y="${Y$(r.given+r.planned)}" width="${bw}" height="${Math.max(0,Y$(r.given)-Y$(r.given+r.planned))}" fill="#B9CFE2" opacity=".45" stroke="var(--ink-3)" stroke-width=".6" stroke-dasharray="3 3" rx="3" style="transform-origin:${gx(i)}px ${H-P.b}px"/>`:''}
+      <text x="${gx(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--ink-3)">${r.k}</text>`).join('')}
+    <path class="ombre" d="${area(r=>Y$(r.cum))}" fill="url(#omb1)"/>
+    <path class="ombre" d="${area(r=>YC(r.co))}" fill="url(#omb2)"/>
+    <path class="ombre" d="${area(r=>YC(r.cl))}" fill="url(#omb3)"/>
+    ${(()=>{ const x0 = gx(0)-gw*0.85, lead = (fn,g)=>`<path class="ombre in" d="M${x0.toFixed(1)} ${H-P.b} Q${(gx(0)-gw*0.45).toFixed(1)} ${fn(rows[0]).toFixed(1)} ${gx(0).toFixed(1)} ${fn(rows[0]).toFixed(1)}" fill="none" stroke="url(#${g})" stroke-width="2"/>`;
+      return lead(r=>Y$(rows[0].cum),'lead1') + lead(r=>YC(rows[0].co),'lead2') + lead(r=>YC(rows[0].cl),'lead3'); })()}
+    <path class="tline" d="${line(r=>Y$(r.cum))}" fill="none" stroke="#54749E" stroke-width="2"/>
+    <path class="tline" d="${line(r=>YC(r.co))}" fill="none" stroke="#82A3C6" stroke-width="2" stroke-dasharray="7 5"/>
+    <path class="tline" d="${line(r=>YC(r.cl))}" fill="none" stroke="#AFC8DE" stroke-width="2.2" stroke-dasharray="2 5" stroke-linecap="round"/>
+    <text x="${P.l}" y="${P.t-6}" font-size="10" fill="var(--ink-3)">$ (left)</text>
+    <text x="${W-P.r}" y="${P.t-6}" text-anchor="end" font-size="10" fill="var(--ink-3)">count (right)</text>
+    <style>
+      .grow{transform:scaleY(0);transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+      .grow.in{transform:scaleY(1)}
+      .tline{stroke-dasharray-ignore:0}
+      .ombre{opacity:0;transition:opacity 1s .5s}
+      .ombre.in{opacity:1}
+    </style>
+  </svg>
+  <div style="margin-top:6px;display:flex;gap:14px;font-size:10.5px;color:var(--ink-3);flex-wrap:wrap">
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#B9CFE2;margin-right:5px"></span>given that year (faded = planned)</span>
+    <span style="color:#54749E">━ total $ given</span>
+    <span style="color:#82A3C6">╍ total outcomes</span>
+    <span style="color:#AFC8DE">┈ total lives impacted</span>
+  </div>`;
+  // entrance: bars grow, lines draw, ombre fades in
+  const svgEl = box.querySelector('svg');
+  svgEl.querySelectorAll('.tline').forEach(pl=>{
+    const len = pl.getTotalLength();
+    const dash = pl.getAttribute('stroke-dasharray');
+    pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len;
+    pl.style.transition = 'stroke-dashoffset 1.3s cubic-bezier(.3,.6,.2,1)';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ pl.style.strokeDashoffset = 0;
+      if (dash) setTimeout(()=>{ pl.style.transition='none'; pl.style.strokeDasharray = dash; pl.style.strokeDashoffset=0; }, 1350);
+    }));
+  });
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    svgEl.querySelectorAll('.grow').forEach((r,i)=>setTimeout(()=>r.classList.add('in'), i*60));
+    svgEl.querySelectorAll('.ombre').forEach(o=>o.classList.add('in'));
+  }));
+  box.querySelectorAll('.ybar').forEach(rc=>{
+    rc.addEventListener('mousemove', e=>{
+      const r = rows[+rc.dataset.i];
+      const causes = Object.entries(r.byCause).sort((a,b)=>b[1]-a[1]).slice(0,4)
+        .map(([c,v])=>`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:4px"></span>${c} · ${fmtMoney(v)}`).join('<br>');
+      showTip(`<b>${r.k}</b> · ${fmtMoney(r.given+r.planned)}${r.planned?' (incl. '+fmtMoney(r.planned)+' planned)':''}<br>≈ ${fmtNum(r.out)} outcomes · ${fmtNum(r.lives)} lives<br>${causes}`, e.clientX, e.clientY);
+    });
+    rc.addEventListener('mouseleave', hideTip);
+  });
+}
+/* ---------- top picks: fading pager ---------- */
+let tpTimer = null, tpIdx = 0;
+function renderMarquee(){
+  const tops = ORGS.filter(o=>o.tier==='top' && isShown(o));
+  const host = $('#marqueeInner')?.closest('.marquee') || $('#tpHost');
+  if (!host) return;
+  host.className = ''; host.id = 'tpHost'; host.style.maskImage='none';
+  const pages = [];
+  for (let i=0;i<tops.length;i+=5) pages.push(tops.slice(i,i+5));
+  clearInterval(tpTimer); tpIdx = Math.min(tpIdx, pages.length-1)||0;
+  const card = o=>`<div class="mini-card" onclick="go('#/org/${o.id}')">
+      <span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[o.causes[0]]}"></span>${o.causes[0]}</span>
+      <h4>${esc(o.name)}</h4>
+      <div class="c">${esc(o.countries.slice(0,3).join(' · '))}</div>
+      <div class="cost">${o.costPerOutcome>0?`<b>${fmtCost(o.costPerOutcome)}</b> avg / outcome`:'<span class="muted">cost in diligence</span>'}</div></div>`;
+  function paint(fadeFirst){
+    const doPaint = ()=>{
+      host.innerHTML = `<div class="tp-page" id="tpPage">${pages[tpIdx].map(card).join('')}</div>
+        <div class="tp-dots">${pages.map((_,i)=>`<i class="${i===tpIdx?'on':''}" onclick="tpGo(${i})"></i>`).join('')}</div>`;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>$('#tpPage')?.classList.add('on')));
+    };
+    const cur = $('#tpPage');
+    if (fadeFirst && cur){ cur.classList.remove('on'); setTimeout(doPaint, 900); }
+    else doPaint();
+  }
+  window.tpGo = i=>{ tpIdx = i; paint(true); restart(); };
+  function tick(){ tpIdx = (tpIdx+1)%pages.length; paint(true); }
+  function restart(){ clearInterval(tpTimer); tpTimer = setInterval(()=>{ if (!host.matches(':hover')) tick(); }, 9500); }
+  paint(); restart();
+}
+
+/* ---------- partner updates ---------- */
+const UPDATES = [
+ {org:'Fortify Health', title:'Twelve new mills join the fortification network in Maharashtra', sum:'Quarterly expansion brings iron-fortified flour within reach of 4 million more people; independent lab checks passed at 96 percent of sites.', causes:['Global Health','Agriculture & Food'],
+  body:['Fortify Health signed twelve chakki mills in Maharashtra this quarter, the largest single expansion of its fortification network to date. Each mill now blends iron, folic acid, and B12 premix into wheat flour at the point of grinding, which means families get fortified flour without changing anything about how they buy or cook.','Independent laboratory checks covered every active site. Ninety-six percent passed on the first sample; the remaining mills were re-calibrated and passed on the second. The team publishes the full lab results in its data room.','The expansion brings fortified flour within reach of roughly four million more people. The binding constraint is now premix logistics rather than mill recruitment, and the operations team is piloting regional premix depots to cut delivery times in half.','What this means for funders: the cost per person-year of fortification is holding under one dollar even as the network scales, and the team can absorb additional funding without diluting quality controls.']},
+ {org:'Lead Exposure Elimination Project', title:'Malawi adopts national lead-paint standard following LEEP pilot', sum:'Regulation drafted with LEEP support takes effect in January; paint sampling shows compliance rising two quarters ahead of schedule.', causes:['Global Health'],
+  body:['Malawi\u2019s Bureau of Standards formally adopted a 90 ppm lead-paint limit, the standard LEEP helped draft after its 2024 market study found lead in over a third of sampled paints. The regulation takes effect in January.','Manufacturer engagement started before the rule was final. Two of the three largest producers have already reformulated, and market sampling shows compliant paint rising two quarters ahead of the adoption timeline.','LEEP\u2019s playbook - study the market, brief the regulator, help manufacturers switch suppliers - has now contributed to standards in more than a dozen countries. The team estimates the Malawi standard alone will protect hundreds of thousands of children from a lifetime of lead exposure.','Reformulation is cheap; the expensive part is knowing whom to call. That is precisely the gap this organization fills, and why its cost per child protected stays in the single dollars.']},
+ {org:'GiveDirectly', title:'Field notes: what recipients bought in Q2, in their own words', sum:'New spending survey across 2,400 households; small-business investment and school fees again lead the list.', causes:['Poverty & Livelihoods'],
+  body:['GiveDirectly surveyed 2,400 recipient households across three programs about how they used their transfers this quarter. As in prior rounds, the leading categories were small-business investment, school fees, and home improvements - not the consumption fears that cash programs still face.','One recurring pattern: recipients pooling portions of their transfers into informal savings groups, then rotating lump sums to members for larger purchases like roofing iron and livestock.','The survey instrument and raw anonymized data are public. Independent researchers continue to find no meaningful increase in temptation-goods spending, consistent with the broader cash-transfer literature.','For funders, the takeaway is stable: cash remains the benchmark. Programs that cannot beat handing people money should be asked why.']},
+ {org:'Educate Girls', title:'Door-to-door census reaches its ten-millionth household', sum:'Community volunteers have now mapped out-of-school girls across four Indian states; re-enrollment holding at 92 percent.', causes:['Education','Rights & Justice'],
+  body:['Team Balika volunteers knocked on their ten-millionth door this quarter. The census - village by village, household by household - is how Educate Girls finds the girls no enrollment drive ever reaches: those invisible to school records because they were never enrolled at all.','Across the four states now mapped, re-enrollment of identified girls is holding at 92 percent, and the remedial learning program keeps closing foundational gaps within two academic terms.','The census data has become infrastructure in its own right; two state governments now use it for their own planning.','The organization\u2019s development-impact-bond years taught it to price outcomes precisely, and that discipline shows in its unit economics as it scales toward its ten-year goal.']},
+ {org:'Shrimp Welfare Project', title:'Three major producers commit to electrical stunning', sum:'Commitments cover an estimated 1.2 billion animals annually; implementation audits begin this fall.', causes:['Animal Welfare'],
+  body:['Three of the world\u2019s larger shrimp producers signed commitments to install electrical stunning on their harvest lines, replacing slow asphyxiation on ice. Together the commitments cover an estimated 1.2 billion animals per year.','The Shrimp Welfare Project supplies the stunners and the technical integration support; producers supply the throughput. That split is why a single hire and a shipping container of equipment can move welfare standards for entire supply chains.','Implementation audits begin this fall, with results to be published openly, and two additional producers are in late-stage conversations.','Per animal affected, this remains among the cheapest suffering-reduction work our team tracks - fractions of a cent per shrimp per year.']},
+ {org:'StrongMinds', title:'Group therapy outcomes hold at six-month follow-up', sum:'New cohort data shows depression-free rates of 80 percent sustained; expansion into public clinics in Uganda continues.', causes:['Mental Health'],
+  body:['StrongMinds published six-month follow-up data for its latest treatment cohorts: 80 percent of women who completed group interpersonal therapy remained depression-free, consistent with the organization\u2019s long-running results.','The more consequential news is where therapy is happening. Groups now run inside Ugandan public health clinics with government-employed facilitators, a channel that could eventually carry the model without StrongMinds delivering it directly.','Task-shifted therapy - trained lay facilitators rather than psychiatrists - is what keeps the cost per person treated low enough to matter at population scale.','Household spillovers (children\u2019s school attendance, partner employment) continue to show up in the data, suggesting the headline outcome understates the true impact.']},
+];
+function updHero(u){
+  if (u.img && /^https?:/.test(u.img)){
+    return `<div class="upd-hero"><img class="upd-photo" src="${esc(u.img)}" alt="" loading="lazy" onerror="this.remove()">
+      <span class="upd-shade"></span><span class="nm">${esc(u.org)}</span></div>`;
+  }
+  const c1 = window.SITE_THEME.causeHex[u.causes[0]] || '#263759';
+  const c2 = window.SITE_THEME.causeHex[u.causes[1]||u.causes[0]] || '#298CC0';
+  return `<div class="upd-hero" style="background:
+    radial-gradient(220px 130px at 85% -10%, ${c2}55, transparent 70%),
+    radial-gradient(260px 160px at 10% 110%, ${c1}77, transparent 70%), ${c1}CC">
+    <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.2" preserveAspectRatio="none" viewBox="0 0 200 130" fill="none" stroke="#fff" stroke-width="0.6">
+      <path d="M0 110 h30 l8-14 8 14 h20 l8-14 8 14 h40 l8-14 8 14 h62"/></svg>
+    <span class="nm">${esc(u.org)}</span></div>`;
+}
+function renderUpdates(){
+  let sec = $('#updatesSec');
+  if (!sec){
+    $('#view-dashboard').insertAdjacentHTML('beforeend', `${ROOFLINE}
+      <div class="card fade-up in" id="updatesSec" style="margin-top:4px">
+      <div class="kicker">From the field</div>
+      <h3 style="margin-bottom:16px">Updates from our partner organizations</h3>
+      <div class="updates-grid" id="updGrid"></div></div>`);
+    sec = $('#updatesSec');
+  }
+  const shown = new Set(ORGS.filter(isShown).map(o=>o.name));
+  const items = UPDATES.filter(u=>shown.has(u.org)).slice(0,6);
+  $('#updGrid').innerHTML = items.map(u=>{
+    const idx = UPDATES.indexOf(u);
+    return `<div class="upd-card" onclick="openUpdateArticle(${idx})">${updHero(u)}
+      <div class="upd-body"><div class="ttl">${esc(u.title)}</div>
+      <div class="sum">${esc(u.sum)}</div>
+      <div class="pills">${u.causes.map(c=>`<span class="pill" style="font-size:10px"><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:5px"></span>${c}</span>`).join('')}</div>
+      </div></div>`;}).join('');
+}
+window.openUpdateArticle = function(i){
+  const u = UPDATES[i]; if (!u) return;
+  const o = ORGS.find(x=>x.name===u.org);
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width = 'min(720px,94vw)'; box.style.maxHeight = '86vh'; box.style.overflow = 'auto';
+  box.innerHTML = `${updHero(u).replace('class="upd-hero"','class="upd-hero" style="height:150px;border-radius:12px;overflow:hidden;margin:-8px 0 16px"')}
+    <div class="kicker">From the field · ${esc(u.org)}</div>
+    <h3 style="font-size:24px;line-height:1.25;margin-bottom:6px">${esc(u.title)}</h3>
+    <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:14px">Q2 2026 update · shared with Factory for Good members</div>
+    ${(u.body||[u.sum]).map(p=>`<p style="font-size:14px;line-height:1.7;color:var(--ink-2);margin-bottom:12px">${esc(p)}</p>`).join('')}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px">${u.causes.map(c=>`<span class="pill" style="font-size:10px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:5px"></span>${c}</span>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-top:1px solid var(--hairline);padding-top:14px">
+      ${o?`<a style="cursor:pointer;font-size:13px" onclick="closeModal();go('#/org/${o.id}')">View ${esc(u.org)}'s brief →</a>`:'<span></span>'}
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>`;
+  veil.classList.add('show');
+};
+const _renderDashboard = renderDashboard;
+renderDashboard = function(a){ _renderDashboard(a); renderUpdates(); };
+
+/* ---------- impact overlay ---------- */
+/* monoline corollary icons (Lucide-style, 1px stroke) */
+const CICON = {
+ team:'<circle cx="12" cy="12" r="8"/><path d="M12 4 a8 8 0 0 1 0 16 M4.5 9 h15 M4.5 15 h15"/>',
+ class:'<path d="M4 6 h16 v10 h-16 z M4 20 h16 M9 16 v4 M15 16 v4"/><path d="M7 10 h6"/>',
+ bus:'<rect x="4" y="5" width="16" height="12" rx="2"/><path d="M4 11 h16 M7 5 v6 M12 5 v6 M17 5 v6"/><circle cx="8" cy="19" r="1.6"/><circle cx="16" cy="19" r="1.6"/>',
+ jet:'<path d="M3 15 l18-7 -3 6 -15 3 z M10 13.5 l1 5 2-1 -0.5-4.5 M14 9.5 l6-4"/>',
+ hall:'<path d="M4 19 v-7 a8 8 0 0 1 16 0 v7 z M8 19 v-6 M12 19 v-7 M16 19 v-6"/>',
+ conf:'<path d="M4 20 v-11 l5-4 v5 l5-4 v5 l6-4 v13 z M8 16 h2 M13 16 h2"/>',
+ arena:'<path d="M3 12 a9 4.5 0 0 0 18 0 M3 12 a9 4.5 0 0 1 18 0 M6 12 a6 3 0 0 0 12 0"/>',
+ stadium:'<path d="M3 10 a9 4 0 0 0 18 0 M3 10 v4 a9 4 0 0 0 18 0 v-4 M7.5 9.7 a4.5 2 0 0 0 9 0"/>',
+ city:'<path d="M3 20 v-8 h4 v8 M9 20 v-13 h4 v13 M15 20 v-9 h4 v9 M3 20 h18 M5 15 h.01 M11 10 h.01 M11 14 h.01 M17 14 h.01"/>',
+ country:'<path d="M5 20 v-16 M5 5 h12 l-2.5 3 2.5 3 h-12"/><path d="M9 20 h-6"/>',
+ crew:'<path d="M3 15 q9 4 18 0 l-2 3 q-7 3 -14 0 z M7 14 l-2-6 M12 14 v-7 M17 14 l2-6"/>',
+ choir:'<path d="M8 17 a2 2 0 1 0 0.01 0 M16 15 a2 2 0 1 0 0.01 0 M10 17 v-10 l8-2 v10 M10 10 l8-2"/>',
+ cinema:'<rect x="3" y="6" width="18" height="11" rx="1.5"/><path d="M3 20 h18 M8 20 l1-3 M16 20 l-1-3"/>',
+ ferry:'<path d="M4 14 h16 l-2 4 q-6 2 -12 0 z M7 14 v-4 h10 v4 M12 10 v-3 h3"/><path d="M3 20 q2-1.5 4 0 t4 0 4 0 4 0 4 0"/>',
+ festival:'<path d="M4 20 l8-13 8 13 z M12 7 v-3 l4 1 -4 1 M8.5 14.5 q3.5 2 7 0"/>',
+ metro:'<path d="M2 20 h20 M4 20 v-6 h3 v6 M8 20 v-11 h4 v11 M13 20 v-8 h3 v8 M17 20 v-14 h4 v14"/>',
+};
+function corIcon(key, size=44){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">${CICON[key]||CICON.team}</svg>`;
+}
+const LADDER_A = [[11,'a starting soccer XI','team'],[30,'a full classroom','class'],[60,'a packed coach bus','bus'],[400,'a jumbo jet','jet'],[1600,'a grand auditorium','hall'],[5000,'a conference center','conf'],[20000,'a sports arena','arena'],[80000,'an olympic stadium','stadium'],[250000,'a mid-size city','city'],[1000000,'a major city','metro'],[10000000,'a small country','country']];
+const LADDER_B = [[8,'a rowing crew','crew'],[40,'a full choir','choir'],[200,'a cinema screening','cinema'],[900,'a ferry crossing','ferry'],[4000,'a theatre district','hall'],[15000,'a music festival','festival'],[60000,'a derby-day stadium','stadium'],[300000,'a capital district','city'],[2000000,'a metropolis','metro']];
+function corollary(n, ladder){
+  let best = null;
+  for (const step of ladder){ if (n>=step[0]) best = step; else break; }
+  return best;
+}
+/* shade per magnitude: 1s lightest → 10k+ darkest */
+const SHADES = IS_LIGHT
+  ? ['#D9E6F0','#AFC8DE','#82A3C6','#54749E','#33517A','#1F3A5C']
+  : ['#41546f','#5f7ba3','#86a3cf','#b7cae6','#e0c284','#ffffff'];
+const figSVG = shade => `<svg viewBox="0 0 11 15"><circle cx="5.5" cy="3" r="2.6" fill="${shade}"/><path d="M1 15 q0-7 4.5-7 t4.5 7 z" fill="${shade}" opacity=".85"/></svg>`;
+const OVAL_ROWS = [6,8,10,12,12,12,12,10,8,6];   // 96 cells, oval silhouette
+function gridCells(v, opts={}){
+  // continuous odometer: the grid persists; denser, darker figures replace
+  // lighter ones from the top-left as each magnitude turns over.
+  const C = opts.oval ? 96 : 100;
+  v = Math.max(0, Math.round(v));
+  let dense = 0, light = 0, k = 0, cap = '';
+  if (v <= C){ light = v; k = 0; cap = 'each figure = 1 person'; }
+  else {
+    k = Math.max(0, Math.floor(Math.log10(v/C)) + (v/C >= Math.pow(10, Math.floor(Math.log10(v/C))+1) ? 1 : 0));
+    k = Math.max(0, Math.floor(Math.log10(v)) - Math.floor(Math.log10(C)));
+    let u = Math.pow(10, k-1)||1;
+    while (v > 10*C*u) u *= 10;
+    while (v <= C*u && u>1) u /= 10;
+    k = Math.round(Math.log10(u));
+    dense = Math.max(0, Math.min(C, Math.round((v - C*u) / (9*u))));
+    light = C - dense;
+    const D = (10*u).toLocaleString(), L = u.toLocaleString();
+    cap = dense===0 ? `each figure = ${L} people`
+        : dense===C ? `each figure = ${D} people`
+        : `dark figure = ${D} · light figure = ${L} people`;
+  }
+  const sig = (opts.oval?'o':'s')+k+':'+dense+':'+light;
+  const cell = i =>
+    i < dense ? figSVG(SHADES[Math.min(k+1,SHADES.length-1)])
+    : i < dense+light ? figSVG(SHADES[Math.min(k,SHADES.length-1)])
+    : '<span class="ph"></span>';
+  let html;
+  if (opts.oval){
+    let i = 0;
+    html = OVAL_ROWS.map(n=>{
+      let row = ''; for (let j=0;j<n;j++) row += cell(i++);
+      return `<div class="orow">${row}</div>`;
+    }).join('');
+  } else {
+    html = Array.from({length:C},(_,i)=>cell(i)).join('');
+  }
+  return {sig, cap, html};
+}
+function showImpactOverlay(){
+  if ($('#impactOverlay')) return;
+  const lives = Math.round(scopeLives('me')) || Math.round(scopeLives('network'));
+  const outs = Math.round(scopeData('me').outcomes) || Math.round(scopeData('network').outcomes);
+  if (!lives && !outs) return;
+  document.body.insertAdjacentHTML('beforeend', `<div id="impactOverlay">
+    <span class="io-skip" onclick="dismissOverlay()">Skip to dashboard →</span>
+    <div class="io-card">
+      <div class="kicker" id="ioKick">Your giving so far</div>
+      <div class="io-3col">
+        <div class="io-left">
+          <div class="io-num num" id="ioNum">0</div>
+          <div class="io-lbl" id="ioLbl">lives impacted</div>
+        </div>
+        <div>
+          <div class="io-grid10" id="ioGrid"></div>
+          <div class="io-unit" id="ioUnit"></div>
+        </div>
+        <div class="io-right"><div class="io-cor2" id="ioCor"></div></div>
+      </div>
+      <div class="io-sub" id="ioSub"></div>
+      <div class="io-ask" id="ioAsk" style="opacity:0"></div>
+    </div></div>`);
+  runImpactAnim({prefix:'io', target:lives, outs, ladder:LADDER_A}, ()=>{
+    const ask = $('#ioAsk'); if (!ask) return;
+    ask.style.transition='opacity .6s'; ask.style.opacity=1;
+    ask.innerHTML = `<span style="font-size:14px;color:var(--ink-2)">Want to see how far a donation could go?</span>
+      $<input type="number" id="ioAmt" value="100000" step="25000" min="1000">
+      <button class="btn primary" id="ioGo">Let’s see</button>
+      <button class="btn" onclick="dismissOverlay()">Enter dashboard</button>`;
+    $('#ioGo').addEventListener('click', ()=>{
+      const amt = +$('#ioAmt').value||100000;
+      const tops = ORGS.filter(o=>o.tier==='top'&&o.costPerOutcome>0);
+      const medOut = tops.map(o=>o.costPerOutcome).sort((a,b)=>a-b)[Math.floor(tops.length/2)]||50;
+      const withOut = ORGS.filter(o=>o.tier==='top'&&o.costPerOutput>0);
+      const medLife = withOut.map(o=>o.costPerOutput).sort((a,b)=>a-b)[Math.floor(withOut.length/2)]||10;
+      $('#ioKick').textContent = 'What '+fmtMoney(amt)+' could build';
+      $('#ioAsk').innerHTML = `<button class="btn primary" onclick="dismissOverlay()">Enter dashboard</button>`;
+      runImpactAnim({prefix:'io', target:Math.round(amt/medLife), outs:Math.round(amt/medOut), ladder:LADDER_B}, ()=>{});
+    });
+  });
+}
+/* staged animation: sprint between milestones, linger a beat at each turnover */
+let ioRun = 0;
+function runImpactAnim(opts, done){
+  const {prefix='io', from=0, target, outs, ladder, holds={cor:1500,dec:600}, subText=null, oval=false, iconSize=44} = opts;
+  const run = ++ioRun;
+  const el = id => document.getElementById(prefix+id);
+  const numEl = el('Num'), corEl = el('Cor'), gridEl = el('Grid'), unitEl = el('Unit'), subEl = el('Sub');
+  if (!numEl) return;
+  if (subEl) subEl.textContent=''; corEl.innerHTML='';
+  const decades = []; for (let u=100; u<target; u*=10) decades.push(u);
+  const cors = ladder.map(l=>l[0]).filter(t=>t<=target && t>3);
+  const stops = [...new Set([...decades, ...cors])].filter(m=>m>from).sort((a,b)=>a-b);
+  const segs = stops.map(m=>({to:m, hold: cors.includes(m) ? holds.cor : holds.dec}));
+  segs.push({to:target, hold:0});
+  let lastSig = '', lastCorLbl = '';
+  function paint(v, settled){
+    numEl.textContent = Math.round(v).toLocaleString();
+    const g = gridCells(Math.max(1,v), {oval});
+    if (g.sig!==lastSig){ lastSig = g.sig; gridEl.innerHTML = g.html; unitEl.textContent = g.cap; }
+    const cor = corollary(Math.round(v), ladder);
+    const lbl = cor ? cor[1] : '';
+    if (lbl!==lastCorLbl){
+      lastCorLbl = lbl;
+      corEl.style.opacity = 0;
+      setTimeout(()=>{ if (run!==ioRun) return;
+        corEl.innerHTML = cor ? `${corIcon(cor[2], iconSize)}<span class="pre">enough people to fill</span><span class="cl">${cor[1]}${Math.round(v)>cor[0]*1.8?' — many times over':''}</span>` : '';
+        corEl.style.opacity = 1; }, 170);
+    } else if (cor && settled && Math.round(v)>cor[0]*1.8 && !corEl.innerHTML.includes('many times over')){
+      corEl.innerHTML = `${corIcon(cor[2], iconSize)}<span class="pre">enough people to fill</span><span class="cl">${cor[1]} — many times over</span>`;
+    }
+  }
+  let i = 0, cur = from;
+  function runSeg(){
+    if (run!==ioRun || !document.getElementById(prefix+'Num')) return;
+    if (i>=segs.length){
+      if (subEl) subEl.innerHTML = subText || `≈ <b class="num" style="color:var(--ink)">${fmtNum(outs)}</b> outcomes created · modeled from cost-per-outcome data`;
+      done && done(); return;
+    }
+    const seg = segs[i++];
+    const dur = Math.max(400, Math.min(900, 450 + Math.log10(Math.max(10,seg.to)) * 55));
+    const t0 = performance.now(), a = cur, b = seg.to;
+    function tw(t){
+      if (run!==ioRun || !document.getElementById(prefix+'Num')) return;
+      const p = Math.min(1,(t-t0)/dur), e = p<0.85 ? p/0.85*0.94 : 0.94 + (p-0.85)/0.15*0.06;
+      paint(a + (b-a)*e, false);
+      if (p<1) requestAnimationFrame(tw);
+      else { paint(b, true); cur = b; setTimeout(runSeg, seg.hold); }
+    }
+    requestAnimationFrame(tw);
+  }
+  paint(Math.max(1,from), true);
+  runSeg();
+}
+/* ================= guided tour ================= */
+function tourVeilHTML(){
+  return `<div id="tourVeil" style="position:fixed;inset:0;z-index:140;pointer-events:none">
+    <div id="tourHole" style="position:fixed;border-radius:16px;box-shadow:0 0 0 9999px ${IS_LIGHT?'rgba(247,245,241,.82)':'rgba(13,16,23,.85)'};transition:all .55s cubic-bezier(.3,.7,.2,1)"></div>
+    <div id="tourCard" style="position:fixed;max-width:330px;background:var(--surface);border:1px solid var(--divider,var(--hairline-2));border-radius:14px;padding:18px 20px;box-shadow:0 14px 40px rgba(20,20,19,.18);pointer-events:auto;transition:all .55s cubic-bezier(.3,.7,.2,1)">
+      <div style="font-size:13.5px;color:var(--ink-2);line-height:1.55" id="tourText"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;align-items:center">
+        <span id="tourStep" style="font-size:11px;color:var(--ink-3)"></span>
+        <span style="display:flex;gap:8px"><button class="btn" style="padding:6px 13px;font-size:12px" onclick="endTour()">Skip</button>
+        <button class="btn primary" style="padding:6px 15px;font-size:12px" id="tourNext">Next</button></span>
+      </div></div></div>`;
+}
+window.startTour = function(force){
+  if ($('#tourVeil')) return;
+  if (!location.hash.includes('dashboard')) go('#/dashboard');
+  const d = scopeData('me');
+  if (!d.total && !force) return;   // nothing to tour for a brand-new member
+  setTimeout(()=>runTour(), 400);
+};
+function runTour(){
+  document.body.insertAdjacentHTML('beforeend', tourVeilHTML());
+  const steps = [
+    {sel:'#statRow .stat:nth-child(1)', text:'Your lifetime giving, and the organizations behind it — the foundation of your portfolio.'},
+    {sel:'#statRow .stat:nth-child(2)', text:'What that giving has created: estimated outcomes, and the lives they add up to, modeled from each organization’s data.'},
+    {sel:'#statRow .stat:nth-child(3)', text:'This year at a glance — the solid bar is what you’ve already given, the striped extension is what you’ve committed, and the marker is your minimum giving goal. Hover any part for the numbers.'},
+    {sel:'#portfolioCard', text:'Your Impact Portfolio. The Accomplishments tab plays what your recent giving achieved — hit “Play from the beginning” any time for the full story — and the other tabs hold your composition, commitments, and giving over time.', pre:()=>{ state.dashTab='accomplish'; renderDashPanel(); }},
+    {sel:'.globe-card', text:'Find your next opportunity here — every pin is a vetted organization, colored by cause. Drag the globe, or switch to the flat map and zoom into a region.'},
+  ];
+  let idx = -1;
+  const hole = $('#tourHole'), card = $('#tourCard');
+  function place(selEl){
+    const r = selEl.getBoundingClientRect();
+    hole.style.left = (r.left-8)+'px'; hole.style.top = (r.top-8)+'px';
+    hole.style.width = (r.width+16)+'px'; hole.style.height = (r.height+16)+'px';
+    hole.style.display='block';
+    const below = r.bottom+230 < innerHeight;
+    card.style.left = Math.max(14, Math.min(innerWidth-350, r.left+r.width/2-165))+'px';
+    card.style.top = (below ? r.bottom+18 : Math.max(14,r.top-190))+'px';
+  }
+  async function show(i){
+    idx = i;
+    if (i>=steps.length) return endTour(true);
+    const st = steps[i];
+    $('#tourStep').textContent = (i+1)+' of '+steps.length;
+    if (st.pre) st.pre();
+    card.style.transform='none'; card.style.maxWidth='330px'; card.style.width='';
+    const elx = document.querySelector(st.sel);
+    if (!elx) return show(i+1);
+    elx.scrollIntoView({block:'center', behavior:'smooth'});
+    setTimeout(()=>place(elx), 250);
+    $('#tourText').textContent = st.text;
+  }
+  $('#tourNext').addEventListener('click', ()=>show(idx+1));
+  show(0);
+}
+window.endTour = function(done){
+  ioRun++;
+  $('#tourVeil')?.remove();
+  try{ sessionStorage.setItem('ffg.toured','1'); }catch(e){}
+  if (done){ state.dashTab='accomplish'; renderDashPanel(); }
+};
+function maybeTour(){
+  // entry moment = the full-screen impact overlay; the guided tour lives on the Tour button
+  try{ if (sessionStorage.getItem('ffg.intro')) return; }catch(e){}
+  const has = (scopeLives('me')||scopeLives('network')||scopeData('me').outcomes);
+  if (!has) return;
+  try{ sessionStorage.setItem('ffg.intro','1'); }catch(e){}
+  showImpactOverlay();
+}
+window.maybeTour = maybeTour;
+// nav entry point for the tour
+(function(){
+  const nav = document.querySelector('#mainNav');
+  if (nav && !document.getElementById('tourBtn'))
+    nav.insertAdjacentHTML('beforeend','<button id="tourBtn" onclick="startTour(true)">Tour</button>');
+})();
+window.dismissOverlay = function(){
+  const el = $('#impactOverlay'); if (!el) return;
+  el.style.transition='opacity .5s'; el.style.opacity=0;
+  setTimeout(()=>el.remove(), 500);
+  $$('.view.active .fade-up').forEach((x,i)=>{ x.classList.remove('in'); setTimeout(()=>x.classList.add('in'), 80+i*90); });
+};
+window.showImpactOverlay = showImpactOverlay;
+</script>
+<script>
+/* ================================================================
+   Globe v2 — traditional map look, pins, filters, flat-map mode.
+   ================================================================ */
+const BASE_POLYS = {"north_america": [[-168, 65], [-166, 68.5], [-156, 71], [-140, 69.5], [-128, 69.5], [-122, 69.5], [-114, 68.5], [-108, 68], [-96, 68.5], [-90, 69], [-85, 70], [-82, 66], [-88, 64], [-92, 62], [-94, 58.5], [-92, 56], [-86, 55.5], [-82, 55], [-80, 51.5], [-79, 53.5], [-77, 55.5], [-76, 58], [-70, 58.5], [-64, 58], [-60, 55], [-56, 51.5], [-60, 49.5], [-64, 49], [-66, 44.5], [-70, 42], [-73.5, 40.5], [-75, 38], [-76, 36], [-79.5, 33], [-81, 30], [-80, 26], [-81.5, 24.5], [-83, 29], [-85, 29.8], [-89, 29], [-94, 29.3], [-97, 26], [-97.5, 23], [-95.5, 19], [-94, 18], [-91, 18.5], [-87.5, 21.2], [-86.5, 20], [-88, 17.5], [-88.5, 15.5], [-85, 13], [-87, 12], [-84, 9.5], [-81.5, 8.5], [-79, 9], [-79.5, 8], [-83, 8], [-85, 10], [-87.5, 13.5], [-91, 14], [-94.5, 16.5], [-97, 16], [-101, 17.5], [-105, 19.5], [-105.5, 22], [-109, 23.5], [-112, 26], [-114.5, 29], [-114, 30.5], [-111, 28], [-109.5, 25.5], [-110.5, 24], [-112.5, 26], [-115, 29.5], [-117, 32.5], [-120, 34.5], [-122, 37], [-124, 40], [-124.5, 43], [-124, 46.5], [-123, 48.5], [-128, 51], [-132, 54], [-135, 57], [-139, 59.5], [-146, 60.5], [-151, 59], [-155, 58], [-158, 56.5], [-162, 55], [-165, 54.5], [-161, 58.5], [-165, 60], [-165, 62.5], [-168, 65]], "greenland": [[-58, 64], [-52, 60], [-46, 60.5], [-42, 62], [-40, 64], [-33, 67], [-30, 68.5], [-25, 70.5], [-22, 72], [-20, 74], [-22, 76.5], [-30, 78.5], [-38, 79.5], [-48, 80], [-58, 79], [-64, 77.5], [-68, 76], [-70, 74], [-68, 72], [-64, 70], [-60, 67], [-58, 64]], "south_america": [[-79, 9], [-77, 8], [-75.5, 10.5], [-72, 11.8], [-68, 11], [-64, 10.5], [-60, 9.5], [-56, 6], [-52, 5], [-50, 2], [-48, -1], [-44.5, -2.5], [-40, -3], [-37, -5], [-34.8, -7.5], [-35, -9.5], [-37.5, -12.5], [-39, -15], [-39, -18], [-40.5, -21], [-42, -23], [-45, -23.5], [-48, -25.5], [-48.5, -28.5], [-51.5, -31], [-54, -34.5], [-57, -36], [-57.5, -38.5], [-60, -39], [-62.5, -41], [-64.5, -42.5], [-65.5, -45], [-67.5, -47], [-68.5, -50], [-69, -52], [-71, -53.8], [-73.5, -52], [-74.5, -49], [-74, -46], [-73.5, -43], [-73.7, -40], [-73, -37], [-71.5, -33], [-71, -30], [-70.5, -26], [-70, -22], [-70.5, -18.5], [-75, -15.5], [-77, -12], [-79, -8], [-81, -6], [-81, -4], [-80, -2.5], [-80.5, 0], [-79, 1.5], [-77.5, 4], [-77.5, 7], [-79, 9]], "africa": [[-6, 35.5], [-2, 35.5], [3, 37], [9, 37.5], [11, 35], [10, 34], [15, 32.5], [20, 32.5], [25, 32], [30, 31.5], [33, 31], [35, 27], [36, 23], [37, 20], [38.5, 17.5], [41, 15], [43, 11.5], [48, 11.5], [51.5, 11.8], [51, 10.5], [47.5, 7], [44, 4.5], [41.5, -1], [40, -4.5], [39, -8], [40, -11], [40.5, -15], [38, -17.5], [36, -18.5], [35, -22], [33, -25.5], [32.5, -28.5], [28, -32.5], [25, -34], [20, -34.8], [18.4, -34], [17.5, -31], [15.5, -28], [14.5, -24], [12, -19], [13, -14], [12.5, -9], [13.5, -6], [12, -5], [9.5, -2], [9, 2], [9.5, 4], [6, 4.3], [2, 6.2], [-2, 5], [-5, 5], [-8, 4.5], [-13, 7.5], [-16, 10.5], [-17.5, 14.5], [-16.5, 18], [-16, 21], [-14.5, 25], [-12, 27.5], [-9.5, 30], [-9.8, 32], [-6, 35.5]], "madagascar": [[49.5, -12.2], [50.3, -15], [49.8, -18], [48.5, -21.5], [47, -24], [45.2, -25.5], [43.9, -24], [43.5, -21], [44, -18], [44.5, -16.5], [46.5, -14], [48, -12.8], [49.5, -12.2]], "eurasia": [[-9.5, 43.5], [-9, 41], [-8.8, 38.5], [-9, 37], [-6.5, 36.8], [-2, 36.5], [0, 38.5], [1, 41], [3, 42.3], [6, 43.2], [8, 44], [10, 44], [12.5, 44], [14, 42], [16, 41], [18.5, 40.3], [16.5, 38.5], [15.5, 38], [16, 40], [13.5, 41.3], [11, 42.5], [9, 44.3], [6, 43.2], [4, 43.5], [3, 42.3], [1, 41], [0, 38.5], [-0.5, 37.5], [-2, 36.5], [-5.5, 36], [-6.5, 36.8], [-8.8, 37], [-9, 38.5], [-8.7, 40], [-9, 41], [-9.3, 42.5], [-9.5, 43.5], [-8, 43.7], [-4.5, 43.5], [-1.8, 43.4], [-1.2, 45], [-1, 46.5], [-2, 47.5], [-4.5, 48], [-4.7, 48.5], [-1.5, 49.5], [0, 49.5], [1.5, 50.8], [4, 51.5], [6, 53.5], [8, 54], [8.5, 56.5], [10, 57.5], [12, 56], [12.5, 58], [11, 59], [9, 58.5], [7, 58], [5.5, 59], [5, 61], [7, 63], [11, 65], [14, 67.5], [18, 69.5], [24, 70.8], [28, 71], [31, 70], [35, 69], [40, 67.5], [44, 67], [44, 66], [40, 66], [36, 65], [34, 64.5], [37, 63.5], [38, 62], [36, 61.5], [32, 60.5], [30, 59.8], [28, 60], [26, 60.3], [23, 60], [21, 61], [21.5, 63], [24, 65.5], [25.5, 65], [25, 63.5], [22.5, 62.5], [21, 60.5], [19, 59.5], [18, 57.5], [16, 56.5], [14, 55.5], [12.5, 54.5], [14, 54], [16.5, 54.5], [19, 54.5], [21, 55.5], [24, 57], [24, 58.5], [23, 59], [26, 59.5], [28, 59.5], [30, 59.8], [33, 60.5], [37, 61], [40, 62], [44, 63.5], [48, 65], [52, 66.5], [56, 68], [60, 69], [66, 69.5], [72, 68], [75, 68], [80, 70], [86, 71.5], [92, 72.5], [100, 72.8], [106, 73.5], [112, 73.5], [118, 73], [124, 72.5], [130, 71.5], [136, 71.5], [142, 72], [150, 71], [158, 70.5], [164, 69.5], [170, 68.5], [176, 67], [179.5, 65.5], [178, 64.5], [174, 64.8], [170, 64], [166, 62], [163, 60], [161, 58], [158, 55.5], [156, 51.5], [155.5, 55], [153, 58], [150, 59.5], [146, 59.5], [142, 58.5], [138, 54.5], [140, 52], [141, 49], [140.5, 46], [137, 44.5], [133, 43], [130.5, 42.5], [129, 40], [128.5, 38.5], [129.5, 36.5], [128, 35], [126.5, 34.5], [126, 36], [125.5, 38], [124.5, 39.5], [122, 39.5], [121, 38], [122.5, 37], [120, 36.5], [119.5, 34.5], [121, 32], [122, 30.5], [120, 28], [119, 25.5], [116.5, 23], [113.5, 22], [110, 20.5], [108, 18.5], [106, 17], [108, 15], [109, 13], [109.5, 11.5], [107, 10.5], [105, 9], [103.5, 10], [102, 12], [100.5, 13.5], [100, 10], [99, 7.5], [101, 5.5], [103, 2.5], [104, 1.5], [103, 3], [101.5, 4.5], [100, 6.5], [98.5, 9], [97.5, 12], [97, 15], [95, 16], [94, 17.5], [94, 20], [92.5, 21.5], [91, 22.5], [89.5, 22], [88, 21.8], [87, 21], [86, 20], [84.5, 18.5], [83, 17.5], [81, 16], [80.2, 14], [80, 12], [80, 10], [79, 9], [77.5, 8.2], [76.5, 9.5], [75.5, 11.5], [74.5, 14], [73.5, 16.5], [72.8, 19], [72.5, 21], [70.5, 21], [69, 22], [68, 23.5], [66.5, 24.8], [64, 25.2], [61, 25], [58, 25.5], [57, 26.5], [56.5, 27], [54, 26.5], [51.5, 27.5], [50.5, 29.5], [48.5, 29.8], [48, 30], [48.8, 27.5], [50, 25], [50.8, 24.8], [51.5, 25.8], [52.5, 24], [54.5, 24.5], [56.5, 26], [58.5, 23.5], [59.5, 22.5], [59, 20], [57.5, 18.5], [55, 17], [52.5, 16.5], [49, 16], [45, 15.5], [43.5, 16.5], [43, 18.5], [41.5, 20.5], [39.5, 23], [38.5, 26], [36.5, 29], [34.5, 29.5], [33, 30.5], [32, 31], [34, 32.5], [35, 34], [35.5, 36], [33.5, 37], [30, 37], [27.5, 37.5], [26.5, 38.5], [26, 40], [29, 41], [31.5, 41.5], [35, 42.2], [38, 41], [41, 41.5], [41.5, 43], [40, 44], [38, 45], [37, 46], [38.5, 47.5], [37.5, 49], [35, 49.5], [32, 47], [30, 46.5], [28, 45], [29, 44], [28, 43], [28, 42], [26, 40], [24, 40.5], [23, 39.5], [23, 37.5], [22, 36.8], [21, 38], [20, 40], [19, 41.5], [18.5, 42.5], [16, 43.5], [14, 45], [13, 45.5], [14, 42], [12.5, 44], [12, 46], [9, 46.5], [6.5, 46], [4, 45], [3, 42.3], [1, 41], [-1.8, 43.4], [-4.5, 43.5], [-9.5, 43.5]], "uk": [[-5.5, 50], [-4, 50.3], [-2.5, 50.6], [-0.8, 50.8], [1.4, 51.2], [1.7, 52.7], [0, 53.3], [-0.5, 54.5], [-1.5, 55.5], [-2, 56.5], [-3.5, 57.5], [-5, 58.5], [-6.5, 58], [-5.5, 56.5], [-6, 55], [-5, 54], [-4.5, 53], [-5.3, 51.8], [-4, 51.5], [-5.5, 50]], "ireland": [[-6, 52], [-8.5, 51.5], [-10, 52], [-10, 53.5], [-9, 54.5], [-7.5, 55.2], [-6, 55], [-5.8, 53.8], [-6, 52]], "iceland": [[-22, 63.8], [-19, 63.4], [-15.5, 64], [-13.8, 65], [-15, 66.2], [-18.5, 66.5], [-21.5, 65.8], [-23.5, 64.8], [-22, 63.8]], "japan": [[130.5, 31], [131.5, 32], [132.5, 33.5], [134.5, 34], [136.5, 34.5], [138, 34.5], [140, 35.3], [140.8, 36.5], [141.5, 38.5], [141.8, 40.5], [140.5, 41.5], [141, 42.5], [143, 42.8], [145, 43.5], [144.5, 44.5], [142, 45.3], [140.5, 44], [140, 42], [139.5, 40], [139, 38], [137, 37], [135.5, 35.5], [133, 35.5], [131, 34.5], [129.5, 33], [130, 31.8], [130.5, 31]], "sumatra": [[95.5, 5.5], [97.5, 4], [99.5, 2], [101.5, 0], [103.5, -2], [105, -4], [106, -6], [104.5, -5.8], [102.5, -4], [100.5, -1.5], [98.5, 1], [96.5, 3.5], [95.2, 5], [95.5, 5.5]], "java": [[105.5, -6.2], [108, -6.5], [111, -6.5], [114, -7.5], [114.5, -8.5], [111.5, -8.3], [108.5, -7.8], [106, -7], [105.5, -6.2]], "borneo": [[109, 1.5], [110.5, 1], [112, 2.8], [114, 4.5], [117, 6.8], [119, 5.2], [118.5, 2.5], [117.5, 0], [116.5, -2.5], [114.5, -3.8], [112, -3.5], [110, -1.5], [109, 0], [109, 1.5]], "sulawesi_ng": [[119, 0.5], [120.5, 0.5], [122, 0.8], [123.5, 0.5], [122.5, -1.5], [121.5, -3.5], [120.8, -5.5], [119.5, -5.5], [119.5, -3], [119, -1], [119, 0.5]], "new_guinea": [[131, -1], [134, -2], [136.5, -2], [139, -2.5], [141.5, -3.5], [144, -4.5], [146, -6], [147.5, -7.5], [149, -9], [147, -9.8], [144.5, -8.5], [142.5, -9], [140.5, -8.5], [138.5, -7], [136.5, -5.5], [134, -4], [132, -3], [130.8, -2], [131, -1]], "philippines": [[120, 18.5], [121.5, 18], [122, 16.5], [121.8, 14.5], [122.5, 13], [123.5, 12], [125, 11], [125.5, 9], [126, 7.5], [125.5, 6], [123.5, 6.5], [122, 7.5], [120.5, 9], [119.5, 11], [120, 13.5], [120.5, 15.5], [120, 17], [120, 18.5]], "sri_lanka": [[79.8, 8.5], [80.5, 9.5], [81.5, 8.5], [81.8, 7], [81, 6], [80, 6], [79.7, 7], [79.8, 8.5]], "taiwan_hainan": [[120, 22], [121, 22.5], [121.8, 24.5], [121.5, 25.2], [120.5, 24.5], [120, 23], [120, 22]], "australia": [[113.5, -22], [114.5, -26], [115.5, -30], [115, -33.5], [117, -35], [120, -34], [124, -33], [128, -32], [131, -31.5], [134, -32.5], [136, -34.5], [138, -35.5], [139.5, -37], [143, -38.5], [146, -39], [148, -37.5], [150, -36], [151.5, -33.5], [153, -30.5], [153.5, -27.5], [153, -25], [151, -23.5], [149, -21], [147, -19.5], [145.5, -17], [145.5, -14.5], [143.5, -12.5], [142.5, -10.8], [141.5, -13], [141, -16], [139, -17.5], [136.5, -15.5], [136, -13], [133.5, -11.8], [131, -12.2], [129, -14], [127, -13.8], [125, -15], [123, -16.5], [121, -19], [118.5, -20.5], [116, -21], [113.5, -22]], "nz": [[172.8, -34.5], [174.5, -36], [176, -37.5], [178, -38], [177.5, -39.5], [176, -40.5], [174.5, -41.5], [173, -41], [174.5, -38.5], [172.8, -34.5]], "nz_south": [[172.5, -40.5], [174, -41.8], [172.8, -43.5], [171, -44.5], [169, -46.5], [167, -46.2], [168.5, -44], [170.5, -42.5], [172.5, -40.5]], "cuba_hispaniola": [[-84.8, 22], [-82, 22.5], [-79.5, 21.8], [-77, 20.8], [-75, 20], [-77.5, 20.5], [-80, 22], [-83, 22.8], [-84.8, 22]], "hispaniola": [[-74, 18.5], [-72, 18.3], [-70, 18.5], [-68.8, 18.3], [-70, 19.5], [-72.5, 19.8], [-74, 19.5], [-74, 18.5]], "svalbard_novaya": [[52, 71], [54, 73.5], [56, 75.5], [57, 77], [54, 76.5], [53, 74.5], [51.5, 72], [52, 71]]};
+const G2 = IS_LIGHT ? {
+  ocean:'#EEF3F6', oceanEdge:'#E5ECF1', land:'#F5F2EA', coast:'#C8C3B6', border:'rgba(121,119,114,.30)',
+  grat:'rgba(121,119,114,.14)', sphereRing:'rgba(20,20,19,.25)', shadow:'rgba(20,20,19,.12)', pinStroke:'#F7F5F1'
+} : {
+  ocean:'#182031', oceanEdge:'#131a29', land:'#2a3247', coast:'#4a5470', border:'rgba(148,158,186,.3)',
+  grat:'rgba(148,158,186,.10)', sphereRing:'rgba(201,165,92,.3)', shadow:'rgba(0,0,0,.4)', pinStroke:'#12161f'
+};
+let COUNTRIES = null;   // fetched at runtime when online
+(function fetchCountries(){
+  fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+    .then(r=>r.ok?r.json():null).then(topo=>{
+      if (!topo) return;
+      const sc = topo.transform.scale, tr = topo.transform.translate;
+      const arcs = topo.arcs.map(arc=>{
+        let x=0,y=0; return arc.map(([dx,dy])=>{ x+=dx; y+=dy; return [x*sc[0]+tr[0], y*sc[1]+tr[1]]; });
+      });
+      const ring = idxs => { let pts=[];
+        idxs.forEach(i=>{ const a = i>=0 ? arcs[i] : arcs[~i].slice().reverse(); pts = pts.concat(pts.length?a.slice(1):a); });
+        return pts; };
+      const out = [];
+      topo.objects.countries.geometries.forEach(g=>{
+        const polys = g.type==='Polygon' ? [g.arcs] : (g.arcs||[]);
+        polys.forEach(p=>{ if (p[0]) out.push(ring(p[0])); });   // outer rings only
+      });
+      COUNTRIES = out;
+    }).catch(()=>{});
+})();
+function landRings(){ return COUNTRIES || Object.values(BASE_POLYS); }
+
+state.globe = { mode:'globe', tier:'', mine:false, cause:'', region:'World' };
+const MAP_REGIONS = {
+  'World':        [-170, 84, 190, -58],
+  'Africa':       [-20, 38, 55, -36],
+  'Europe':       [-25, 71, 45, 34],
+  'South & Central Asia': [58, 43, 95, 4],
+  'East & SE Asia':[92, 50, 150, -12],
+  'Latin America':[-118, 33, -30, -56],
+  'North America':[-168, 72, -50, 14],
+  'Middle East':  [24, 42, 64, 11],
+  'Oceania':      [110, 0, 182, -50],
+};
+function pinMatches(o){
+  const f = state.globe;
+  if (f.tier && o.tier!==f.tier) return false;
+  if (f.mine){
+    const mine = new Set([...MEMBER.donations, ...MEMBER.planned].map(g=>g.org));
+    if (!mine.has(o.id)) return false;
+    return isShown(o) && Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0&&+o.lng===0);
+  }
+  if (f.cause && !o.causes.includes(f.cause)) return false;
+  return o.tier!=='represented' && isShown(o)
+    && Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0&&+o.lng===0);
+}
+function buildPins(){ globeState.pins = ORGS.filter(pinMatches).map(o=>({o})); }
+
+function injectGlobeControls(){
+  if ($('#gFilters')) return;
+  const card = document.querySelector('.globe-card'); if (!card) return;
+  card.querySelector('.kicker')?.remove();
+  const h3 = card.querySelector('h3'); if (h3) h3.textContent = 'Map of Partners';
+  card.querySelector('h3').insertAdjacentHTML('afterend', `<div class="gfilters" id="gFilters">
+    <button class="chip on" data-gt="">All</button>
+    <button class="chip" data-gt="top">Top picks</button>
+    <button class="chip" data-gt="recommended">Recommended</button>
+    <button class="chip" data-gm="mine">My orgs</button>
+    <select id="gCause"><option value="">All causes</option>${CAUSES.map(c=>`<option>${c}</option>`).join('')}</select>
+    <div class="gmode"><button class="on" data-mode="globe">Globe</button><button data-mode="map">Map</button></div>
+  </div>
+  <div class="gfilters" id="gRegions" style="display:none">${Object.keys(MAP_REGIONS).map(r=>`<button class="chip ${r==='World'?'on':''}" data-reg="${r}">${r}</button>`).join('')}</div>`);
+  const bar = $('#gFilters');
+  bar.addEventListener('click', e=>{
+    const t = e.target.closest('[data-gt]'), m = e.target.closest('[data-gm]'), md = e.target.closest('[data-mode]');
+    if (t){ state.globe.tier = t.dataset.gt; state.globe.mine = false; }
+    if (m){ state.globe.mine = !state.globe.mine; if (state.globe.mine) state.globe.tier=''; }
+    if (md){ state.globe.mode = md.dataset.mode;
+      bar.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on', x===md));
+      $('#gRegions').style.display = state.globe.mode==='map' ? 'flex' : 'none'; }
+    bar.querySelectorAll('[data-gt]').forEach(x=>x.classList.toggle('on', !state.globe.mine && x.dataset.gt===state.globe.tier));
+    bar.querySelectorAll('[data-gm]').forEach(x=>x.classList.toggle('on', state.globe.mine));
+    buildPins();
+  });
+  $('#gCause').addEventListener('change', e=>{ state.globe.cause = e.target.value; buildPins(); });
+  $('#gRegions').addEventListener('click', e=>{
+    const b = e.target.closest('[data-reg]'); if (!b) return;
+    state.globe.region = b.dataset.reg;
+    $('#gRegions').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on', x===b));
+    window.zoomMapTo && zoomMapTo(b.dataset.reg);
+  });
+  card.querySelector('.globe-foot')?.remove();
+}
+
+function drawPin(ctx, x, y, s, color, hot){
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.beginPath(); ctx.ellipse(0, 0.8, 3.4, 1.4, 0, 0, 7); ctx.fillStyle = G2.shadow; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(-1.2, -3.2, -4.6, -4.4, -4.6, -8.2);
+  ctx.arc(0, -8.6, 4.7, Math.PI*0.86, Math.PI*0.14, false);
+  ctx.bezierCurveTo(4.6, -4.4, 1.2, -3.2, 0, 0);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.lineWidth = hot?1.4:1; ctx.strokeStyle = G2.pinStroke; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -8.4, 1.9, 0, 7); ctx.fillStyle = G2.pinStroke; ctx.fill();
+  ctx.restore();
+}
+function pinColor(o){
+  return window.SITE_THEME.globe.pinByCause
+    ? (window.SITE_THEME.causeHex[o.causes[0]]||'#888')
+    : (o.tier==='top' ? window.SITE_THEME.globe.pinTop : window.SITE_THEME.globe.pinRec);
+}
+
+function initGlobe(){
+  injectGlobeControls();
+  if (globeState.built && !globeState.v2){
+    // a pre-v2 renderer already owns the canvas (static builds boot early):
+    // swap in a fresh canvas so the old loop draws into the void, then take over.
+    const old = document.getElementById('globe');
+    if (old){ const nc = old.cloneNode(false); old.replaceWith(nc); }
+    globeState.built = false; globeState.hover = null;
+  }
+  if (globeState.built){ buildPins(); return; }
+  globeState.built = true; globeState.v2 = true;
+  globeState.tilt = 24;            // rest well above the equator
+  globeState.rot = -10;
+  buildPins();
+  const cv = $('#globe'), ctx = cv.getContext('2d');
+  const tipEl = $('#globeTip');
+  let W,H,R,CX,CY,dpr;
+  const flat = { s:0, cx:15, topLat:84 };  // current view (animated on region change)
+  function resize(){
+    const box = cv.parentElement.getBoundingClientRect();
+    dpr = window.devicePixelRatio||1;
+    W = box.width; H = box.height;
+    cv.width = W*dpr; cv.height = H*dpr;
+    CX = W/2; CY = H/2 + 4; R = Math.max(40, Math.min(W,H)/2 - 30);
+    flat.s = 0;
+  }
+  resize(); addEventListener('resize', resize);
+  const D2R = Math.PI/180;
+
+  function project3(la, ln){
+    const lam = (ln + globeState.rot)*D2R, phi = la*D2R, til = globeState.tilt*D2R;
+    const x = Math.cos(phi)*Math.sin(lam), y = Math.sin(phi), z = Math.cos(phi)*Math.cos(lam);
+    const y2 = y*Math.cos(til) - z*Math.sin(til), z2 = y*Math.sin(til) + z*Math.cos(til);
+    return {sx: x, sy: y2, z: z2};
+  }
+  function toScreen(p){   // clamp behind-horizon points to the rim
+    let {sx, sy, z} = p;
+    if (z < 0){ const m = Math.hypot(sx, sy)||1e-9; sx/=m; sy/=m; }
+    return {x: CX + sx*R, y: CY - sy*R, z};
+  }
+  function projGlobe(la, ln){ return toScreen(project3(la, ln)); }
+  const kv = la => Math.sqrt(Math.max(0.12, 1 - 3*Math.pow(la/180, 2)));   // rounded, Robinson-like edges
+  function fitRegion(name){
+    const [l, t, r, btm] = MAP_REGIONS[name] || MAP_REGIONS.World;
+    const midK = kv((t+btm)/2);
+    const sp = name==='World'
+      ? Math.min(W/((r-l)*0.98), H/(t-btm))
+      : Math.min(W/((r-l)*midK*1.06), H/(t-btm)) * 0.94;
+    return { s: sp, cx: (l+r)/2, topLat: name==='World' ? 85 : t + (H/sp - (t-btm))/2 };
+  }
+  function projFlat(la, ln){
+    if (!flat.s) Object.assign(flat, fitRegion(state.globe.region));
+    return {x: W/2 + (ln - flat.cx)*flat.s*kv(la), y: 4 + (flat.topLat - la)*flat.s, z: 1, s: flat.s};
+  }
+  window.zoomMapTo = function(name){
+    const tgt = fitRegion(name);
+    const from = {...flat}, t0 = performance.now(), dur = 650;
+    function tw(t){
+      const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+      flat.s = from.s + (tgt.s-from.s)*e;
+      flat.cx = from.cx + (tgt.cx-from.cx)*e;
+      flat.topLat = from.topLat + (tgt.topLat-from.topLat)*e;
+      if (p<1) requestAnimationFrame(tw);
+    }
+    requestAnimationFrame(tw);
+  };
+  const proj = (la,ln)=> state.globe.mode==='globe' ? projGlobe(la,ln) : projFlat(la,ln);
+
+  /* ---- interactions ---- */
+  cv.addEventListener('pointerdown', e=>{ globeState.dragging=true; globeState.lastX=e.clientX; globeState.lastY=e.clientY; cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId); });
+  addEventListener('pointerup', ()=>{ globeState.dragging=false; cv.classList.remove('dragging'); });
+
+  cv.addEventListener('pointermove', e=>{
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+    if (globeState.dragging){
+      const dx = e.clientX-globeState.lastX, dy = e.clientY-globeState.lastY;
+      if (state.globe.mode==='globe'){
+        globeState.rot += dx*0.35;
+        globeState.tilt = Math.max(-55, Math.min(60, globeState.tilt + dy*0.18));
+      }
+      globeState.lastX=e.clientX; globeState.lastY=e.clientY;
+      return;
+    }
+    let best=null, bd=15*15;
+    for (const p of globeState.pins){
+      const pr = proj(+p.o.lat,+p.o.lng);
+      if (state.globe.mode==='globe' && pr.z<0.06) continue;
+      const dd = (pr.x-mx)**2 + (pr.y-my-(-6))**2;   // pins anchor above point
+      if (dd<bd){bd=dd;best={...p, px:pr.x, py:pr.y};}
+    }
+    if (best){
+      if (globeState.hover?.o !== best.o){
+        globeState.hover = best;
+        const o = best.o;
+        tipEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span class="badge ${o.tier}">${TIER_LABEL[o.tier]}</span>
+            <span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[o.causes[0]]}"></span>${o.causes[0]}</span></div>
+          <h4>${esc(o.name)}</h4>
+          <div class="meta">${esc(o.countries.slice(0,3).join(' · '))} · est. ${o.founded}</div>
+          <p>${esc(o.blurb)}</p>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            ${o.costPerOutcome>0?`<span style="font-size:12px" class="dim"><b style="color:var(--gold-2)">${fmtCost(o.costPerOutcome)}</b> avg / outcome</span>`:'<span class="muted" style="font-size:11px">cost in diligence</span>'}
+            <span class="go" onclick="go('#/org/${o.id}')" style="cursor:pointer">Open brief →</span></div>`;
+        tipEl.style.display='block';
+      }
+      const tw = 300;
+      tipEl.style.left = Math.min(W-tw-8, Math.max(8, best.px-tw/2))+'px';
+      tipEl.style.top = (best.py>H/2 ? best.py-tipEl.offsetHeight-24 : best.py+14)+'px';
+      cv.style.cursor='pointer';
+    } else {
+      globeState.hover=null;
+      cv.style.cursor='grab';
+      if (!tipEl.matches(':hover')) tipEl.style.display='none';
+    }
+  });
+  cv.addEventListener('click', ()=>{ if (globeState.hover) go('#/org/'+globeState.hover.o.id); });
+
+  /* ---- painters ---- */
+  function ringPath(ring, projFn, close){
+    ctx.beginPath();
+    let started = false;
+    for (const pt of ring){
+      const p = projFn(pt[1]!==undefined&&Array.isArray(pt)? pt[1] : pt.la, Array.isArray(pt)? pt[0] : pt.ln);
+      if (!started){ ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
+    }
+    if (close) ctx.closePath();
+  }
+  function ringVisible(ring){
+    // skip rings entirely behind the sphere
+    for (let i=0;i<ring.length;i+=4){ if (project3(ring[i][1], ring[i][0]).z > 0) return true; }
+    return false;
+  }
+  function drawGlobeMode(I, t){
+    const r = R;
+    ctx.save();
+    // sphere
+    const g = ctx.createRadialGradient(CX-r*0.3, CY-r*0.35, Math.max(1,r*0.2), CX, CY, r);
+    g.addColorStop(0, G2.ocean); g.addColorStop(1, G2.oceanEdge);
+    ctx.beginPath(); ctx.arc(CX,CY,r,0,7); ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle=G2.sphereRing; ctx.lineWidth=1; ctx.stroke();
+    // clip to sphere
+    ctx.beginPath(); ctx.arc(CX,CY,r,0,7); ctx.clip();
+    // graticule
+    ctx.strokeStyle = G2.grat; ctx.lineWidth = 1;
+    const gratLine = (pts)=>{ ctx.beginPath(); let pen=false;
+      for (const [la,ln] of pts){ const p=projGlobe(la,ln);
+        if (p.z<0){ pen=false; continue; }
+        if (!pen){ ctx.moveTo(p.x,p.y); pen=true; } else ctx.lineTo(p.x,p.y); }
+      ctx.stroke(); };
+    for (let la=-60; la<=60; la+=30){ const pts=[]; for (let ln=-180; ln<=180; ln+=4) pts.push([la,ln]); gratLine(pts); }
+    for (let ln=-150; ln<=180; ln+=30){ const pts=[]; for (let la=-85; la<=85; la+=4) pts.push([la,ln]); gratLine(pts); }
+    // land
+    const rings = landRings();
+    for (const ring of rings){
+      if (!ringVisible(ring)) continue;
+      ringPath(ring, (la,ln)=>projGlobe(la,ln), true);
+      ctx.fillStyle = G2.land; ctx.fill();
+      ctx.strokeStyle = COUNTRIES ? G2.border : G2.coast; ctx.lineWidth = 0.7; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawMapMode(){
+    ctx.fillStyle = G2.ocean; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = G2.grat; ctx.lineWidth = 1;
+    for (let la=-60; la<=80; la+=20){ const a=projFlat(la,-180), b=projFlat(la,180);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    for (let ln=-180; ln<=180; ln+=30){ const a=projFlat(85,ln), b=projFlat(-60,ln);
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    for (const ring of landRings()){
+      ringPath(ring, (la,ln)=>projFlat(la,ln), true);
+      ctx.fillStyle = G2.land; ctx.fill();
+      ctx.strokeStyle = COUNTRIES ? G2.border : G2.coast; ctx.lineWidth = 0.8; ctx.stroke();
+    }
+  }
+  function frame(){
+    if (W<60 || H<60){ resize(); requestAnimationFrame(frame); return; }
+    if (state.globe.mode==='globe' && !globeState.dragging && !globeState.hover && !tipEl.matches(':hover'))
+      globeState.rot += globeState.vel;
+    if (globeState.intro<1) globeState.intro = Math.min(1, globeState.intro+0.02);
+    const I = 1-Math.pow(1-globeState.intro,3);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+    ctx.globalAlpha = I;
+    if (state.globe.mode==='globe') drawGlobeMode(I); else drawMapMode();
+    // pins (sorted by y so southern pins draw over northern)
+    const t = performance.now()/1000;
+    const drawn = [];
+    for (const p of globeState.pins){
+      const pr = proj(+p.o.lat,+p.o.lng);
+      if (state.globe.mode==='globe' && pr.z<0.06) continue;
+      drawn.push({p, pr});
+    }
+    drawn.sort((a,b)=>a.pr.y-b.pr.y);
+    for (const {p, pr} of drawn){
+      const isTop = p.o.tier==='top';
+      const isH = globeState.hover?.o===p.o;
+      const zs = state.globe.mode==='globe' ? (0.72+0.28*pr.z) : Math.min(1.5, 0.62+flat.s*0.16);
+      const s = (isTop?1.16:0.95) * zs * (isH?1.3:1);
+      if (isTop){
+        const pulse = (Math.sin(t*2 + p.o.id)+1)/2;
+        ctx.beginPath(); ctx.arc(pr.x, pr.y, (7+pulse*3)*zs, 0, 7);
+        ctx.fillStyle = `rgba(${window.SITE_THEME.globe.pulseRGB},${0.08+0.06*pulse})`; ctx.fill();
+      }
+      drawPin(ctx, pr.x, pr.y, s, pinColor(p.o), isH);
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+</script>
+<script>
+/* ================================================================
+   Library cards v2 + org brief v2
+   ================================================================ */
+const TIER_PHRASE = {
+  top: 'Top pick — we believe this is one of the best organizations you can fund: strong evidence that it cost-effectively creates significant outcomes.',
+  recommended: 'Recommended — a strong organization with credible evidence that it creates significant outcomes.',
+  represented: 'Represented — a credible organization we track; we are not yet confident it outperforms the average organization at creating outcomes.',
+};
+function badgeHTML(o, small){
+  return `<span class="badge ${o.tier}" ${small?'style="font-size:9px"':''} data-tierphrase="${o.tier}">${TIER_LABEL[o.tier]}</span>`;
+}
+document.addEventListener('mouseover', e=>{
+  const b = e.target.closest('[data-tierphrase]'); if (!b) return;
+  showTip('<div style="max-width:280px;white-space:normal">'+TIER_PHRASE[b.dataset.tierphrase]+'</div>', e.clientX, e.clientY);
+});
+document.addEventListener('mouseout', e=>{ if (e.target.closest && e.target.closest('[data-tierphrase]')) hideTip(); });
+
+function domainOf(o){
+  try{ return String(o.website||'').replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0]; }catch(e){ return ''; }
+}
+function monogram(o, size){
+  const words = o.name.split(/\s+/).filter(w=>!/^(the|of|for|and|a|de)$/i.test(w));
+  const init = ((words[0]?.[0]||'?') + (words[1]?.[0]||'')).toUpperCase();
+  const bg = (window.SITE_THEME.causeHex[o.causes[0]]||'#999') + '2E';
+  const bd = (window.SITE_THEME.causeHex[o.causes[0]]||'#999') + '66';
+  return `<span class="orglogo" style="width:${size}px;height:${size}px;background:${bg};border:1px solid ${bd};font-size:${Math.round(size*0.4)}px">${esc(init)}</span>`;
+}
+function orgLogo(o, size=30, editable){
+  // fallback chain: staff-set Logo Image URL -> Clearbit -> Google favicon -> monogram
+  const d = domainOf(o);
+  const chain = [];
+  if (o.logoUrl && /^https?:/.test(o.logoUrl)) chain.push(o.logoUrl);
+  if (d){ chain.push('https://logo.clearbit.com/'+d+'?size='+(size*2));
+          chain.push('https://www.google.com/s2/favicons?domain='+d+'&sz=128'); }
+  const edit = editable && window.APP && APP.staff
+    ? `<button class="img-edit" title="Set logo" onclick="event.stopPropagation();pickImage(${o.id},'logoUrl')">✎</button>` : '';
+  if (!chain.length) return `<span class="orglogo-wrap" style="width:${size}px;height:${size}px">${monogram(o, size)}${edit}</span>`;
+  return `<span class="orglogo-wrap" style="width:${size}px;height:${size}px">
+    <img class="orglogo-img" src="${esc(chain[0])}" alt="" loading="lazy"
+      data-chain='${esc(JSON.stringify(chain.slice(1)))}'
+      style="width:${size}px;height:${size}px"
+      onerror="const c=JSON.parse(this.dataset.chain||'[]');if(c.length){this.dataset.chain=JSON.stringify(c.slice(1));this.src=c[0];}else{this.style.display='none';this.nextElementSibling.style.display='inline-flex';}">
+    <span style="display:none">${monogram(o, size)}</span>${edit}</span>`;
+}
+(function(){ const el=document.createElement('style'); el.textContent = `
+.orglogo{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;font-family:var(--serif);color:var(--ink);flex:none}
+.orglogo-wrap{display:inline-flex;flex:none;position:relative}
+.img-edit{position:absolute;right:-7px;top:-7px;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font-size:10px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:3}
+.orglogo-wrap:hover .img-edit,.sketch-box:hover .img-edit{display:inline-flex}
+.sketch-box .img-edit{right:8px;top:8px}
+.orglogo-img{border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--divider,var(--hairline))}
+.sketch-box{overflow:hidden;position:relative}
+.hero-right{position:relative;flex:none;width:44%;min-width:360px;min-height:255px;display:flex;justify-content:flex-end}
+.hero-right .brief-side{padding-top:4px}
+.hero-media{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:18px;overflow:hidden;z-index:2;transition:all .55s cubic-bezier(.3,.7,.2,1);box-shadow:0 10px 30px rgba(20,20,19,.12);cursor:default;background:var(--surface)}
+.hero-right:hover .hero-media{width:200px;height:142px;top:0;left:0}
+.hm-art{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.hm-sketch{opacity:.9}
+.hm-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hm-hint{position:absolute;left:12px;bottom:9px;font-size:10.5px;color:rgba(255,255,255,.85);background:rgba(20,20,19,.35);border-radius:999px;padding:3px 10px;backdrop-filter:blur(3px);transition:opacity .3s}
+.hero-right:hover .hm-hint{opacity:0}
+@media (max-width:1120px){.hero-right{width:100%;min-width:0}}
+.hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.upd-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.upd-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(20,20,19,.62))}
+.org-card .nmrow{display:flex;gap:9px;align-items:center}
+.side-links{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.side-links .pill{cursor:pointer;text-align:center}
+.side-links .pill.locked{filter:blur(2.5px);opacity:.55;pointer-events:none}
+.org-card .blurb{transition:all .25s}
+.org-card:hover .blurb{-webkit-line-clamp:5}
+.org-card .geo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.org-card .geo b{color:var(--ink);font-weight:500}
+`; document.head.appendChild(el); })();
+
+function renderLibGrid(){
+  const list = libFiltered();
+  $('#libCount').textContent = list.length + ' shown';
+  $('#libGrid').innerHTML = list.map(o=>{
+    const cs = o.countries.filter(c=>c!=='Global');
+    const geo = `<b>${esc(o.region)}</b>${cs.length?' · '+esc(cs.slice(0,2).join(' · '))+(cs.length>2?' +'+(cs.length-2):''):''}`;
+    return `
+    <div class="org-card" onclick="go('#/org/${o.id}')">
+      <div class="top">${badgeHTML(o)}
+        <span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[o.causes[0]]}"></span>${o.causes[0]}${o.causes.length>1?' +'+(o.causes.length-1):''}</span></div>
+      <div class="nmrow">${orgLogo(o)}<h4>${esc(o.name)}</h4></div>
+      <div class="geo">${geo}</div>
+      <div class="blurb">${esc(o.blurb)}</div>
+      <div class="foot">
+        <span>${o.costPerOutcome>0?`<b>${fmtCost(o.costPerOutcome)}</b> avg / outcome`:'<span class="muted">cost in diligence</span>'}</span>
+        <span class="muted num">reach ${fmtNum(o.annualReach)}/yr</span>
+      </div>
+    </div>`;}).join('');
+}
+
+/* ---------- image picker: URL or upload ---------- */
+window.pickImage = function(orgId, field){
+  const o = byId(orgId); if (!o) return;
+  const labels = {logoUrl:'logo', interventionImage:'intervention photo'};
+  const canUpload = !!(window.APP && !APP.demo && window.sb && sb.session);
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width=''; box.style.maxHeight=''; box.style.overflow='';
+  box.innerHTML = `<div class="kicker">${esc(o.name)}</div>
+    <h3 style="font-size:19px">Set ${labels[field]||'image'}</h3>
+    <label style="font-size:12px;color:var(--ink-3);display:block;margin-top:12px">Paste an image URL</label>
+    <input type="text" id="piUrl" value="${esc(o[field]||'')}" placeholder="https://…"
+      style="width:100%;background:var(--surface);border:1px solid var(--divider,var(--hairline-2));color:var(--ink);border-radius:9px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;margin:5px 0 10px">
+    ${canUpload?`<div style="font-size:12px;color:var(--ink-3);margin:4px 0 6px">or upload a file (stored in your media library)</div>
+    <input type="file" id="piFile" accept="image/*" style="font-size:12.5px">`:
+    `<div class="muted" style="font-size:11.5px">File upload is available on the live site when signed in; here, paste a URL.</div>`}
+    <div id="piPrev" style="margin:12px 0;min-height:10px">${o[field]?`<img src="${esc(o[field])}" style="max-height:90px;border-radius:9px;border:1px solid var(--divider,var(--hairline))" onerror="this.remove()">`:''}</div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px">
+      <button class="btn" style="color:var(--crit)" id="piClear">Remove image</button>
+      <span style="display:flex;gap:9px"><button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="piSave">Save</button></span></div>`;
+  veil.classList.add('show');
+  const finish = (url)=>{
+    o[field] = url || '';
+    window.PERSIST && PERSIST.org(o);
+    closeModal(); flash(url?'Image saved':'Image removed');
+    if (location.hash.includes('/org/')) renderOrg(o.id);
+    if (typeof renderEdRows==='function' && $('#edBody')) renderEdRows();
+  };
+  box.querySelector('#piSave').addEventListener('click', async ()=>{
+    const f = box.querySelector('#piFile')?.files?.[0];
+    if (f && canUpload){
+      try{
+        const path = field+'/'+o.id+'-'+Date.now()+'-'+f.name.replace(/[^a-zA-Z0-9_.-]/g,'_');
+        const r = await fetch(SUPABASE_URL+'/storage/v1/object/org-media/'+path, {method:'POST',
+          headers:{'Authorization':'Bearer '+sb.session.access_token, 'apikey':SUPABASE_ANON, 'x-upsert':'true', 'Content-Type': f.type||'application/octet-stream'},
+          body: f});
+        if (!r.ok){ const t = await r.text(); throw new Error(t.slice(0,140)); }
+        return finish(SUPABASE_URL+'/storage/v1/object/public/org-media/'+path);
+      }catch(e){ return flash('Upload failed: '+e.message+' — run storage_setup.sql?'); }
+    }
+    finish(box.querySelector('#piUrl').value.trim());
+  });
+  box.querySelector('#piClear').addEventListener('click', ()=>finish(''));
+  box.querySelector('#piUrl').addEventListener('input', e=>{
+    const v = e.target.value.trim();
+    $('#piPrev').innerHTML = /^https?:/.test(v)?`<img src="${esc(v)}" style="max-height:90px;border-radius:9px;border:1px solid var(--divider,var(--hairline))" onerror="this.remove()">`:'';
+  });
+};
+
+/* ---------- brief v2 ---------- */
+const RATE_TO_N = {'Very Low':1,'Low':2,'Medium':3,'High':4,'Very High':5};
+function seededStars(o, dim, base){
+  const h = [...(o.name+dim)].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0, 7);
+  const tierBoost = {top:1, recommended:0, represented:-1}[o.tier]||0;
+  return Math.max(1, Math.min(5, (base||3) + tierBoost + (h%3-1)));
+}
+function starVal(o, field, dim){ return RATE_TO_N[o[field]] || seededStars(o, dim, 3); }
+function starsHTML(n){ return `<span class="stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></span>`; }
+const FUNDER_THESIS = {
+ 'AIM / Charity Entrepreneurship': 'AIM (Ambitious Impact) researches the most promising interventions, then incubates and supports new organizations built to deliver them — aiming for charities cost-effective enough to be scaled by funders like GiveWell and Coefficient Giving.',
+ 'The Life You Can Save': 'The Life You Can Save recommends organizations with rigorous independent evidence that donations save or transform lives at exceptional cost-effectiveness, curated for individual donors.',
+ 'Founders Pledge': 'Founders Pledge researches high-impact giving for entrepreneurs and only publicly stands behind grants to the organizations it is most confident in.',
+ 'Big Bang Philanthropy': 'Big Bang Philanthropy is a funder collaborative; an organization funded by five or more of its members has effectively passed multiple independent due-diligence processes.',
+ 'Audacious Project': 'The Audacious Project (housed at TED) elevates teams and ideas that are ripe for major scaling, pairing them with catalytic multi-year funding.',
+ 'Mulago': 'Mulago backs proven poverty-focused organizations with unrestricted, long-term funding, selecting for exceptional leadership and scalable delivery models.',
+};
+function supportersOf(o){ return o.sources.filter(s=>!/factory for good|meridian/i.test(s)); }
+
+function renderOrg(id){
+  const o = byId(id);
+  const root = $('#orgRoot');
+  if (!o || (!isShown(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
+  const insightsEligible = o.tier!=='represented';
+  const tab = state.orgTab==='insights' && insightsEligible ? 'insights' : 'overview';
+  const myGiven = MEMBER.donations.filter(d=>d.org===o.id).reduce((s,d)=>s+d.amount,0);
+  const sup = supportersOf(o);
+  const cs = o.countries.filter(c=>c!=='Global');
+
+  root.innerHTML = `
+  <div class="back-link fade-up" onclick="history.length>1?history.back():go('#/orgs')">← Back to library</div>
+  <div class="brief-hero fade-up">
+    <div style="flex:1;min-width:300px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        ${badgeHTML(o)}
+        ${!isShown(o)?'<span class="pill" style="border-color:var(--warn);color:var(--ink)">Hidden from members</span>':''}
+        <span class="cause-chips">${o.causes.map(c=>`<span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[c]}"></span>${c}</span>`).join('')}</span>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;margin-top:6px">${orgLogo(o, 44, true)}<h1 style="margin:0">${esc(o.name)}</h1></div>
+      <div class="geo-line">
+        <span class="reg">${esc(o.region)}</span>
+        ${cs.map(c=>`<span class="pill">${esc(c)}</span>`).join('')||'<span class="pill">Global</span>'}
+      </div>
+      <div class="blurb">${esc(o.blurb)}</div>
+      <div style="margin-top:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        ${addportBtn(o.id)}
+        ${sup.length?`<span style="font-size:11px;color:var(--ink-3)">Supported by</span>
+          <span class="sup-tiles" style="margin-top:0">${sup.map(s=>`<span class="sup-tile">${esc(s)}</span>`).join('')}</span>`:''}
+        ${myGiven?`<span class="src-chip" style="color:var(--gold-2);border-color:currentColor">In your portfolio · ${fmtMoney(myGiven)}</span>`:''}
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-media" id="heroMedia">
+        <div class="hm-art" style="background:
+          radial-gradient(340px 220px at 85% -10%, ${(window.SITE_THEME.causeHex[o.causes[1]||o.causes[0]]||'#92C1DC')}66, transparent 70%),
+          radial-gradient(420px 260px at 10% 110%, ${(window.SITE_THEME.causeHex[o.causes[0]]||'#91A5C6')}88, transparent 72%),
+          ${(window.SITE_THEME.causeHex[o.causes[0]]||'#91A5C6')}">
+          <span class="hm-sketch">${sketchFor(o, 120).replace(/var\(--sketch-ink\)/g,'rgba(255,255,255,.85)')}</span>
+        </div>
+        <img class="hm-img" alt="" loading="lazy"
+          src="${esc((o.interventionImage&&/^https?:/.test(o.interventionImage)) ? o.interventionImage
+            : (domainOf(o) ? 'https://image.thum.io/get/width/900/crop/620/noanimate/https://'+domainOf(o) : ''))}"
+          onerror="this.remove()">
+        ${(window.APP&&APP.staff)?`<button class="img-edit" style="display:inline-flex" title="Set intervention photo" onclick="event.stopPropagation();pickImage(${o.id},'interventionImage')">✎</button>`:''}
+        <span class="hm-hint">hover to view details</span>
+      </div>
+    <div class="brief-side">
+      <span><span class="muted">HQ</span> &nbsp;${esc(o.hq||'—')}</span>
+      <span><span class="muted">Founded</span> &nbsp;${o.founded||'—'}</span>
+      <span><span class="muted">Team</span> &nbsp;≈ ${o.teamSize||'—'} staff</span>
+      ${(o.stage||o.orgType)?`<span><span class="muted">Stage</span> &nbsp;${esc([o.stage,o.orgType].filter(Boolean).join(' · '))}</span>`:''}
+      <div class="side-links" title="${o.tier==='represented'?'Full document access opens once an organization is recommended':''}">
+        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="flash('Data room access requested — our team will follow up')">Data room</button>
+        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="flash('Opening GiveSpark profile…')">GiveSpark</button>
+        <button class="pill" onclick="window.open('${esc(o.website)}','_blank')">Website ↗</button>
+        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="openCalc(${o.id})">Cost-effectiveness</button>
+      </div>
+    </div>
+    </div>
+  </div>
+  ${insightsEligible?`<div class="panel-tabs fade-up" style="margin-bottom:18px">
+    <button data-otab="overview" class="${tab==='overview'?'active':''}">Overview</button>
+    <button data-otab="insights" class="${tab==='insights'?'active':''}">Deeper insights</button>
+  </div>`:''}
+  <div id="orgTabBody">${tab==='overview'?orgOverviewHTML(o):orgInsightsHTML(o)}</div>
+  ${relatedHTML(o)}`;
+
+  root.querySelectorAll('[data-otab]').forEach(b=>b.addEventListener('click',()=>{
+    state.orgTab = b.dataset.otab;
+    root.querySelectorAll('[data-otab]').forEach(x=>x.classList.toggle('active',x===b));
+    $('#orgTabBody').innerHTML = state.orgTab==='overview'?orgOverviewHTML(o):orgInsightsHTML(o);
+    afterOrgRender(o);
+    $$('#orgTabBody .fade-up').forEach((el,i)=>setTimeout(()=>el.classList.add('in'),40+i*70));
+  }));
+  afterOrgRender(o);
+}
+
+function estPanelHTML(o, amt){
+  const outs = o.costPerOutcome>0 ? amt/o.costPerOutcome : 0;
+  const lives = livesFor(o.id, amt);
+  const boxN = Math.max(1, Math.min(80, Math.round(outs / (outs>80? Math.pow(10,String(Math.round(outs/80)).length-1)*Math.ceil(outs/80/Math.pow(10,String(Math.round(outs/80)).length-1)) : 1))));
+  let perB = 1; while (outs/perB > 80) perB *= (String(perB)[0]==='1'?5:2);
+  let perF = 1; while (lives/perF > 60) perF *= (String(perF)[0]==='1'?5:2);
+  return `
+    <div class="kicker">What a gift could do</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)">$
+      <input type="number" id="estAmt" value="${amt}" step="5000" min="1000"
+        style="background:var(--surface);border:1px solid var(--divider, var(--hairline-2));color:var(--ink);border-radius:8px;padding:7px 10px;width:110px;font-size:13.5px;font-family:inherit;outline:none;text-align:right"></div>
+    <div style="font-size:12px;color:var(--ink-3);margin-top:12px">≈ <b class="num" style="color:var(--ink)">${outs?fmtNum(outs):'—'}</b> outcomes ${outs?`· each square ≈ ${perB.toLocaleString()}`:''}</div>
+    <div class="boxes">${outs?Array.from({length:Math.max(1,Math.round(outs/perB))},(_,i)=>`<i style="animation-delay:${i*12}ms"></i>`).join(''):''}</div>
+    <div style="font-size:12px;color:var(--ink-3);margin-top:10px">≈ <b class="num" style="color:var(--ink)">${lives?fmtNum(lives):'—'}</b> lives impacted ${lives?`· each figure ≈ ${perF.toLocaleString()}`:''}</div>
+    <div class="figs">${lives?Array.from({length:Math.max(1,Math.round(lives/perF))},(_,i)=>`<svg width="11" height="15" viewBox="0 0 11 15" style="opacity:0;animation:popin .25s forwards ${i*12}ms"><circle cx="5.5" cy="3" r="2.6" fill="var(--person-ink)"/><path d="M1 15 q0-7 4.5-7 t4.5 7 z" fill="var(--person-ink)" opacity=".8"/></svg>`).join(''):''}</div>`;
+}
+function orgOverviewHTML(o){
+  return `<div class="brief-grid">
+    <div class="outcome-hero fade-up span12" style="display:flex;gap:26px;flex-wrap:wrap">
+      <div class="est-panel" id="estPanel" data-org="${o.id}" style="border-left:none;border-right:1px solid var(--divider, var(--hairline));padding-left:0;padding-right:22px">${estPanelHTML(o, 25000)}</div>
+      <div style="flex:1;min-width:300px">
+        <div class="kicker">Intended outcomes — what beneficiaries experience</div>
+        ${gWrap(o,'outcomesList',`<div class="oc-list">${(o.outcomesList||[]).map(c=>`<span class="oc-chip">${checkSVG}${esc(c)}</span>`).join('')||'&nbsp;'}</div>`,44)}
+        <div class="oc-cost">
+          <div class="item">${gWrap(o,'costPerOutcome',`<div class="l">Avg est. cost per outcome</div>
+            <div class="v num">${o.costPerOutcome>0?fmtCost(o.costPerOutcome):'—'}</div>`)}</div>
+          <div class="item">${gWrap(o,'annualReach',`<div class="l">Annual reach<i class="info-i" data-reach="${o.id}">i</i></div>
+            <div class="v num">${o.annualReach?fmtNum(o.annualReach):'—'} <span class="unit">people / yr</span></div>`)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card fade-up span7">
+      <div class="kicker">Theory of change</div>
+      ${gWrap(o,'theoryOfChange',`<p style="font-size:14.5px;color:var(--ink-2);line-height:1.7;font-family:var(--serif)">${esc(o.theoryOfChange)}</p>`,80)}
+    </div>
+    <div class="card fade-up span5">
+      <div class="kicker">Suffering → flourishing</div>
+      <div class="muted" style="font-size:12px">Pre-intervention state and maximum post-intervention state</div>
+      ${gWrap(o,'sufferRange',`<div class="scale-track">
+        <div class="range-band" style="left:${(o.sufferMin-1)/9*100}%;width:${(o.flourishMax-o.sufferMin)/9*100}%"></div>
+        <div class="range-pt min" style="left:${(o.sufferMin-1)/9*100}%">${o.sufferMin}</div>
+        <div class="range-pt max" style="left:${(o.flourishMax-1)/9*100}%">${o.flourishMax}</div></div>
+      <div class="scale-ends"><span>Acute suffering</span><span>Full flourishing</span></div>
+      <div class="delta-note">Δ ${o.flourishMax-o.sufferMin} steps — beneficiaries typically move from state ${o.sufferMin} before the intervention to state ${o.flourishMax} after</div>`,90)}
+    </div>
+  </div>`;
+}
+document.addEventListener('input', e=>{
+  if (e.target.id!=='estAmt') return;
+  const panel = $('#estPanel'); const o = byId(panel.dataset.org);
+  const amt = +e.target.value||0;
+  clearTimeout(panel._t);
+  panel._t = setTimeout(()=>{ panel.innerHTML = estPanelHTML(o, amt);
+    panel.querySelector('#estAmt').focus(); const inp=panel.querySelector('#estAmt'); inp.setSelectionRange?.(inp.value.length,inp.value.length); }, 450);
+});
+document.addEventListener('mouseover', e=>{
+  const i = e.target.closest('.info-i[data-reach]'); if (!i) return;
+  const o = byId(i.dataset.reach);
+  showTip(`<div style="max-width:270px;white-space:normal"><b>Outcome reach rate: ${o.outcomeReachRate||'—'}%</b><br>The percentage of people reached who experience at least one of the intended outcomes. Annual reach counts everyone the programs touch; outcomes count the subset with a verified change.</div>`, e.clientX, e.clientY);
+});
+document.addEventListener('mouseout', e=>{ if (e.target.closest && e.target.closest('.info-i[data-reach]')) hideTip(); });
+
+/* ---------- deeper insights v2 ---------- */
+function orgInsightsHTML(o){
+  const pct = o.goalM>0 ? Math.min(100, o.raisedM/o.goalM*100) : 0;
+  const absPct = o.budgetM>0 ? Math.min(100, o.absorbencyM/o.budgetM*100) : 0;
+  const dims = [
+    ['Intervention evidence','interventionEvidenceQuality','iev'],['Organization evidence','orgEvidenceQuality','oev'],
+    ['Leadership & team','','team'],['Growth & scalability','potentialForScale','grow'],
+    ['Cost effectiveness','ceRating','ce'],['Importance','importance','imp'],
+    ['Tractability','tractability','tract'],['Neglectedness','neglectedness','negl']];
+  const innovDesc = 'How novel the approach is relative to standard practice (1 = well-established playbook, 5 = genuinely new).';
+  const abstrDesc = 'How direct the causal chain from funding to impact is (1 = tangible and direct, 5 = systemic and inferential).';
+  const hasMedia = o.id%3===0;
+  const supThesis = supportersOf(o).filter(s=>FUNDER_THESIS[s]);
+  return `<div class="brief-grid">
+    <div class="card fade-up span5">
+      <div class="kicker">Organization type &amp; stage</div>
+      ${(o.growthCurve&&o.stage)?`<h3 style="margin-bottom:2px">${o.growthCurve} growth · ${o.stage} stage</h3>
+      <div class="muted" style="font-size:12px;margin-bottom:8px">All trajectories shown; this organization's path in color</div>
+      <div id="growthChart"></div>`
+      :`<div class="gathering" style="min-height:170px"><div class="g-blur" style="height:170px"></div>
+      <div class="g-note">Data being gathered by our diligence team</div></div>`}
+      <div class="hr"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div><div class="kicker" title="${innovDesc}">Innovativeness <i class="info-i" title="${innovDesc}">i</i></div>
+          <div class="meter5">${[1,2,3,4,5].map(i=>`<i class="${i<=(o.innovativeness||0)?'on':''}"></i>`).join('')}</div>
+          <div class="muted" style="font-size:11px;margin-top:5px">${(o.innovativeness||3)>=4?'Genuinely novel approach':(o.innovativeness||3)>=3?'Fresh take on a proven model':'Well-established playbook, well run'}</div></div>
+        <div><div class="kicker" title="${abstrDesc}">Abstraction <i class="info-i" title="${abstrDesc}">i</i></div>
+          <div class="meter5">${[1,2,3,4,5].map(i=>`<i class="${i<=(o.abstraction||0)?'on':''}"></i>`).join('')}</div>
+          <div class="muted" style="font-size:11px;margin-top:5px">${(o.abstraction||2)>=4?'Systemic — impact accrues indirectly':(o.abstraction||2)>=3?'Mixed direct and systemic effects':'Tangible, direct line from dollar to outcome'}</div></div>
+      </div>
+    </div>
+    <div class="card fade-up span7">
+      <div class="kicker">Factory for Good assessment</div>
+      <div class="rate-grid" style="margin-top:8px">${dims.map(([l,f,d])=>`
+        <div class="rr"><span>${l}</span>${starsHTML(starVal(o,f,d))}</div>`).join('')}</div>
+      <div class="muted" style="font-size:11px;margin-top:8px">Star ratings blend reported data with our diligence team's judgment; treat as directional.</div>
+      <div class="hr"></div>
+      <div class="kicker">Absorbency &amp; current fundraise</div>
+      ${gWrap(o,'raisedM',`
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px">
+        <span class="dim">Raised toward current goal</span>
+        <span class="num"><b style="color:var(--ink)">$${o.raisedM}M</b> <span class="muted">of $${o.goalM}M · ${o.timePeriod||''}</span></span></div>
+      <div class="progress gold"><i style="width:0" data-w="${pct}"></i></div>`,54)}
+      ${gWrap(o,'absorbencyM',`
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:14px">
+        <span class="dim">Additional capital absorbable next 12 mo</span>
+        <span class="num"><b style="color:var(--ink)">$${o.absorbencyM}M</b> <span class="muted">on a $${o.budgetM}M budget</span></span></div>
+      <div class="progress"><i style="width:0" data-w="${absPct}"></i></div>`,54)}
+    </div>
+    <div class="card fade-up span5">
+      <div class="kicker">How its supporters evaluate</div>
+      ${supThesis.length?supThesis.map(s=>`<div style="padding:9px 0;border-bottom:1px solid var(--hairline)">
+        <div style="font-size:12.5px;color:var(--ink);font-family:var(--serif)">${esc(s)}</div>
+        <div style="font-size:12px;color:var(--ink-3);line-height:1.55;margin-top:3px">${FUNDER_THESIS[s]}</div></div>`).join('')
+      :'<div class="muted" style="font-size:12.5px;padding:14px 0">No external evaluator theses to show for this organization yet.</div>'}
+    </div>
+    <div class="card fade-up span7">
+      <div class="mini-tabs" id="aboutTabs">
+        <button class="on" data-atab="about">About the org</button>
+        <button data-atab="updates">Org updates</button>
+        <button data-atab="read">Our read</button>
+        <button data-atab="notes">Notes &amp; flags</button>
+      </div>
+      <div id="aboutBody">${aboutTabHTML(o,'about',hasMedia)}</div>
+    </div>
+  </div>`;
+}
+function aboutTabHTML(o, tab, hasMedia){
+  if (tab==='about') return `<div style="font-size:13px;color:var(--ink-2);line-height:1.6">${esc(o.interventionDescription||o.blurb)}
+    ${o.howImpactWorks?`<div class="hr"></div>${esc(o.howImpactWorks)}`:''}</div>
+    <div class="upd-link"><a href="${esc(o.website)}" target="_blank" rel="noopener">Official website ↗</a><span class="d">${esc(String(o.website||'').replace(/^https?:\/\/(www\.)?/,''))}</span></div>`;
+  if (tab==='updates') return hasMedia ? `
+    <div class="upd-link"><a onclick="flash('Opening update…')" style="cursor:pointer">Q2 2026 program update — expansion on schedule</a><span class="d">Jun 2026</span></div>
+    <div class="upd-link"><a onclick="flash('Opening update…')" style="cursor:pointer">Independent evaluation midline results published</a><span class="d">Mar 2026</span></div>
+    <div class="upd-link"><a onclick="flash('Opening video…')" style="cursor:pointer">▶ 4-minute field visit film</a><span class="d">Video</span></div>`
+    : `<div class="gathering" style="min-height:90px"><div class="g-blur">
+       <div class="upd-link"><a>Program update</a><span class="d">—</span></div>
+       <div class="upd-link"><a>Evaluation results</a><span class="d">—</span></div></div>
+       <div class="g-note">Updates being gathered from this organization</div></div>`;
+  if (tab==='notes') return `
+    ${o.whyWeLike?`<div style="margin:6px 0 10px"><b style="font-size:12px;color:var(--ink)">Why we like this</b>
+      <div style="font-size:12.5px;color:var(--ink-2);line-height:1.55">${esc(o.whyWeLike)}</div></div>`
+    :`<div class="gathering" style="min-height:44px;margin:6px 0 10px"><div class="g-blur"><b style="font-size:12px">Why we like this</b><div style="font-size:12.5px">Assessment in progress.</div></div><div class="g-note">Being drafted by our diligence team</div></div>`}
+    ${o.contextNotes?`<div style="margin:0 0 10px"><b style="font-size:12px;color:var(--ink)">Context &amp; flags</b>
+      <div style="font-size:12.5px;color:var(--ink-2)">${esc(o.contextNotes)}</div></div>`:''}
+    <div><b style="font-size:12px;color:var(--ink)">Open questions</b></div>
+    ${o.orgNotes?`<div style="font-size:12.5px;color:var(--ink-2)">${esc(o.orgNotes)}</div>`
+    :`<div class="gathering" style="min-height:40px"><div class="g-blur"><div style="font-size:12.5px">Pending next diligence call.</div></div>
+      <div class="g-note">Being drafted by our diligence team</div></div>`}`;
+  return hasMedia ? `<div style="font-size:13px;color:var(--ink-2);line-height:1.6;font-family:var(--serif)">
+      Our team visited programs in ${esc((o.countries[0]||'the field'))} this spring. The delivery model matches what the reported numbers imply, staff quality is notably strong, and the constraint is capital, not capacity. We are watching unit costs as the newest sites mature.</div>
+    <div class="upd-link"><a onclick="flash('Opening story…')" style="cursor:pointer">Photo essay — a day at the program</a><span class="d">Factory for Good</span></div>`
+    : `<div class="gathering" style="min-height:80px"><div class="g-blur"><div style="font-size:13px">Site-visit notes and our independent read on the evidence.</div></div>
+       <div class="g-note">Our read is being written</div></div>`;
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('#aboutTabs [data-atab]'); if (!b) return;
+  const o = byId(location.hash.split('/')[2]);
+  $$('#aboutTabs button').forEach(x=>x.classList.toggle('on', x===b));
+  $('#aboutBody').innerHTML = aboutTabHTML(o, b.dataset.atab, o.id%3===0);
+});
+
+/* all-curves growth chart */
+function drawGrowth(box, o){
+  const W=420, H=190, P={l:16,r:14,t:14,b:30};
+  const N=60;
+  const F = { 'Flat': i=>0.25+0.12*(i/N), 'Linear': i=>0.08+0.84*(i/N), 'Scalable': i=>0.06+0.9*Math.pow(i/N,2.6) };
+  const X=i=>P.l+i/N*(W-P.l-P.r), Y=v=>H-P.b-v*(H-P.t-P.b);
+  const pathFor = f => Array.from({length:N+1},(_,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(f(i)).toFixed(1)).join('');
+  const stages = [['Pilot',0.22],['Growth',0.55],['Scale',0.85]];
+  const si = Math.round((stages.find(s=>s[0]===o.stage)?.[1]??0.55)*N);
+  const mine = F[o.growthCurve]||F.Linear;
+  box.innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}">
+    <line x1="${P.l}" x2="${W-P.r}" y1="${H-P.b}" y2="${H-P.b}" stroke="var(--axis)"/>
+    ${stages.map(([s,pos])=>{const x=X(pos*N);return `
+      <line x1="${x}" x2="${x}" y1="${P.t}" y2="${H-P.b}" stroke="var(--grid)" stroke-dasharray="3 4"/>
+      <text x="${x}" y="${H-10}" text-anchor="middle" font-size="10.5" fill="${s===o.stage?'var(--ink)':'var(--ink-3)'}" font-weight="${s===o.stage?'600':'400'}">${s}</text>`;}).join('')}
+    ${Object.entries(F).map(([name,f])=>name===o.growthCurve?'':`
+      <path d="${pathFor(f)}" fill="none" stroke="var(--ink-3)" stroke-width="1.2" opacity=".3"/>
+      <text x="${W-P.r-2}" y="${Math.max(P.t+9,Y(f(N))-5)}" text-anchor="end" font-size="9" fill="var(--ink-3)" opacity=".6">${name}</text>`).join('')}
+    ${stages.map(([s,pos])=>s===o.stage?'':`<circle cx="${X(pos*N)}" cy="${Y(mine(Math.round(pos*N)))}" r="3" fill="var(--ink-3)" opacity=".35"/>`).join('')}
+    <path d="${pathFor(mine)}" fill="none" stroke="var(--s1)" stroke-width="2.4" stroke-linejoin="round"/>
+    <text x="${W-P.r-2}" y="${Y(mine(N))+12}" text-anchor="end" font-size="9.5" fill="var(--s1)" font-weight="600">${o.growthCurve}</text>
+    <circle cx="${X(si)}" cy="${Y(mine(si))}" r="5.5" fill="var(--gold-2)" stroke="${IS_LIGHT?'#fff':'var(--surface)'}" stroke-width="2"/>
+
+  </svg>`;
+}
 </script>
 <script>
 /* ================= FACTORY FOR GOOD — BACKEND LAYER =================
@@ -2049,6 +3733,7 @@ async function setDemo(on){
   }
   const t = $('#demoToggle'); if (t) t.classList.toggle('active', on);
   route();
+  if (on && window.showImpactOverlay) setTimeout(showImpactOverlay, 600);
 }
 window.setDemo = setDemo;
 
@@ -2112,6 +3797,7 @@ async function bootAfterAuth(){
   hideGate(); applyRole();
   if (!location.hash || location.hash.includes('access_token')) location.hash = '#/dashboard';
   route();
+  if (window.maybeTour) setTimeout(maybeTour, 700);
 }
 async function bootApp(){
   injectGate();

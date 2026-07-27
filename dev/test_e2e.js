@@ -17,6 +17,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.fill('#gateEmail', 'member@example.com');
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
   await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
   check('member logged in, gate gone', await page.evaluate(() => document.querySelector('#gate').style.display === 'none'));
   check('member greeted by name', (await page.textContent('#dashGreeting')).includes('Mia'));
   check('Data studio hidden for member', await page.evaluate(() =>
@@ -46,6 +47,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.fill('#gateEmail', 'staff@factoryforgood.com');
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
   await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
   check('staff sees Data studio', await page.evaluate(() =>
     document.querySelector('#mainNav [data-route="#/editor"]').style.display !== 'none'));
   check('staff sees demo toggle', await page.evaluate(() => !!document.querySelector('#demoToggle')));
@@ -86,6 +88,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.fill('#gateEmail', 'staff@factoryforgood.com');
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
   await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
   check('comments restored after fresh login', await page.evaluate(() => NOTES.length) === 1);
   check('cell notes restored', await page.evaluate(() => Object.keys(CELLNOTES).length) === 1);
   await page.close();
