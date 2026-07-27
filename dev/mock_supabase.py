@@ -14,10 +14,34 @@ for o in json.load(open(os.path.join(os.path.dirname(__file__), 'demo-data.json'
 USERS = {
     'staff@factoryforgood.com': {'id': 'u-staff', 'email': 'staff@factoryforgood.com', 'role': 'staff', 'full_name': 'Sam Staff'},
     'member@example.com': {'id': 'u-member', 'email': 'member@example.com', 'role': 'member', 'full_name': 'Mia Member'},
+    'member2@example.com': {'id': 'u-member2', 'email': 'member2@example.com', 'role': 'member', 'full_name': 'Noah Chen'},
 }
 TOKENS = {}  # token -> user
 DONATIONS, COMMENTS, NOTES, SHORTLIST = [], [], {}, []
+CIRCLES = {'test-circle': {'id': 'test-circle', 'name': 'Test Circle', 'description': 'Mock giving circle'}}
+CIRCLE_MEMBERS = [{'circle_id': 'test-circle', 'user_id': 'u-member'},
+                  {'circle_id': 'test-circle', 'user_id': 'u-member2'}]
+DONOR_NOTES = {}
 seq = itertools.count(1)
+
+def circle_stats(cid):
+    uids = {m['user_id'] for m in CIRCLE_MEMBERS if m['circle_id'] == cid}
+    rows = [d for d in DONATIONS if d['user_id'] in uids]
+    alloc, years = {}, {}
+    ytd = planned_total = 0
+    for d in rows:
+        y = int(str(d['gift_date'])[:4])
+        yr = years.setdefault(y, {'y': y, 'total': 0, 'planned': 0})
+        if d['status'] == 'logged':
+            alloc[d['org_id']] = alloc.get(d['org_id'], 0) + d['amount']
+            yr['total'] += d['amount']
+            if y == 2026: ytd += d['amount']
+        else:
+            yr['planned'] += d['amount']
+            if y == 2026: planned_total += d['amount']
+    return {'members': len(uids), 'ytd': ytd, 'planned_total': planned_total,
+            'alloc': [{'org_id': k, 'total': v} for k, v in alloc.items()],
+            'years': sorted(years.values(), key=lambda r: r['y'])}
 
 def user_from(h):
     tok = (h.get('Authorization') or '').replace('Bearer ', '')
@@ -75,11 +99,20 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, [{'org_id': k, 'total': v[0], 'donors': len(v[1])} for k, v in agg.items()])
         if p.path == '/rest/v1/rpc/network_members':
             return self._send(200, sum(1 for u in USERS.values() if u['role'] == 'member'))
+        if p.path == '/rest/v1/rpc/circle_stats':
+            u2 = user_from(self.headers)
+            if not u2: return self._send(401, {'message': 'JWT required'})
+            cid = self._body().get('cid')
+            ok = u2['role'] == 'staff' or any(m['user_id'] == u2['id'] and m['circle_id'] == cid for m in CIRCLE_MEMBERS)
+            if not ok: return self._send(403, {'message': 'not a member of this circle'})
+            return self._send(200, circle_stats(cid))
         u = user_from(self.headers)
         if not u: return self._send(401, {'message': 'JWT required'})
         b = self._body()
         if p.path == '/rest/v1/donations':
-            d = {'id': next(seq), 'user_id': u['id'], **{k: b[k] for k in ('org_id','amount','gift_date','status') if k in b}, 'note': b.get('note')}
+            # staff may log gifts on behalf of any member; members only for themselves
+            owner = b.get('user_id') if (u['role'] == 'staff' and b.get('user_id')) else u['id']
+            d = {'id': next(seq), 'user_id': owner, **{k: b[k] for k in ('org_id','amount','gift_date','status') if k in b}, 'note': b.get('note')}
             DONATIONS.append(d); return self._send(201, [d])
         if p.path == '/rest/v1/orgs':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
@@ -92,6 +125,21 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/org_cell_notes':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             NOTES[(b['org_id'], b['field'])] = b['body']; return self._send(201, [b])
+        if p.path == '/rest/v1/circles':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            CIRCLES[b['id']] = {'id': b['id'], 'name': b['name'], 'description': b.get('description', '')}
+            return self._send(201, [CIRCLES[b['id']]])
+        if p.path == '/rest/v1/circle_members':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            if not any(m['circle_id'] == b['circle_id'] and m['user_id'] == b['user_id'] for m in CIRCLE_MEMBERS):
+                CIRCLE_MEMBERS.append({'circle_id': b['circle_id'], 'user_id': b['user_id']})
+            return self._send(201, [b])
+        if p.path == '/rest/v1/donor_notes':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            DONOR_NOTES[b['user_id']] = b.get('body', ''); return self._send(201, [b])
+        if p.path == '/rest/v1/invites':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            return self._send(201, [b])
         return self._send(404, {'message': 'mock: no route ' + p.path})
 
     def do_GET(self):
@@ -111,7 +159,22 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, sorted(ORGS.values(), key=lambda r: r['id']))
         if p.path == '/rest/v1/donations':
             rows = [d for d in DONATIONS if d['user_id'] == u['id'] or u['role'] == 'staff']
+            if 'user_id' in f: rows = [d for d in rows if d['user_id'] == f['user_id']]
             return self._send(200, sorted(rows, key=lambda d: d['gift_date']))
+        if p.path == '/rest/v1/circles':
+            if u['role'] == 'staff': rows = list(CIRCLES.values())
+            else:
+                mine = {m['circle_id'] for m in CIRCLE_MEMBERS if m['user_id'] == u['id']}
+                rows = [c for c in CIRCLES.values() if c['id'] in mine]
+            return self._send(200, rows)
+        if p.path == '/rest/v1/circle_members':
+            rows = CIRCLE_MEMBERS if u['role'] == 'staff' else [m for m in CIRCLE_MEMBERS if m['user_id'] == u['id']]
+            if 'user_id' in f: rows = [m for m in rows if m['user_id'] == f['user_id']]
+            out = [{**m, 'circles': CIRCLES.get(m['circle_id'])} for m in rows]
+            return self._send(200, out)
+        if p.path == '/rest/v1/donor_notes':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            return self._send(200, [{'user_id': k, 'body': v} for k, v in DONOR_NOTES.items()])
         if p.path == '/rest/v1/org_comments':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             rows = [c for c in COMMENTS if not c['resolved']] if f.get('resolved') == 'false' else COMMENTS
@@ -129,10 +192,17 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/orgs':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             oid = int(f['id']); ORGS[oid]['data'] = b['data']; return self._send(200, [ORGS[oid]])
+        if p.path == '/rest/v1/profiles':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            for usr in USERS.values():
+                if usr['id'] == f.get('id'):
+                    usr.update({k: v for k, v in b.items() if k in ('full_name', 'member_since', 'location', 'goal')})
+                    return self._send(200, [usr])
+            return self._send(404, {'message': 'not found'})
         if p.path == '/rest/v1/donations':
             did = int(f['id'])
             for d in DONATIONS:
-                if d['id'] == did and d['user_id'] == u['id']:
+                if d['id'] == did and (d['user_id'] == u['id'] or u['role'] == 'staff'):
                     d.update({k: v for k, v in b.items() if k != 'user_id'}); return self._send(200, [d])
             return self._send(404, {'message': 'not found'})
         if p.path == '/rest/v1/org_comments':
@@ -149,10 +219,15 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/donations':
             did = int(f['id'])
             before = len(DONATIONS)
-            DONATIONS[:] = [d for d in DONATIONS if not (d['id'] == did and d['user_id'] == u['id'])]
+            DONATIONS[:] = [d for d in DONATIONS if not (d['id'] == did and (d['user_id'] == u['id'] or u['role'] == 'staff'))]
             return self._send(204 if len(DONATIONS) < before else 404)
         if p.path == '/rest/v1/org_cell_notes':
             NOTES.pop((int(f['org_id']), f['field']), None); return self._send(204)
+        if p.path == '/rest/v1/circle_members':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            CIRCLE_MEMBERS[:] = [m for m in CIRCLE_MEMBERS
+                                 if not (m['circle_id'] == f.get('circle_id') and m['user_id'] == f.get('user_id'))]
+            return self._send(204)
         return self._send(404, {'message': 'mock: no route'})
 
 if __name__ == '__main__':

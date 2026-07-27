@@ -25,6 +25,14 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('no demo toggle for member', await page.evaluate(() => !document.querySelector('#demoToggle')));
   await page.evaluate(() => go('#/editor')); await page.waitForTimeout(500);
   check('editor route bounces member to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
+  check('Donor studio hidden for member', await page.evaluate(() => {
+    const b = document.querySelector('#mainNav [data-route="#/donors"]');
+    return b && b.style.display === 'none';
+  }));
+  await page.evaluate(() => go('#/donors')); await page.waitForTimeout(500);
+  check('donors route bounces member to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
+  check('member sees their circle pill', await page.evaluate(() =>
+    !!document.querySelector('#scopeToggle [data-circle="test-circle"]')));
   // log a real gift
   await page.click('#dashTabs button[data-tab="history"]'); await page.waitForTimeout(300);
   await page.evaluate(() => openGiftModal()); await page.waitForTimeout(300);
@@ -40,6 +48,29 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('gift edit persists', await page.evaluate(() => scopeData('me').total) === 300000);
   await page.close();
 
+  // ---------- second member: personal data stays private ----------
+  page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
+  page.on('pageerror', e => errs.push('member2: ' + e.message));
+  await page.goto(U); await page.waitForTimeout(700);
+  await page.fill('#gateEmail', 'member2@example.com');
+  await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
+  await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
+  check('second member sees none of the first member\'s gifts', await page.evaluate(() =>
+    scopeData('me').total === 0 && MEMBER.donations.length === 0));
+  // log their own gift, then check the shared circle pools exactly both members
+  await page.evaluate(async () => {
+    await sb.rest('donations', { method: 'POST', body: { org_id: 4, amount: 50000, gift_date: '2026-03-01', status: 'logged', user_id: APP.userId } });
+    await loadLiveData(); route();
+  });
+  await page.waitForTimeout(1200);
+  check('second member sees only their own 50k', await page.evaluate(() => scopeData('me').total) === 50000);
+  await page.evaluate(() => { document.querySelector('#scopeToggle [data-circle="test-circle"]').click(); });
+  await page.waitForTimeout(800);
+  check('circle total pools exactly its two members', await page.evaluate(() => scopeData('network').total) === 350000);
+  await page.evaluate(() => sb.signOut());
+  await page.close();
+
   // ---------- staff journey ----------
   page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
   page.on('pageerror', e => errs.push('staff: ' + e.message));
@@ -51,7 +82,73 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('staff sees Data studio', await page.evaluate(() =>
     document.querySelector('#mainNav [data-route="#/editor"]').style.display !== 'none'));
   check('staff sees demo toggle', await page.evaluate(() => !!document.querySelector('#demoToggle')));
-  check('collective totals include member gift', await page.evaluate(() => scopeData('network').total) === 300000);
+  check('collective totals include member gift', await page.evaluate(() => scopeData('network').total) === 350000);
+  // staff logs their own gift — it must NOT leak into the circle's pooled total
+  await page.evaluate(async () => {
+    await sb.rest('donations', { method: 'POST', body: { org_id: 6, amount: 100000, gift_date: '2026-04-01', status: 'logged', user_id: APP.userId } });
+    await loadLiveData(); route();
+  });
+  await page.waitForTimeout(1200);
+  const circleVsNet = await page.evaluate(async () => {
+    const st = await sb.rest('rpc/circle_stats', { method: 'POST', body: { cid: 'test-circle' } });
+    return { circle: st.ytd, net: scopeData('network').total };
+  });
+  check('circle excludes non-members (350k vs 450k collective)', circleVsNet.circle === 350000 && circleVsNet.net === 450000);
+  // Donor studio
+  check('staff sees Donor studio', await page.evaluate(() =>
+    document.querySelector('#mainNav [data-route="#/donors"]').style.display !== 'none'));
+  await page.evaluate(() => go('#/donors')); await page.waitForTimeout(900);
+  check('Donor studio lists member profiles only', await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('#dsTable tbody tr')];
+    return rows.length === 2 && !document.querySelector('#dsTable').textContent.includes('Sam Staff');
+  }));
+  check('Donor studio shows real lifetime totals', (await page.textContent('#dsTable')).includes('$300k'));
+  // view-as: open the first member's dashboard exactly as they see it
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('[data-open]')].find(b =>
+      b.closest('tr').textContent.includes('Mia Member'));
+    btn.click();
+  });
+  await page.waitForTimeout(1200);
+  check('view-as shows the member\'s own dashboard', await page.evaluate(() =>
+    !!document.querySelector('#viewAsBar') &&
+    document.querySelector('#topMemberName').textContent === 'Mia Member' &&
+    scopeData('me').total === 300000));
+  check('view-as blocks gift logging', await page.evaluate(() => { openGiftModal(); return !document.querySelector('#modalVeil').classList.contains('show'); }));
+  await page.evaluate(() => exitViewAs()); await page.waitForTimeout(700);
+  check('exit view-as returns to Donor studio', await page.evaluate(() =>
+    location.hash.includes('donors') && !document.querySelector('#viewAsBar')));
+  // staff manage a member's gifts on their behalf (create → edit → delete)
+  const noahId = await page.evaluate(() => DB.donors.find(d => d.fullName === 'Noah Chen').id);
+  await page.evaluate(async id => { await staffGiftOp(id, 'create', { org: 4, amount: 80000, date: '2026-05-05', status: 'logged' }); }, noahId);
+  const afterCreate = await page.evaluate(id => {
+    const dn = DB.donors.find(d => d.id === id);
+    return { lt: dn.donations.reduce((s, g) => s + g.amount, 0), n: dn.donations.length };
+  }, noahId);
+  check('staff creates a gift on a member\'s behalf', afterCreate.lt === 130000 && afterCreate.n === 2);
+  const gid = await page.evaluate(id => DB.donors.find(d => d.id === id).donations.find(g => g.amount === 80000).id, noahId);
+  await page.evaluate(async ({ id, gid }) => { await staffGiftOp(id, 'update', { id: gid, org: 4, amount: 60000, date: '2026-05-05', status: 'planned' }); }, { id: noahId, gid });
+  const afterEdit = await page.evaluate(id => {
+    const dn = DB.donors.find(d => d.id === id);
+    return { lt: dn.donations.reduce((s, g) => s + g.amount, 0), planned: dn.planned.reduce((s, g) => s + g.amount, 0) };
+  }, noahId);
+  check('staff edits a member\'s gift (amount + status)', afterEdit.lt === 50000 && afterEdit.planned === 60000);
+  await page.evaluate(async ({ id, gid }) => { await staffGiftOp(id, 'delete', { id: gid }); }, { id: noahId, gid });
+  const afterDel = await page.evaluate(async id => {
+    const dn = DB.donors.find(d => d.id === id);
+    const st = await sb.rest('rpc/circle_stats', { method: 'POST', body: { cid: 'test-circle' } });
+    return { lt: dn.donations.reduce((s, g) => s + g.amount, 0), planned: (dn.planned || []).length, circleYtd: st.ytd };
+  }, noahId);
+  check('staff deletes a member\'s gift, circle totals stay honest', afterDel.lt === 50000 && afterDel.planned === 0 && afterDel.circleYtd === 350000);
+  // the gift-manager modal opens from the studio
+  await page.evaluate(() => go('#/donors')); await page.waitForTimeout(600);
+  await page.evaluate(id => openDonorGifts(id), noahId);
+  await page.waitForTimeout(400);
+  check('gift manager modal lists the member\'s record', await page.evaluate(() =>
+    document.querySelector('#modalVeil').classList.contains('show') &&
+    document.querySelector('#modalBox').textContent.includes('giving record') &&
+    !!document.querySelector('#dgSave')));
+  await page.evaluate(() => closeModal());
   // Data studio edit persists to backend
   await page.evaluate(() => go('#/editor')); await page.waitForTimeout(900);
   await page.evaluate(() => { const td = document.querySelector('#edBody td[data-k="hq"]'); td.focus(); td.textContent = 'Pune HQ (verified)'; td.blur(); });
@@ -76,7 +173,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('demo banner visible', await page.evaluate(() => !!document.querySelector('#demoBar')));
   check('demo shows illustrative portfolio', await page.evaluate(() => scopeData('me').total) > 1e6);
   await page.evaluate(() => setDemo(false)); await page.waitForTimeout(1500);
-  check('back to live totals', await page.evaluate(() => scopeData('network').total) === 300000);
+  check('back to live totals', await page.evaluate(() => scopeData('network').total) === 450000);
   // sign out
   await page.evaluate(() => sb.signOut());
   await page.close();

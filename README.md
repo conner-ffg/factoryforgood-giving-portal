@@ -28,6 +28,14 @@ Open the Supabase dashboard → SQL editor → paste the entire contents of
 `supabase/migration.sql` → Run. This creates every table, policy, trigger,
 and seeds the 206 organizations. Safe to re-run.
 
+Then paste `supabase/migration_donorstudio.sql` → Run. This adds giving
+circles, the staff-only Donor Studio tables (profile fields, circle
+membership, staff notes), and the `circle_stats` function. Privacy model:
+members can only ever read their own donation rows; circle and collective
+views are produced by security-definer functions that return pooled
+aggregates only, and only to members of that circle (or staff). Staff notes
+about a donor are in a staff-only table the member cannot read. Safe to re-run.
+
 ### 2. Auth configuration (5 minutes)
 Supabase dashboard → Authentication:
 - **URL configuration** → Site URL: your production URL (e.g. `https://portal.factoryforgood.com`). Add the Vercel preview URL (`https://<project>.vercel.app`) to the redirect allow list too.
