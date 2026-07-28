@@ -113,6 +113,8 @@ const FFG_TOOLS = [
 
 function toolsRoute(){
   if (!location.hash.startsWith('#/tools')) return false;
+  // FFG team only — members are routed back to their dashboard
+  if (window.APP && APP.ready && !APP.staff){ go('#/dashboard'); return true; }
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-tools').classList.add('active');
   $$('#mainNav button').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/tools'));

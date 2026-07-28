@@ -147,6 +147,10 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     !!document.querySelector('#viewAsBar') &&
     document.querySelector('#topMemberName').textContent === 'Mia Member' &&
     scopeData('me').total === 300000));
+  check('view-as hides all staff chrome', await page.evaluate(() =>
+    document.body.classList.contains('va-member') &&
+    getComputedStyle(document.querySelector('#mainNav [data-route="#/editor"]')).display === 'none' &&
+    getComputedStyle(document.querySelector('#demoToggle')).display === 'none'));
   check('view-as blocks gift logging', await page.evaluate(() => { openGiftModal(); return !document.querySelector('#modalVeil').classList.contains('show'); }));
   await page.evaluate(() => exitViewAs()); await page.waitForTimeout(700);
   check('exit view-as returns to Donor studio', await page.evaluate(() =>
@@ -210,12 +214,155 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return r[0].data.hq;
   });
   check('org edit persisted to API', persisted === 'Pune HQ (verified)');
+  // numeric columns: commas accepted, full-number display, single-field save
+  const numRes = await page.evaluate(async () => {
+    const tr = document.querySelector('#edBody tr');
+    const id = +tr.dataset.id;
+    // switch to a group that includes Annual Reach (Core has it)
+    const td = tr.querySelector('td[data-k="annualReach"]');
+    td.focus(); td.textContent = '5,100,000'; td.blur();
+    await new Promise(r => setTimeout(r, 600));
+    const o = byId(id);
+    const api = await sb.rest('orgs?id=eq.' + id);
+    return { local: o.annualReach, remote: api[0].data.annualReach, cellText: td.textContent };
+  });
+  check('comma-formatted number commits as full value', numRes.local === 5100000 && numRes.remote === 5100000);
+  check('numeric cell redisplays with thousands separators', numRes.cellText === '5,100,000');
+  const multRes = await page.evaluate(() => {
+    const tr = document.querySelector('#edBody tr');
+    const td = tr.querySelector('td[data-k="budgetM"]');
+    const before = td.textContent;
+    td.focus(); td.textContent = '12,500,000'; td.blur();
+    return { before, stored: byId(+tr.dataset.id).budgetM };
+  });
+  check('$ field shows full dollars, stores millions', /,/.test(multRes.before) && multRes.stored === 12.5);
+  check('brief + vertical-edit buttons on every row', await page.evaluate(() =>
+    !!document.querySelector('#edBody .row-ic[title*="brief"]') &&
+    !!document.querySelector('#edBody .row-ic[title*="vertical"]')));
+  await page.evaluate(() => { openVerticalEdit(+document.querySelector('#edBody tr').dataset.id); });
+  await page.waitForTimeout(400);
+  check('vertical edit lists all fields as rows', await page.evaluate(() =>
+    document.querySelectorAll('#modalBox .ve-in').length > 60));
+  await page.evaluate(() => closeModal());
+  // review workflow: invite submission → queue → reviewed, with logged activity
+  const wfIds = await page.evaluate(() => [...document.querySelectorAll('#edBody tr')].slice(0, 3).map(tr => +tr.dataset.id));
+  await page.evaluate(ids => { wfAction(ids[1], 'sub'); wfAction(ids[2], 'req'); }, wfIds);
+  await page.waitForTimeout(700);
+  check('submission invite + review request recorded', await page.evaluate(ids => {
+    const a = byId(ids[1]), b = byId(ids[2]);
+    return !!a.workflow.sub && !!b.workflow.req && WFLOG.length === 2;
+  }, wfIds));
+  check('requests sort to the top with color coding', await page.evaluate(ids => {
+    const rows = [...document.querySelectorAll('#edBody tr')];
+    return +rows[0].dataset.id === ids[2] && rows[0].classList.contains('wf-req') &&
+           +rows[1].dataset.id === ids[1] && rows[1].classList.contains('wf-sub');
+  }, wfIds));
+  check('review queue badge + panel list the org', await page.evaluate(ids => {
+    drTab = 'reviews'; renderNotesPanel();
+    return document.querySelector('#edRevCnt').textContent === '(1)' &&
+           document.querySelector('#notesBody').textContent.includes(byId(ids[2]).name);
+  }, wfIds));
+  await page.evaluate(ids => wfAction(ids[2], 'done'), wfIds);
+  await page.waitForTimeout(700);
+  check('marking reviewed clears the queue and logs who/when', await page.evaluate(ids => {
+    const o = byId(ids[2]);
+    return !!o.workflow.done && !o.workflow.req && WFLOG[0].kind === 'review' &&
+           document.querySelector('#edRevCnt').textContent === '';
+  }, wfIds));
+  check('workflow events persisted to the API', await page.evaluate(async () =>
+    (await sb.rest('org_workflow_events?select=*')).length === 3));
+  check('team activity totals count per person', await page.evaluate(() => {
+    drTab = 'reviews'; renderNotesPanel();
+    const t = document.querySelector('#notesBody').textContent;
+    return t.includes('SS') && t.includes('Sam Staff');
+  }));
+  check('@FFG Team is a mention option', await page.evaluate(() =>
+    teamMembers()[0] === 'FFG Team' && extractMentions('heads up @FFG Team please read').includes('FFG Team')));
+  // retract vs fulfil counting + late callouts
+  const wf2 = await page.evaluate(() => [...document.querySelectorAll('#edBody tr')].slice(-3).map(tr => +tr.dataset.id));
+  await page.evaluate(id => wfAction(id, 'sub'), wf2[0]); await page.waitForTimeout(500);
+  await page.evaluate(id => wfAction(id, 'sub'), wf2[0]); await page.waitForTimeout(700);
+  check('withdrawn requests drop out of the tallies', await page.evaluate(async id => {
+    const o = byId(id);
+    for (let i = 0; i < 20; i++){   // the delete may trail the retract by a round-trip
+      const api = await sb.rest('org_workflow_events?select=*');
+      if (api.length === 3) return !(o.workflow||{}).sub && WFLOG.filter(e => e.orgId === id).length === 0;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    return false;
+  }, wf2[0]));
+  await page.evaluate(id => wfAction(id, 'sub'), wf2[1]); await page.waitForTimeout(500);
+  await page.evaluate(id => wfAction(id, 'req'), wf2[1]); await page.waitForTimeout(700);
+  check('review request fulfils the submission invite but keeps its count', await page.evaluate(async id => {
+    const o = byId(id);
+    const api = await sb.rest('org_workflow_events?select=*');
+    return !o.workflow.sub && !!o.workflow.subDone && !!o.workflow.req &&
+           api.filter(e => e.org_id === id).length === 2;
+  }, wf2[1]));
+  check('reviewed hover keeps the review-request trail', await page.evaluate(ids => {
+    const t = wfTipHTML(byId(ids[2]));
+    return t.includes('Review requested') && t.includes('Reviewed');
+  }, wfIds));
+  await page.evaluate(id => {
+    const o = byId(id);
+    o.workflow = { req: { by: 'Sam Staff', date: new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10) } };
+    renderEdRows();
+  }, wf2[2]);
+  await page.waitForTimeout(400);
+  check('6+ day requests flagged late and sorted first', await page.evaluate(id => {
+    const first = document.querySelector('#edBody tr');
+    return +first.dataset.id === id && first.classList.contains('wf-late');
+  }, wf2[2]));
+  check('Late section + submission queue in the Reviews panel', await page.evaluate(() => {
+    drTab = 'reviews'; renderNotesPanel();
+    const t = document.querySelector('#notesBody').textContent;
+    return t.includes('Late — waiting 6+') && t.includes('Submission requests');
+  }));
   // comment + note persist
   const cell = await page.$('#edBody tr:nth-child(2) td[data-k="hq"]');
   await cell.click({ button: 'right' }); await page.waitForTimeout(250);
   await page.click('#cmComment'); await page.waitForTimeout(250);
-  await page.fill('#noteTxt', 'check this'); await page.click('#noteSave'); await page.waitForTimeout(600);
+  await page.fill('#noteTxt', 'check this @Sam'); await page.click('#noteSave'); await page.waitForTimeout(600);
   check('comment persisted', await page.evaluate(async () => (await sb.rest('org_comments?select=*')).length) === 1);
+  check('@mention captured on the comment', await page.evaluate(() =>
+    NOTES[0].mentions && NOTES[0].mentions.includes('Sam Staff')));
+  check('comments drawer filters by tagged teammate', await page.evaluate(() => {
+    drTab = 'comments'; window._cmWho = 'Sam Staff'; renderNotesPanel();
+    const n = document.querySelectorAll('#notesBody .note-item').length;
+    window._cmWho = ''; renderNotesPanel();
+    return n === 1;
+  }));
+  // donor-profile comment with a tag, from the Donor studio
+  await page.evaluate(() => {
+    const dn = DB.donors.find(d => d.fullName === 'Mia Member');
+    openDonorComment(dn.id);
+  });
+  await page.waitForTimeout(300);
+  await page.fill('#dcTxt', '@Sam please review this giving plan');
+  await page.click('#dcSave'); await page.waitForTimeout(600);
+  check('donor comment saved with tag + donor link', await page.evaluate(async () => {
+    const rows = await sb.rest('org_comments?select=*');
+    const d = rows.find(r => r.donor_id);
+    return rows.length === 2 && !!d && (d.mentions || '').includes('Sam Staff');
+  }));
+  // @typeahead (Tab completes) + Ctrl/Cmd+Enter submits
+  const acCell = await page.$('#edBody tr:nth-child(6) td[data-k="hq"]');
+  await acCell.click({ button: 'right' }); await page.waitForTimeout(250);
+  await page.click('#cmComment'); await page.waitForTimeout(250);
+  await page.click('#noteTxt');
+  await page.keyboard.type('ping @Sa'); await page.waitForTimeout(250);
+  check('@ typeahead suggests while typing', await page.evaluate(() => {
+    const ac = document.querySelector('.ac-pop');
+    return !!ac && ac.textContent.includes('Sam Staff');
+  }));
+  await page.keyboard.press('Tab'); await page.waitForTimeout(200);
+  check('Tab completes the tagged teammate', await page.evaluate(() =>
+    document.querySelector('#noteTxt').value.includes('@Sam Staff ')));
+  await page.keyboard.type('please double-check this row');
+  await page.keyboard.press('Control+Enter'); await page.waitForTimeout(600);
+  check('Ctrl+Enter submits the comment', await page.evaluate(() =>
+    document.querySelector('#notePop').style.display === 'none' &&
+    NOTES.some(n => n.text.includes('please double-check') && (n.mentions || []).includes('Sam Staff'))));
   await cell.click({ button: 'right' }); await page.waitForTimeout(250);
   await page.click('#cmNote'); await page.waitForTimeout(250);
   await page.fill('#cnTxt', 'note body'); await page.click('#cnSave'); await page.waitForTimeout(600);
@@ -238,7 +385,9 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
   await page.waitForTimeout(1800);
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
-  check('comments restored after fresh login', await page.evaluate(() => NOTES.length) === 1);
+  check('comments restored after fresh login', await page.evaluate(() => NOTES.length) === 3);
+  check('mentions + donor link survive reload', await page.evaluate(() =>
+    NOTES.some(n => (n.mentions || []).includes('Sam Staff')) && NOTES.some(n => n.donorId)));
   check('cell notes restored', await page.evaluate(() => Object.keys(CELLNOTES).length) === 1);
   await page.close();
 
@@ -262,9 +411,23 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.waitForTimeout(1500);
   check('self-set password replaces the starter one', await page.evaluate(() =>
     document.querySelector('#gate').style.display === 'none'));
-  // tools hub: library renders, ph♥nder swipes into the shortlist
+  // tools are staff-only: members don't see the tab and get bounced
+  check('Tools hidden for members', await page.evaluate(() =>
+    document.querySelector('#mainNav [data-route="#/tools"]').style.display === 'none'));
+  await page.evaluate(() => go('#/tools')); await page.waitForTimeout(500);
+  check('tools route bounces members to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
+  await page.close();
+
+  // ---------- tools hub (staff) ----------
+  page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
+  page.on('pageerror', e => errs.push('tools: ' + e.message));
+  await page.goto(U); await page.waitForTimeout(700);
+  await page.fill('#gateEmail', 'staff@factoryforgood.com');
+  await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
+  await page.waitForTimeout(1800);
+  await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(400);
   await page.evaluate(() => go('#/tools')); await page.waitForTimeout(700);
-  check('tools library renders all four tools', await page.evaluate(() =>
+  check('tools library renders all four tools (staff)', await page.evaluate(() =>
     document.querySelector('#view-tools').classList.contains('active') &&
     document.querySelectorAll('.tool-card').length === 4));
   await page.evaluate(() => go('#/tools/phinder')); await page.waitForTimeout(800);

@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Factory for Good — Build real good, measurably</title>
+<!-- browser-tab icon: the real FFG condensed wordmark -->
+<link rel="icon" type="image/svg+xml" href="https://www.truekeep.ai/api/asset-proxy/page-media/35d80f0e-bbd4-408b-a303-20c8badd882a/ea11c1db-b455-43cf-84d2-204d33e1a4b0.svg">
+<link rel="apple-touch-icon" href="https://www.truekeep.ai/api/asset-proxy/page-media/35d80f0e-bbd4-408b-a303-20c8badd882a/ea11c1db-b455-43cf-84d2-204d33e1a4b0.svg">
 <style>
 :root{
   /* Factory for Good tokens — from the brand design brief */
@@ -248,10 +251,18 @@ h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:.005em}
 table.editor{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:2900px}
 table.editor th{position:sticky;top:0;z-index:5;background:var(--surface-3);color:var(--ink-2);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--divider);font-size:11.5px;white-space:nowrap}
 table.editor td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--ink-2);white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-table.editor td.name-c,table.editor th.name-c{position:sticky;left:46px;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
+table.editor td.name-c,table.editor th.name-c{position:sticky;left:150px;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
 table.editor th.name-c{z-index:6;background:var(--surface-3)}
 table.editor td[contenteditable=true]{outline:none;cursor:text}
 table.editor td[contenteditable=true]:focus{background:rgba(41,140,192,.07);box-shadow:inset 0 0 0 1px var(--cerulean);color:var(--ink)}
+/* fields that are live on the member site */
+table.editor th.pub-c{color:var(--ink);font-weight:700;background:rgba(201,165,92,.22);border-bottom:2px solid #C9A55C}
+table.editor th.name-c.pub-c{background:rgba(201,165,92,.22)}
+table.editor td.pub{background:rgba(201,165,92,.055)}
+table.editor td.name-c.pub{background:#fff}
+/* click-to-expand: a focused cell grows to show its FULL contents while editing */
+table.editor td.expanded{white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;max-width:480px!important;min-width:300px;background:#fff!important;box-shadow:0 10px 30px rgba(20,20,19,.22), inset 0 0 0 2px #C9A55C!important;position:relative;z-index:9;color:var(--ink);vertical-align:top;line-height:1.55}
+table.editor td.expanded [contenteditable]{white-space:pre-wrap;display:block}
 table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(--divider);border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit}
 .ed-note{font-size:12px;color:var(--ink-3)}
 .saved-flash{position:fixed;bottom:26px;right:26px;background:var(--ink);color:#F7F5F1;padding:11px 20px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:all .3s;z-index:99}
@@ -263,7 +274,7 @@ table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(-
 .calc-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
 .calc-row b{color:var(--ink);font-weight:500}
 .modal input[type=number]{background:#fff;border:1px solid var(--divider);color:var(--ink);border-radius:9px;padding:9px 13px;font-size:14px;width:100%;font-family:inherit;outline:none;margin:10px 0 4px}
-table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:0;z-index:4;background:#fff;width:46px;min-width:46px;max-width:46px;text-align:center;padding:7px 6px}
+table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:0;z-index:4;background:#fff;width:150px;min-width:150px;max-width:150px;text-align:center;padding:7px 6px}
 table.editor th.vis-c{z-index:7;background:var(--surface-3)}
 .vswitch{display:inline-block;width:30px;height:17px;position:relative;cursor:pointer;vertical-align:middle}
 .vswitch input{display:none}
@@ -295,6 +306,59 @@ td.has-cellnote::before{content:'';position:absolute;top:0;left:0;border-style:s
 .cell-hi{animation:cellhi 2.2s}
 @keyframes cellhi{0%,60%{background:rgba(41,140,192,.18)}100%{background:transparent}}
 @media (max-width:1120px){.dash-grid{grid-template-columns:1fr}.stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}.span3,.span4,.span5,.span6,.span7,.span8{grid-column:span 12}.link-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Briefs nav entry hidden — briefs stay reachable from the library and org links */
+#mainNav [data-route="#/org"]{display:none}
+/* last-viewed orgs dropdown under the Organizations tab */
+.nav .orgs-wrap{position:relative;display:inline-block}
+.orgs-drop{position:absolute;top:calc(100% + 4px);left:0;min-width:230px;background:#fff;border:1px solid var(--divider);border-radius:12px;box-shadow:0 12px 32px rgba(20,20,19,.14);padding:6px;z-index:80;display:none}
+.orgs-wrap:hover .orgs-drop{display:block}
+.orgs-drop .od-t{font-size:10.5px;color:var(--ink-3);padding:5px 9px 3px}
+.orgs-drop .od-list{max-height:106px;overflow-y:auto}
+.orgs-drop .od-i{display:block;width:100%;text-align:left;font-size:12.5px;color:var(--ink-2);padding:7px 9px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orgs-drop .od-i:hover{background:rgba(20,20,19,.05);color:var(--ink)}
+/* view-as a member: staff chrome disappears entirely */
+.va-member #mainNav [data-route="#/editor"],
+.va-member #mainNav [data-route="#/donors"],
+.va-member #mainNav [data-route="#/tools"],
+.va-member #demoToggle{display:none!important}
+/* @mentions in comments */
+.mention{color:var(--ink);background:rgba(201,165,92,.22);border-radius:5px;padding:0 4px;font-weight:600}
+.tagrow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px}
+.tag-chip{font-size:11px;border:1px solid var(--divider);border-radius:999px;padding:2px 9px;color:var(--ink-2);cursor:pointer;background:#fff;transition:all .15s}
+.tag-chip:hover{border-color:var(--ink);color:var(--ink)}
+/* studio: row action icons + resizable columns + vertical edit */
+.row-ic{cursor:pointer;font-size:12px;color:var(--ink-3);border:1px solid var(--divider,#DEDBD6);border-radius:6px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:#fff;flex:none;transition:all .15s}
+.row-ic:hover{color:var(--ink);border-color:var(--ink)}
+th .col-grip{position:absolute;right:0;top:0;bottom:0;width:7px;cursor:col-resize;border-right:2px solid transparent}
+th .col-grip:hover{border-right-color:#C9A55C}
+table.editor th{position:sticky}
+table.editor td.num-cell{font-variant-numeric:tabular-nums;text-align:right}
+.ve-grid{display:grid;grid-template-columns:230px 1fr;gap:7px 14px;align-items:start}
+.ve-lbl{font-size:12px;color:var(--ink-2);padding-top:7px;line-height:1.35}
+.ve-in{width:100%;background:#fff;border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;color:var(--ink);outline:none;resize:none;line-height:1.5;box-sizing:border-box}
+textarea.ve-in:focus,select.ve-in:focus{border-color:#C9A55C;box-shadow:0 0 0 1.5px rgba(201,165,92,.35)}
+.ve-ro{font-size:12.5px;color:var(--ink-3);padding-top:7px}
+
+/* org review workflow */
+.wf-cb{width:14px;height:14px;accent-color:#C9A55C;cursor:pointer;flex:none;margin:0}
+.row-ic.wf-req-ic.on{background:#92C1DC;border-color:#5C93B5;color:#14303F}
+.row-ic.wf-done-ic.on{background:#9ED1BB;border-color:#5F9B7F;color:#123526}
+table.editor tr.wf-req td{background:rgba(146,193,220,.16)}
+table.editor tr.wf-req td.vis-c,table.editor tr.wf-req td.name-c{background:#E7F1F8}
+table.editor tr.wf-sub td{background:rgba(239,203,103,.13)}
+table.editor tr.wf-sub td.vis-c,table.editor tr.wf-sub td.name-c{background:#F8F0DC}
+
+/* @mention typeahead */
+.ac-pop{position:fixed;z-index:999;background:#fff;border:1px solid var(--divider,#DEDBD6);border-radius:10px;box-shadow:0 12px 32px rgba(20,20,19,.16);padding:4px;max-height:180px;overflow:auto}
+.ac-pop .ac-i{padding:6px 10px;border-radius:7px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.ac-pop .ac-i.hi{background:rgba(201,165,92,.16);font-weight:600}
+.ac-pop .ac-i .k{font-size:9.5px;border:1px solid var(--divider,#DEDBD6);border-radius:4px;padding:0 5px;color:#797772}
+.ac-pop .ac-i:hover{background:rgba(20,20,19,.05)}
+/* late workflow rows */
+table.editor tr.wf-late td{border-top:2px solid #C0392B!important;border-bottom:2px solid #C0392B!important}
+table.editor tr.wf-late td.vis-c{border-left:4px solid #C0392B}
+table.editor tr.wf-late td.name-c{color:#C0392B;font-weight:600}
 </style>
 <script>
 window.SITE_THEME = {
@@ -429,6 +493,7 @@ window.SITE_THEME = {
     <select id="edGroup"></select>
     <button class="btn" id="edAdd">+ Add organization</button>
     <button class="btn" id="edNotes">Comments <span id="edNoteCnt"></span></button>
+    <button class="btn" id="edReviews">Reviews <span id="edRevCnt"></span></button>
     <button class="btn" id="edAI">✦ Auto-fill setup</button>
     <button class="btn primary" id="edExport">Export CSV</button>
     <span class="ed-note" id="edCount" style="margin-left:auto"></span>
@@ -450,6 +515,7 @@ window.SITE_THEME = {
   <div class="dr-tabs" id="drTabs">
     <button data-drtab="comments" class="active">Comments</button>
     <button data-drtab="cellnotes">Notes</button>
+    <button data-drtab="reviews">Reviews</button>
   </div></div>
   <div class="dr-body" id="notesBody"></div>
 </div>
@@ -567,6 +633,13 @@ function route(){
   if (page==='orgs') view='library';
   else if (page==='org') view='org';
   else if (page==='editor') view='editor';
+  // fresh visits to a section start on its default tab — a page you left
+  // earlier shouldn't remember mid-session tab state when you come back
+  if (view==='dashboard' && window.__prevView && window.__prevView!=='dashboard'){
+    state.scope = 'me'; state.circle = null; state.dashTab = 'composition';
+    if (window.setCommunityScope) setCommunityScope(null);
+  }
+  window.__prevView = view;
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-'+(view==='org'?'org':view)).classList.add('active');
   $$('#mainNav button').forEach(b=>{
@@ -1323,109 +1396,110 @@ const RATE5 = ['','Very Low','Low','Medium','High','Very High'];
 const FIELDS = [
  // Identity & Basic Info
  {k:'id', l:'Record ID', cat:'Identity & Basic Info', ro:1, desc:'Internal system identifier. Do not change once assigned.'},
- {k:'name', l:'Display Name', cat:'Identity & Basic Info', cls:'name-c', core:1, desc:'Shorter public-facing name, if different from the legal name.'},
+ {k:'name', l:'Display Name', pub:1, cat:'Identity & Basic Info', cls:'name-c', core:1, desc:'Shorter public-facing name, if different from the legal name.'},
  {k:'legalName', l:'Legal Organization Name', cat:'Identity & Basic Info', desc:'Full registered legal name.'},
- {k:'logoUrl', l:'Logo Image', cat:'Identity & Basic Info', img:1, desc:'Link to the org\'s logo file. Click the camera to paste a URL or upload a file.'},
+ {k:'logoUrl', l:'Logo Image', pub:1, core:1, cat:'Identity & Basic Info', img:1, desc:'Link to the org\'s logo file. Click the camera to paste a URL or upload a file.'},
  {k:'ein', l:'EIN', cat:'Identity & Basic Info', desc:'US tax ID (XX-XXXXXXX). Primary identifier for domestic orgs.'},
  {k:'charityEquivId', l:'Charity Equivalency ID', cat:'Identity & Basic Info', desc:'Equivalency determination reference for non-US orgs without an EIN.'},
- {k:'blurb', l:'Description', cat:'Identity & Basic Info', core:1, desc:'Full narrative description of the org and its work.'},
- {k:'tagline', l:'Tagline', cat:'Identity & Basic Info', desc:'One-sentence summary shown on compact views like menu cards.'},
- {k:'hq', l:'Headquarters', cat:'Identity & Basic Info', core:1, desc:'Registered HQ location.'},
+ {k:'blurb', l:'Description', pub:1, cat:'Identity & Basic Info', core:1, desc:'Full narrative description of the org and its work.'},
+ {k:'tagline', l:'Tagline', pub:1, core:1, cat:'Identity & Basic Info', desc:'One-sentence summary shown on compact views like menu cards.'},
+ {k:'hq', l:'Headquarters', pub:1, cat:'Identity & Basic Info', core:1, desc:'Registered HQ location.'},
  {k:'contactEmail', l:'Contact Email', cat:'Identity & Basic Info', desc:'Primary contact at the org for grant and donor coordination.'},
  {k:'fiscalSponsor', l:'Intermediary (Fiscal Sponsor)', cat:'Identity & Basic Info', desc:'Fiscal sponsor or intermediary name, if the org isn\'t a direct 501(c)(3) or local equivalent.'},
- {k:'orgType', l:'Org Type', cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based'], core:1, desc:'Organization model type.'},
- {k:'tier', l:'Tier', cat:'Identity & Basic Info', sel:['top','recommended','represented'], core:1, desc:'Factory for Good conviction tier: top pick, recommended, or represented.'},
- {k:'visibility', l:'Display on site', cat:'Identity & Basic Info', sel:['shown','hidden'], core:1, desc:'shown = appears in the library, globe, marquee, and briefs. hidden = tracked in Data Studio only, invisible to members until you flip it. New organizations start hidden.'},
- {k:'founded', l:'Start Date/Year', cat:'Identity & Basic Info', num:1, core:1, desc:'Year the org was founded.'},
+ {k:'orgType', l:'Org Type', pub:1, cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based'], core:1, desc:'Organization model type.'},
+ {k:'tier', l:'Tier', pub:1, cat:'Identity & Basic Info', sel:['top','recommended','represented'], core:1, desc:'Factory for Good conviction tier: top pick, recommended, or represented.'},
+ {k:'visibility', l:'Display on site', cat:'Identity & Basic Info', sel:['shown','hidden'], desc:'shown = appears in the library, globe, marquee, and briefs. hidden = tracked in Data Studio only, invisible to members until you flip it. New organizations start hidden.'},
+ {k:'founded', l:'Start Date/Year', pub:1, cat:'Identity & Basic Info', num:1, nocomma:1, core:1, desc:'Year the org was founded.'},
  {k:'yearsOp', l:'Years in Operation', cat:'Identity & Basic Info', ro:1, fx:o=>2026-(+o.founded||2026), desc:'Auto-calculated from Start Date/Year.'},
  // Classification & Focus
- {k:'causes', l:'Cause Categories', cat:'Classification & Focus', arr:1, core:1, desc:'Pipe/semicolon-separated cause categories (first = primary): '+'Global Health | Poverty & Livelihoods | Education | Agriculture & Food | Water & Sanitation | Climate & Environment | Animal Welfare | Mental Health | Rights & Justice | Humanitarian Relief'},
+ {k:'causes', l:'Cause Categories', pub:1, cat:'Classification & Focus', arr:1, core:1, desc:'Pipe/semicolon-separated cause categories (first = primary): '+'Global Health | Poverty & Livelihoods | Education | Agriculture & Food | Water & Sanitation | Climate & Environment | Animal Welfare | Mental Health | Rights & Justice | Humanitarian Relief'},
  {k:'sdgs', l:'SDGs', cat:'Classification & Focus', arr:1, desc:'UN Sustainable Development Goals the org\'s work maps to.'},
  {k:'demographicFocus', l:'Demographic Focus', cat:'Classification & Focus', desc:'Who the org serves (age, gender, income level, refugee status, etc).'},
- {k:'countries', l:'Countries of Operation', cat:'Classification & Focus', arr:1, core:1, desc:'All countries where the org runs programs.'},
+ {k:'countries', l:'Countries of Operation', pub:1, cat:'Classification & Focus', arr:1, core:1, desc:'All countries where the org runs programs.'},
  {k:'statesOfOperation', l:'States of Operation', cat:'Classification & Focus', arr:1, desc:'Subnational detail for orgs working in specific US states or equivalent regions.'},
- {k:'lat', l:'Service Lat', cat:'Classification & Focus', num:1, core:1, desc:'Latitude of primary geography of service (drives the globe pin).'},
- {k:'lng', l:'Service Lng', cat:'Classification & Focus', num:1, core:1, desc:'Longitude of primary geography of service (drives the globe pin).'},
+ {k:'lat', l:'Service Lat', pub:1, cat:'Classification & Focus', num:1, nocomma:1, core:1, desc:'Latitude of primary geography of service (drives the globe pin).'},
+ {k:'lng', l:'Service Lng', pub:1, cat:'Classification & Focus', num:1, nocomma:1, core:1, desc:'Longitude of primary geography of service (drives the globe pin).'},
  {k:'icp', l:'ICP (Ideal Contributor Profile)', cat:'Classification & Focus', desc:'Type of donor this org is the best fit for (2–4 sentences).'},
  // Intervention & Program
- {k:'interventionImage', l:'Intervention/Demographic Image', cat:'Intervention & Program', img:1, desc:'Photo representing the intervention or the population served. Click the camera to paste a URL or upload.'},
+ {k:'interventionImage', l:'Intervention/Demographic Image', pub:1, core:1, cat:'Intervention & Program', img:1, desc:'Photo representing the intervention or the population served. Click the camera to paste a URL or upload.'},
  {k:'interventionName', l:'Intervention Name', cat:'Intervention & Program', desc:'Short name (3–8 words) for the specific program being evaluated.'},
- {k:'interventionDescription', l:'Intervention Description', cat:'Intervention & Program', desc:'Description of the problem and the org\'s solution (2–3 sentences).'},
- {k:'outputUnit', l:'Primary Output Unit', cat:'Intervention & Program', core:1, desc:'The org\'s core countable output (nets distributed, meals served, classes taught).'},
+ {k:'interventionDescription', l:'Intervention Description', pub:1, core:1, cat:'Intervention & Program', desc:'Description of the problem and the org\'s solution (2–3 sentences).'},
+ {k:'outputUnit', l:'Primary Output Unit', pub:1, cat:'Intervention & Program', core:1, desc:'The org\'s core countable output (nets distributed, meals served, classes taught).'},
  {k:'outputsText', l:'Outputs (What & Count)', cat:'Intervention & Program', desc:'Direct products of activity (meals served, people trained, wells built), with counts.'},
  {k:'outcomesText', l:'Outcomes (What & Count)', cat:'Intervention & Program', desc:'Actual changes in beneficiaries\' lives resulting from those outputs, with counts.'},
- {k:'outcomesList', l:'Outcomes (Compact List)', cat:'Intervention & Program', arr:1, core:1, desc:'Lightweight outcomes list without counts, for compact card display.'},
- {k:'howImpactWorks', l:'How Your Impact Works', cat:'Intervention & Program', desc:'Timeline showing how a contribution converts step by step into impact.'},
+ {k:'outcomesList', l:'Outcomes (Compact List)', pub:1, cat:'Intervention & Program', arr:1, core:1, desc:'Lightweight outcomes list without counts, for compact card display.'},
+ {k:'howImpactWorks', l:'How Your Impact Works', pub:1, core:1, cat:'Intervention & Program', desc:'Timeline showing how a contribution converts step by step into impact.'},
  {k:'materialsLink', l:'Program Proposal/Materials', cat:'Intervention & Program', desc:'Org-provided supporting materials: proposals, decks, one-pagers.'},
  {k:'grantIntro', l:'Grant Intro', cat:'Intervention & Program', desc:'Standardized write-up used to introduce the org for a specific grant or referral.'},
- {k:'theoryOfChange', l:'Theory of Change', cat:'Intervention & Program', core:1, desc:'Narrative causal chain from funding to durable impact.'},
+ {k:'theoryOfChange', l:'Theory of Change', pub:1, cat:'Intervention & Program', core:1, desc:'Narrative causal chain from funding to durable impact.'},
  // Reach, Scale & Financials
- {k:'annualReach', l:'Annual Reach', cat:'Reach, Scale & Financials', num:1, core:1, desc:'Number of individuals reached in a given year.'},
+ {k:'annualReach', l:'Annual Reach', pub:1, cat:'Reach, Scale & Financials', num:1, core:1, desc:'Number of individuals reached in a given year.'},
  {k:'livesImpacted', l:'Lives Impacted', cat:'Reach, Scale & Financials', num:1, desc:'Headline number used in donor-facing materials for total people impacted.'},
- {k:'outcomeReachRate', l:'Outcome Reach Rate (%)', cat:'Reach, Scale & Financials', num:1, core:1, desc:'Percent (0–100) of beneficiaries reached who experience the intended outcome.'},
- {k:'annualSpend', l:'Annual Spend ($M)', cat:'Reach, Scale & Financials', num:1, desc:'Org\'s spend in the most recent year, on this program.'},
- {k:'budgetM', l:'Overall Org Budget ($M)', cat:'Reach, Scale & Financials', num:1, core:1, desc:'Total organization-wide budget, distinct from spend on this specific program.'},
+ {k:'outcomeReachRate', l:'Outcome Reach Rate (%)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'%', core:1, desc:'Percent (0–100) of beneficiaries reached who experience the intended outcome.'},
+ {k:'annualSpend', l:'Annual Spend ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Org\'s spend in the most recent year, on this program.'},
+ {k:'budgetM', l:'Overall Org Budget ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'Total organization-wide budget, distinct from spend on this specific program.'},
  {k:'budgetTier', l:'Budget Tier', cat:'Reach, Scale & Financials', ro:1, fx:o=>{const b=+o.budgetM||0;return b<1?'<$1M':b<5?'$1–5M':b<25?'$5–25M':'$25M+';}, desc:'Bucketed budget range for filtering. Auto-derived from Overall Org Budget.'},
- {k:'revenueOffset', l:'Revenue Offset ($M)', cat:'Reach, Scale & Financials', num:1, desc:'Non-donation revenue that offsets program cost (fees, government contracts, etc).'},
- {k:'commercialRevenue', l:'Commercial Revenue ($M)', cat:'Reach, Scale & Financials', num:1, desc:'Org\'s own earned or commercial revenue, distinct from grants and donations.'},
- {k:'absorbencyM', l:'Absorbency ($M)', cat:'Reach, Scale & Financials', num:1, core:1, desc:'How much additional funding the org can productively absorb without diminishing returns.'},
- {k:'growthCurve', l:'Scale Type', cat:'Reach, Scale & Financials', sel:['Flat','Linear','Scalable'], core:1, desc:'Shape of the org\'s growth curve.'},
+ {k:'revenueOffset', l:'Revenue Offset ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Non-donation revenue that offsets program cost (fees, government contracts, etc).'},
+ {k:'commercialRevenue', l:'Commercial Revenue ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Org\'s own earned or commercial revenue, distinct from grants and donations.'},
+ {k:'absorbencyM', l:'Absorbency ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'How much additional funding the org can productively absorb without diminishing returns.'},
+ {k:'growthCurve', l:'Scale Type', pub:1, cat:'Reach, Scale & Financials', sel:['Flat','Linear','Scalable'], core:1, desc:'Shape of the org\'s growth curve.'},
  {k:'scalePosition', l:'Scale Position (1–10)', cat:'Reach, Scale & Financials', num:1, desc:'Where the org sits on its growth curve.'},
- {k:'stage', l:'Stage', cat:'Reach, Scale & Financials', sel:['Pilot','Growth','Scale'], core:1, desc:'Lifecycle stage: pilot, growth, or scale.'},
- {k:'teamSize', l:'Team Size', cat:'Reach, Scale & Financials', num:1, desc:'Approximate staff count.'},
- {k:'potentialForScale', l:'Potential for Scale', cat:'Reach, Scale & Financials', sel:RATE5, desc:'Rating of scalability. Pairs with Assessment of Growth/Scalability and Fit.'},
+ {k:'stage', l:'Stage', pub:1, cat:'Reach, Scale & Financials', sel:['Pilot','Growth','Scale'], core:1, desc:'Lifecycle stage: pilot, growth, or scale.'},
+ {k:'teamSize', l:'Team Size', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, desc:'Approximate staff count.'},
+ {k:'potentialForScale', l:'Potential for Scale', pub:1, core:1, cat:'Reach, Scale & Financials', sel:RATE5, desc:'Rating of scalability. Pairs with Assessment of Growth/Scalability and Fit.'},
  {k:'payerAtScaleInterest', l:'Payer-at-Scale Interest', cat:'Reach, Scale & Financials', desc:'Degree of interest from institutional payers (governments, insurers, multilaterals).'},
  {k:'governmentAdoption', l:'Government Adoption', cat:'Reach, Scale & Financials', desc:'Whether and how much government has adopted or funded the approach.'},
  {k:'franchiseReplication', l:'Franchise/Replication by Other NGOs', cat:'Reach, Scale & Financials', desc:'Whether other organizations have successfully replicated or franchised the model.'},
  // Impact Measurement & Cost-Effectiveness
- {k:'sufferMin', l:'Suffering Min (1–10)', cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state before the intervention (1 = acute suffering).'},
- {k:'flourishMax', l:'Flourishing Max (1–10)', cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state after the intervention (10 = full flourishing).'},
+ {k:'sufferMin', l:'Suffering Min (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state before the intervention (1 = acute suffering).'},
+ {k:'flourishMax', l:'Flourishing Max (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state after the intervention (10 = full flourishing).'},
  {k:'depthOfIntervention', l:'Depth of Intervention (1–10)', cat:'Impact & Cost-Effectiveness', num:1, desc:'Depth of the outcome (1 = minor/singular … 10 = major/life-altering).'},
  {k:'impactLongevity', l:'Impact Longevity (1–10)', cat:'Impact & Cost-Effectiveness', num:1, desc:'Duration of outcomes (1 = under 6 months … 10 = permanent/lifelong).'},
- {k:'innovativeness', l:'Innovativeness (1–5)', cat:'Impact & Cost-Effectiveness', num:1, desc:'How novel the approach is relative to standard practice.'},
- {k:'abstraction', l:'Abstraction (1–5)', cat:'Impact & Cost-Effectiveness', num:1, desc:'How direct vs. diffuse the causal chain from funding to impact is (1 = tangible/direct, 5 = systemic/inferential).'},
- {k:'costPerOutcome', l:'Cost per Outcome ($)', cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Average dollar cost per outcome delivered.'},
- {k:'costPerOutput', l:'Cost per Output ($)', cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Dollar cost per output unit (net distributed, meal served), where applicable.'},
+ {k:'innovativeness', l:'Innovativeness (1–5)', pub:1, core:1, cat:'Impact & Cost-Effectiveness', num:1, desc:'How novel the approach is relative to standard practice.'},
+ {k:'abstraction', l:'Abstraction (1–5)', pub:1, core:1, cat:'Impact & Cost-Effectiveness', num:1, desc:'How direct vs. diffuse the causal chain from funding to impact is (1 = tangible/direct, 5 = systemic/inferential).'},
+ {k:'costPerOutcome', l:'Cost per Outcome ($)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, unit:'$', core:1, desc:'Average dollar cost per outcome delivered.'},
+ {k:'costPerOutput', l:'Cost per Output ($)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, unit:'$', core:1, desc:'Dollar cost per output unit (net distributed, meal served), where applicable.'},
  {k:'costCalcExplanation', l:'Cost per Outcome Calculation & Explanation', cat:'Impact & Cost-Effectiveness', desc:'The math and assumptions behind the cost per outcome figure.'},
  {k:'estCostEffectiveness', l:'Estimated Cost-Effectiveness', cat:'Impact & Cost-Effectiveness', desc:'General slot for the fitting metric ($/DALY, $/life, $/animal reached) when Cost per Outcome doesn\'t map cleanly.'},
  // Evaluation, Evidence & Assessment
- {k:'confidence', l:'Confidence in Org\'s Outcomes', cat:'Evaluation & Evidence', sel:['High','Moderate','Emerging'], core:1, desc:'Confidence that stated outcomes are real and attributable.'},
- {k:'vettingStatus', l:'Vetting/Evaluation Status', cat:'Evaluation & Evidence', sel:['Fully vetted','Vetted','In pipeline','Not started'], desc:'Where the org sits in the diligence pipeline.'},
+ {k:'confidence', l:'Confidence in Org\'s Outcomes', pub:1, cat:'Evaluation & Evidence', sel:['High','Moderate','Emerging'], core:1, desc:'Confidence that stated outcomes are real and attributable.'},
+ {k:'vettingStatus', l:'Vetting/Evaluation Status', pub:1, core:1, cat:'Evaluation & Evidence', sel:['Fully vetted','Vetted','In pipeline','Not started'], desc:'Where the org sits in the diligence pipeline.'},
  {k:'overallRating', l:'Overall Rating', cat:'Evaluation & Evidence', sel:RATE5, desc:'Single top-line rating summarizing the org\'s evaluation.'},
- {k:'ceRating', l:'Cost Effectiveness Rating', cat:'Evaluation & Evidence', sel:RATE5, desc:'Score specifically for cost effectiveness, separate from the raw Cost per Outcome number.'},
+ {k:'ceRating', l:'Cost Effectiveness Rating', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'Score specifically for cost effectiveness, separate from the raw Cost per Outcome number.'},
  {k:'ceRationale', l:'Cost Effectiveness Rationale', cat:'Evaluation & Evidence', desc:'Written explanation behind the cost effectiveness rating.'},
- {k:'interventionEvidenceQuality', l:'Intervention Evidence Quality', cat:'Evaluation & Evidence', sel:RATE5, desc:'Strength of the evidence base for this type of intervention generally.'},
- {k:'orgEvidenceQuality', l:'Organization Evidence Quality', cat:'Evaluation & Evidence', sel:RATE5, desc:'Strength of the evidence specifically for this org\'s execution and results.'},
- {k:'whyWeLike', l:'Why We Like This Intervention/Org', cat:'Evaluation & Evidence', desc:'Summary rationale for why this org made the cut.'},
+ {k:'interventionEvidenceQuality', l:'Intervention Evidence Quality', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'Strength of the evidence base for this type of intervention generally.'},
+ {k:'orgEvidenceQuality', l:'Organization Evidence Quality', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'Strength of the evidence specifically for this org\'s execution and results.'},
+ {k:'whyWeLike', l:'Why We Like This Intervention/Org', pub:1, core:1, cat:'Evaluation & Evidence', desc:'Summary rationale for why this org made the cut.'},
  {k:'assessmentProblem', l:'Assessment of Problem', cat:'Evaluation & Evidence', desc:'Narrative evaluation of the problem being addressed.'},
  {k:'assessmentTeam', l:'Assessment of Team & Leadership', cat:'Evaluation & Evidence', desc:'Narrative evaluation of the org\'s leadership and team quality.'},
  {k:'assessmentTrackRecord', l:'Assessment of Track Record & Approach', cat:'Evaluation & Evidence', desc:'Narrative evaluation of past performance and methodology.'},
  {k:'assessmentGrowth', l:'Assessment of Growth/Scalability & Fit', cat:'Evaluation & Evidence', desc:'Narrative evaluation of scalability and strategic fit.'},
  {k:'assessmentCE', l:'Assessment of Cost Effectiveness & Leverage', cat:'Evaluation & Evidence', desc:'Narrative evaluation of cost effectiveness and funding leverage.'},
- {k:'importance', l:'Importance', cat:'Evaluation & Evidence', sel:RATE5, desc:'How large and severe the problem is.'},
- {k:'tractability', l:'Tractability', cat:'Evaluation & Evidence', sel:RATE5, desc:'How solvable the problem is with more resources.'},
- {k:'neglectedness', l:'Neglectedness', cat:'Evaluation & Evidence', sel:RATE5, desc:'How overlooked the problem or approach is relative to its scale.'},
- {k:'contextNotes', l:'Context', cat:'Evaluation & Evidence', desc:'Background and situational factors relevant to interpreting the org\'s work.'},
+ {k:'teamRating', l:'Team & Leadership Rating', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'Star rating for leadership and team quality, shown in the Factory for Good assessment on the brief. Until set, the brief shows a provisional placeholder.'},
+ {k:'importance', l:'Importance', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'How large and severe the problem is.'},
+ {k:'tractability', l:'Tractability', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'How solvable the problem is with more resources.'},
+ {k:'neglectedness', l:'Neglectedness', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'How overlooked the problem or approach is relative to its scale.'},
+ {k:'contextNotes', l:'Context', pub:1, core:1, cat:'Evaluation & Evidence', desc:'Background and situational factors relevant to interpreting the org\'s work.'},
  {k:'evidenceRating', l:'Evidence', cat:'Evaluation & Evidence', sel:RATE5, desc:'General evidence-base rating for the case as a whole.'},
  // Funding Status & Gap
- {k:'cashRaised', l:'Cash Raised ($)', cat:'Funding Status & Gap', num:1, desc:'Amount raised so far toward the org\'s 3-year budget.'},
- {k:'cashNeeded', l:'Cash Needed ($)', cat:'Funding Status & Gap', num:1, desc:'Total 3-year budget requirement.'},
- {k:'remainingGap', l:'Best Guess Remaining Gap ($)', cat:'Funding Status & Gap', ro:1, fx:o=>Math.max(0,(+o.cashNeeded||0)-(+o.cashRaised||0)).toLocaleString(), desc:'Auto-calculated: Cash Needed − Cash Raised.'},
- {k:'overallFundingGap', l:'Overall Funding Gap ($)', cat:'Funding Status & Gap', num:1, desc:'Total funding gap figure, if different in scope from Best Guess Remaining Gap.'},
- {k:'raisedM', l:'Raised — Current Goal ($M)', cat:'Funding Status & Gap', num:1, core:1, desc:'Raised toward the current fundraise goal shown on the brief.'},
- {k:'goalM', l:'Current Goal ($M)', cat:'Funding Status & Gap', num:1, core:1, desc:'Current fundraise goal shown on the brief.'},
- {k:'timePeriod', l:'Time Period Covered', cat:'Funding Status & Gap', desc:'Time window the budget and funding gap figures apply to.'},
+ {k:'cashRaised', l:'Cash Raised ($)', cat:'Funding Status & Gap', num:1, unit:'$', desc:'Amount raised so far toward the org\'s 3-year budget.'},
+ {k:'cashNeeded', l:'Cash Needed ($)', cat:'Funding Status & Gap', num:1, unit:'$', desc:'Total 3-year budget requirement.'},
+ {k:'remainingGap', l:'Best Guess Remaining Gap ($)', cat:'Funding Status & Gap', ro:1, fx:o=>'$'+Math.max(0,(+o.cashNeeded||0)-(+o.cashRaised||0)).toLocaleString(), desc:'Auto-calculated: Cash Needed − Cash Raised.'},
+ {k:'overallFundingGap', l:'Overall Funding Gap ($)', cat:'Funding Status & Gap', num:1, unit:'$', desc:'Total funding gap figure, if different in scope from Best Guess Remaining Gap.'},
+ {k:'raisedM', l:'Raised — Current Goal ($)', pub:1, cat:'Funding Status & Gap', num:1, unit:'$', mult:1e6, core:1, desc:'Raised toward the current fundraise goal shown on the brief.'},
+ {k:'goalM', l:'Current Goal ($)', pub:1, cat:'Funding Status & Gap', num:1, unit:'$', mult:1e6, core:1, desc:'Current fundraise goal shown on the brief.'},
+ {k:'timePeriod', l:'Time Period Covered', pub:1, core:1, cat:'Funding Status & Gap', desc:'Time window the budget and funding gap figures apply to.'},
  // Links, Materials & Metadata
- {k:'website', l:'Website Link', cat:'Links & Metadata', core:1, desc:'Org\'s website.'},
- {k:'dataRoomLink', l:'Data Room Link', cat:'Links & Metadata', desc:'Link to the org\'s due diligence data room.'},
+ {k:'website', l:'Website Link', pub:1, cat:'Links & Metadata', core:1, desc:'Org\'s website.'},
+ {k:'dataRoomLink', l:'Data Room Link', pub:1, core:1, cat:'Links & Metadata', desc:'Link to the org\'s due diligence data room.'},
  {k:'costCalcLink', l:'Link to Cost per Calculation', cat:'Links & Metadata', desc:'Link to the underlying cost-per-outcome workbook or calculation.'},
  {k:'assessmentLink', l:'Assessment Link', cat:'Links & Metadata', desc:'Link to the full internal assessment document.'},
- {k:'givesparkLink', l:'GiveSpark Link', cat:'Links & Metadata', desc:'Link to the org\'s listing on GiveSpark, if applicable.'},
+ {k:'givesparkLink', l:'GiveSpark Link', pub:1, core:1, cat:'Links & Metadata', desc:'Link to the org\'s listing on GiveSpark, if applicable.'},
  {k:'recommendationLink', l:'Recommendation Link', cat:'Links & Metadata', desc:'Link to a formal external recommendation or reference for the org.'},
  {k:'videoLink', l:'Video Link', cat:'Links & Metadata', desc:'Link to a video about the org or intervention.'},
  {k:'lastUpdated', l:'Last Updated', cat:'Links & Metadata', desc:'Date this record was last refreshed (YYYY-MM-DD).'},
- {k:'sources', l:'Supported By (Funders/Evaluators)', cat:'Links & Metadata', arr:1, core:1, desc:'Evaluators and funders that approve of the org. Semicolon-separated; shown as tiles on the brief.'},
- {k:'orgNotes', l:'Org Notes (Provided by Org)', cat:'Links & Metadata', desc:'Freeform notes provided directly by the org.'},
+ {k:'sources', l:'Supported By (Funders/Evaluators)', pub:1, cat:'Links & Metadata', arr:1, core:1, desc:'Evaluators and funders that approve of the org. Semicolon-separated; shown as tiles on the brief.'},
+ {k:'orgNotes', l:'Org Notes (Provided by Org)', pub:1, core:1, cat:'Links & Metadata', desc:'Freeform notes provided directly by the org.'},
 ];
 const ED_CATS = ['Core', ...[...new Set(FIELDS.map(f=>f.cat))], 'All fields'];
 const edState = {q:'', tier:'', group:'Core'};
@@ -1438,8 +1512,156 @@ function activeCols(){
 }
 
 /* ---- comments (threaded, resolvable) & notes (lightweight cell annotations) ---- */
-const NOTES = [];            // comments
+const NOTES = [];            // comments (org cells AND donor profiles; may carry @mentions)
 const CELLNOTES = {};        // notes: `${orgId}:${k}` -> text
+
+/* ---- team @mentions ---- */
+function teamMembers(){
+  const out = new Set();
+  try{ (DB.donors||[]).filter(d=>d.role==='staff' && d.fullName).forEach(d=>out.add(d.fullName)); }catch(e){}
+  if (window.APP && APP.profile && APP.profile.full_name) out.add(APP.profile.full_name);
+  if (!out.size) ['Conner Simmons','Truman Wells','Sam Staff'].forEach(n=>out.add(n));
+  return ['FFG Team', ...out];   // @FFG Team reaches everyone
+}
+function extractMentions(text){
+  return teamMembers().filter(n=>{
+    const first = n.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    return text.includes('@'+n) || new RegExp('@'+first+'(\\b|$)','i').test(text);
+  });
+}
+function mentionHTML(text){
+  let h = esc(text);
+  teamMembers().forEach(n=>{
+    const safe = n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const first = n.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    h = h.replace(new RegExp('@('+safe+'|'+first+')','gi'), '<span class="mention">@$1</span>');
+  });
+  return h;
+}
+function mentionChipsHTML(target){
+  return `<div class="tagrow"><span class="muted" style="font-size:10.5px">Tag:</span>${teamMembers().map(n=>
+    `<button class="tag-chip" onclick="const t=document.querySelector('${target}');t.value=(t.value?t.value.replace(/\\s*$/,' '):'')+'@${esc(n)} ';t.focus()">@${esc(n.split(' ')[0])}</button>`).join('')}</div>`;
+}
+window._cmWho = '';
+
+/* ---- org review workflow: invite submission → review queue → reviewed ---- */
+const WFLOG = [];   // action history: {kind:'submission'|'request'|'review', orgId, orgName, by, date}
+function wfMe(){ return (window.APP && APP.profile && APP.profile.full_name) || MEMBER.fullName || 'Staff'; }
+function initialsOf(n){ return String(n||'?').trim().split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,3); }
+function wfLog(kind, o){
+  const ev = {kind, orgId:o.id, orgName:o.name, by:wfMe(), date:new Date().toISOString().slice(0,10)};
+  WFLOG.unshift(ev);
+  if (window.PERSIST && PERSIST.wfEvent) PERSIST.wfEvent(ev);
+  return ev;
+}
+function wfRetract(kind, o){
+  // withdrawing an unfulfilled request removes it from every tally
+  const i = WFLOG.findIndex(e=>e.kind===kind && e.orgId===o.id);
+  if (i>=0){
+    const [ev] = WFLOG.splice(i,1);
+    if (ev.dbId && window.PERSIST && PERSIST.wfEventDelete) PERSIST.wfEventDelete(ev.dbId);
+    else ev._retracted = true;   // save round-trip still in flight — deleted as soon as its id arrives
+  }
+}
+window.wfAction = function(orgId, kind){
+  const o = byId(orgId); if (!o) return;
+  const me = wfMe(), date = new Date().toISOString().slice(0,10);
+  const wf = o.workflow = Object.assign({}, o.workflow);
+  if (kind==='sub'){
+    if (wf.sub){ delete wf.sub; wfRetract('submission', o); flash('Submission invite withdrawn — removed from the tallies'); }
+    else { wf.sub = {by:me, date}; wfLog('submission', o); flash('Submission of org data invited — '+o.name); }
+  }
+  if (kind==='req'){
+    if (wf.req){ delete wf.req; wfRetract('request', o); flash(o.name+' removed from the review queue — request not counted'); }
+    else {
+      wf.req = {by:me, date}; wfLog('request', o);
+      if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; flash(o.name+': submission fulfilled → review queued'); }
+      else flash(o.name+' added to the review queue');
+    }
+  }
+  if (kind==='done'){
+    wf.done = {by:me, date};
+    if (wf.req){ wf.reqDone = wf.req; delete wf.req; }   // fulfilled — keeps counting, remembered for the hover
+    if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; }   // a review also fulfills an open submission invite
+    wfLog('review', o); flash(o.name+' marked reviewed');
+  }
+  if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o, 'workflow', o.workflow) : PERSIST.org(o); }
+  updateNoteCnt(); renderEdRows();
+  if ($('#notesDrawer').classList.contains('show')) renderNotesPanel();
+};
+function wfDaysOld(d){ try{ return Math.floor((Date.now() - new Date(d+'T00:00:00').getTime())/864e5); }catch(e){ return 0; } }
+function wfLate(o){
+  const wf = o.workflow || {};
+  return (wf.sub && wfDaysOld(wf.sub.date)>=6) || (wf.req && wfDaysOld(wf.req.date)>=6);
+}
+function wfTipHTML(o){
+  const wf = o.workflow || {};
+  const row = (label, e, late)=> e ? `<div style="display:flex;justify-content:space-between;gap:14px"><span style="color:var(--ink-3)">${label}</span><b ${late?'style="color:#C0392B"':''}>${initialsOf(e.by)} · ${e.date}${late?' · '+wfDaysOld(e.date)+'d waiting':''}</b></div>` : '';
+  const body = [
+    row('Submission invited', wf.sub || wf.subDone, wf.sub && wfDaysOld(wf.sub.date)>=6),
+    row('Review requested', wf.req || wf.reqDone, wf.req && wfDaysOld(wf.req.date)>=6),
+    row('Reviewed', wf.done),
+  ].filter(Boolean).join('');
+  return `<div style="min-width:220px"><b>${esc(o.name)} — workflow</b><div style="margin-top:5px;display:flex;flex-direction:column;gap:3px;font-size:12px">${body || '<span style="color:var(--ink-3)">No workflow activity yet.</span>'}</div></div>`;
+}
+window.wfTip = function(ev, orgId){ const o = byId(orgId); if (o) showTip(wfTipHTML(o), ev.clientX, ev.clientY); };
+function wfWeekStart(){ const d = new Date(); const day = (d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
+function wfMonthStart(){ return new Date().toISOString().slice(0,8)+'01'; }
+
+/* ---- comment composer helpers: @typeahead (Tab completes) + Ctrl/Cmd+Enter submits ---- */
+function wireComposer(ta, submitSel, withMentions=true){
+  if (!ta) return;
+  let ac = null, matches = [], hi = 0;
+  const closeAc = ()=>{ ac?.remove(); ac = null; matches = []; };
+  const currentToken = ()=>{
+    const upto = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
+    const m = upto.match(/@([A-Za-z][A-Za-z ]*)?$/);
+    return m ? {typed:(m[1]||''), start: upto.length-(m[0].length)} : null;
+  };
+  const complete = (name)=>{
+    const tok = currentToken(); if (!tok) return;
+    const tail = ta.value.slice(ta.selectionStart ?? ta.value.length);
+    ta.value = ta.value.slice(0, tok.start) + '@' + name + ' ' + tail;
+    const pos = tok.start + name.length + 2;
+    ta.setSelectionRange(pos, pos);
+    closeAc(); ta.dispatchEvent(new Event('input'));
+  };
+  const paint = ()=>{
+    if (!matches.length){ closeAc(); return; }
+    if (!ac){
+      ac = document.createElement('div'); ac.className = 'ac-pop';
+      document.body.appendChild(ac);
+    }
+    const r = ta.getBoundingClientRect();
+    ac.style.left = r.left+'px'; ac.style.top = (r.bottom+4)+'px'; ac.style.minWidth = Math.min(r.width,260)+'px';
+    ac.innerHTML = matches.map((n,i)=>`<div class="ac-i ${i===hi?'hi':''}" data-n="${esc(n)}">@${esc(n)}${i===hi?'<span class="k">Tab</span>':''}</div>`).join('');
+    ac.querySelectorAll('.ac-i').forEach(el=>el.addEventListener('mousedown', e=>{ e.preventDefault(); complete(el.dataset.n); }));
+  };
+  if (withMentions){
+    ta.addEventListener('input', ()=>{
+      const tok = currentToken();
+      if (!tok){ closeAc(); return; }
+      const t = tok.typed.toLowerCase();
+      matches = teamMembers().filter(n=>{
+        if (!t) return true;
+        return n.toLowerCase().startsWith(t) || n.split(' ').some(w=>w.toLowerCase().startsWith(t));
+      }).slice(0,6);
+      hi = 0; paint();
+    });
+    ta.addEventListener('blur', ()=>setTimeout(closeAc, 150));
+  }
+  ta.addEventListener('keydown', e=>{
+    if ((e.ctrlKey || e.metaKey) && e.key==='Enter'){
+      e.preventDefault(); closeAc(); document.querySelector(submitSel)?.click(); return;
+    }
+    if (!withMentions || !matches.length) return;
+    if (e.key==='Tab' || e.key==='Enter'){ e.preventDefault(); complete(matches[hi]); }
+    else if (e.key==='ArrowDown'){ e.preventDefault(); hi = (hi+1)%matches.length; paint(); }
+    else if (e.key==='ArrowUp'){ e.preventDefault(); hi = (hi-1+matches.length)%matches.length; paint(); }
+    else if (e.key==='Escape'){ closeAc(); }
+  });
+}
+window.wireComposer = wireComposer;
 let noteSeq = 1;
 const noteFor = (orgId,k) => NOTES.find(n=>n.orgId===orgId && n.k===k && !n.resolved);
 const cellNoteKey = (orgId,k) => orgId+':'+k;
@@ -1447,6 +1669,8 @@ let drTab = 'comments';
 function updateNoteCnt(){
   const c = NOTES.filter(x=>!x.resolved).length;
   const n = Object.keys(CELLNOTES).length;
+  const rq = ORGS.filter(o=>o.workflow && o.workflow.req).length;
+  const rEl = $('#edRevCnt'); if (rEl) rEl.textContent = rq ? '('+rq+')' : '';
   $('#edNoteCnt').textContent = (c||n)?`· ${c}${n?' + '+n+'📝':''}`:'';
 }
 /* context menu (google-sheets style: comment vs note) */
@@ -1486,6 +1710,7 @@ function openCellNotePop(td, orgId, k, x, y){
     updateNoteCnt(); renderNotesPanel();
     pop.style.display='none';
   });
+  wireComposer(pop.querySelector('#cnTxt'), '#cnSave', false);   // Ctrl/Cmd+Enter saves the note
   pop.querySelector('#cnTxt').focus();
 }
 function openNotePop(td, orgId, k, x, y){
@@ -1493,10 +1718,11 @@ function openNotePop(td, orgId, k, x, y){
   const existing = NOTES.filter(n=>n.orgId===orgId && n.k===k && !n.resolved);
   const o = byId(orgId), col = FIELDS.find(f=>f.k===k);
   pop.innerHTML = `<div class="kicker">${esc(o?.name||'')} · ${esc(col?.l||k)}</div>
-    ${existing.map(n=>`<div style="font-size:12.5px;color:var(--ink-2);padding:7px 0;border-bottom:1px solid var(--hairline)">${esc(n.text)}
+    ${existing.map(n=>`<div style="font-size:12.5px;color:var(--ink-2);padding:7px 0;border-bottom:1px solid var(--hairline)">${mentionHTML(n.text)}
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:3px"><span>${esc(n.author)}</span>
       <span class="res" style="color:var(--good);cursor:pointer" onclick="resolveNote(${n.id})">✓ Resolve</span></div></div>`).join('')}
-    <textarea id="noteTxt" placeholder="Leave a comment for the team…"></textarea>
+    <textarea id="noteTxt" placeholder="Leave a comment for the team… use @ to tag a teammate"></textarea>
+    ${mentionChipsHTML('#noteTxt')}
     <div class="acts"><button class="btn" onclick="$('#notePop').style.display='none'">Cancel</button>
     <button class="btn primary" id="noteSave">Comment</button></div>`;
   pop.style.display='block';
@@ -1505,12 +1731,13 @@ function openNotePop(td, orgId, k, x, y){
   pop.querySelector('#noteSave').addEventListener('click', ()=>{
     const t = pop.querySelector('#noteTxt').value.trim();
     if (t){
-      const nn = {id:noteSeq++, orgId, k, text:t, author:MEMBER.fullName, resolved:false};
+      const nn = {id:noteSeq++, orgId, k, text:t, author:MEMBER.fullName, resolved:false, mentions:extractMentions(t)};
       NOTES.push(nn); window.PERSIST&&PERSIST.comment(nn);
       td.classList.add('has-note'); updateNoteCnt(); renderNotesPanel(); flash('Comment added');
     }
     pop.style.display='none';
   });
+  wireComposer(pop.querySelector('#noteTxt'), '#noteSave');
   pop.querySelector('#noteTxt').focus();
 }
 function resolveNote(id){
@@ -1527,14 +1754,81 @@ function renderNotesPanel(){
   $('#notesSub').textContent = `${open.length} open comment${open.length===1?'':'s'} · ${noteKeys.length} note${noteKeys.length===1?'':'s'} · click to jump to the cell`;
   $$('#drTabs button').forEach(b=>b.classList.toggle('active', b.dataset.drtab===drTab));
   if (drTab==='comments'){
-    $('#notesBody').innerHTML = open.length ? open.map(n=>{
-      const o = byId(n.orgId), col = FIELDS.find(f=>f.k===n.k);
-      return `<div class="note-item" onclick="jumpToCell(${n.orgId},'${n.k}')">
-        <div class="f">${esc(o?.name||'?')} · <span style="color:var(--gold-2)">${esc(col?.l||n.k)}</span></div>
-        <div class="txt">${esc(n.text)}</div>
+    const who = window._cmWho || '';
+    const shown = who ? open.filter(n=>(n.mentions||[]).includes(who)) : open;
+    const filterBar = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="muted" style="font-size:11px">Tagged:</span>
+      <select style="background:var(--surface);border:1px solid var(--divider,var(--hairline));border-radius:8px;padding:5px 9px;font-size:12px;font-family:inherit;color:var(--ink)"
+        onchange="window._cmWho=this.value;renderNotesPanel()">
+        <option value="">All team members</option>
+        ${teamMembers().map(n=>`<option value="${esc(n)}" ${who===n?'selected':''}>@${esc(n)}</option>`).join('')}
+      </select>${who?`<span class="muted" style="font-size:11px">${shown.length} of ${open.length}</span>`:''}</div>`;
+    $('#notesBody').innerHTML = filterBar + (shown.length ? shown.map(n=>{
+      const col = FIELDS.find(f=>f.k===n.k);
+      const donorName = n.donorId ? (n.donorName || (window.donorList&&donorList().find(d=>d.id===n.donorId)?.fullName) || 'Member profile') : null;
+      const title = donorName
+        ? `${esc(donorName)} · <span style="color:var(--gold-2)">Donor studio</span>`
+        : `${esc(byId(n.orgId)?.name||'?')} · <span style="color:var(--gold-2)">${esc(col?.l||n.k)}</span>`;
+      const jump = donorName ? `closeDrawers();go('#/donors')` : `jumpToCell(${n.orgId},'${n.k}')`;
+      return `<div class="note-item" onclick="${jump}">
+        <div class="f">${title}</div>
+        <div class="txt">${mentionHTML(n.text)}</div>
         <div class="m"><span>${esc(n.author)}</span><span class="res" onclick="event.stopPropagation();resolveNote(${n.id})">✓ Resolve</span></div>
       </div>`;}).join('')
-      : '<div class="muted" style="padding:26px 4px;font-size:13px">No open comments. Right-click any cell and choose 💬 Add comment.</div>';
+      : `<div class="muted" style="padding:26px 4px;font-size:13px">${who?'No open comments tag @'+esc(who)+'.':'No open comments. Right-click any cell (or use 💬 in the Donor studio) to add one.'}</div>`);
+  } else if (drTab==='reviews'){
+    const queue = ORGS.filter(o=>o.workflow && o.workflow.req);
+    const subQueue = ORGS.filter(o=>o.workflow && o.workflow.sub);
+    const late = [...queue.filter(o=>wfDaysOld(o.workflow.req.date)>=6).map(o=>({o, kind:'review', e:o.workflow.req})),
+                  ...subQueue.filter(o=>wfDaysOld(o.workflow.sub.date)>=6).map(o=>({o, kind:'submission', e:o.workflow.sub}))];
+    const week = wfWeekStart(), month = wfMonthStart();
+    const people = {};
+    WFLOG.forEach(ev=>{
+      const p = people[ev.by] = people[ev.by] || {submission:[0,0,0], request:[0,0,0], review:[0,0,0]};
+      const bucket = p[ev.kind]; if (!bucket) return;
+      bucket[2]++; if (ev.date>=month) bucket[1]++; if (ev.date>=week) bucket[0]++;
+    });
+    const cell = a=>`<span class="num">${a[0]}</span> / <span class="num">${a[1]}</span> / <span class="num">${a[2]}</span>`;
+    $('#notesBody').innerHTML = `
+      ${late.length ? `<div style="border:2px solid #C0392B;border-radius:11px;padding:10px 13px;margin-bottom:14px;background:rgba(192,57,43,.05)">
+        <div class="kicker" style="color:#C0392B;font-weight:700;margin-bottom:6px">⚠ Late — waiting 6+ calendar days</div>
+        ${late.map(({o,kind,e})=>`<div class="note-item" style="border-color:rgba(192,57,43,.25)" onclick="jumpToCell(${o.id},'name')">
+          <div class="f" style="color:#C0392B">${esc(o.name)} <span class="pill" style="margin-left:6px;border-color:#C0392B;color:#C0392B">${kind==='review'?'awaiting review':'awaiting submission'} · ${wfDaysOld(e.date)}d</span></div>
+          <div class="m"><span>${kind==='review'?'requested':'invited'} by ${initialsOf(e.by)} · ${e.date}</span>
+          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'${kind==='review'?'done':'req'}')">${kind==='review'?'✓ Mark reviewed':'⏳ Move to review'}</span></div>
+        </div>`).join('')}</div>` : ''}
+      <div class="kicker" style="margin-bottom:8px">Review queue · ${queue.length}</div>
+      <div style="max-height:190px;overflow:auto">${queue.length ? queue.map(o=>`<div class="note-item" onclick="jumpToCell(${o.id},'name')">
+          <div class="f">${esc(o.name)} <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
+          <div class="m"><span>requested by ${initialsOf(o.workflow.req.by)} · ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}</span>
+          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span></div>
+        </div>`).join('')
+        : '<div class="muted" style="font-size:12.5px;padding:8px 4px 14px">Nothing waiting for review. Click ⏳ on any row to queue it.</div>'}</div>
+      <div class="hr"></div>
+      <div class="kicker" style="margin-bottom:8px">Submission requests · ${subQueue.length}</div>
+      <div style="max-height:170px;overflow:auto">${subQueue.length ? subQueue.map(o=>`<div class="note-item" onclick="jumpToCell(${o.id},'name')">
+          <div class="f">${esc(o.name)} <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
+          <div class="m"><span>invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago</span>
+          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'req')">⏳ Fulfil → request review</span></div>
+        </div>`).join('')
+        : '<div class="muted" style="font-size:12.5px;padding:8px 4px 14px">No open submission invites. Use the checkbox on any row to invite org data.</div>'}</div>
+      <div class="hr"></div>
+      <div class="kicker" style="margin-bottom:6px">Team activity · week / month / all-time</div>
+      ${Object.keys(people).length ? `<table style="width:100%;font-size:11.5px;border-collapse:collapse">
+        <tr style="color:var(--ink-3);text-align:left"><th style="font-weight:500;padding:3px 0">Person</th><th style="font-weight:500">Submissions</th><th style="font-weight:500">Review req.</th><th style="font-weight:500">Reviews</th></tr>
+        ${Object.entries(people).map(([name,p])=>`<tr style="border-top:1px solid var(--hairline)">
+          <td style="padding:5px 0"><b>${initialsOf(name)}</b> <span class="muted">${esc(name)}</span></td>
+          <td>${cell(p.submission)}</td><td>${cell(p.request)}</td><td>${cell(p.review)}</td></tr>`).join('')}
+      </table>` : '<div class="muted" style="font-size:12px">No workflow activity recorded yet.</div>'}
+      <div class="hr"></div>
+      <div class="kicker" style="margin-bottom:6px">History</div>
+      <div style="max-height:220px;overflow:auto">${WFLOG.length ? WFLOG.map(ev=>`
+        <div style="display:flex;gap:9px;align-items:baseline;font-size:12px;padding:5px 0;border-bottom:1px solid var(--hairline)">
+          <span class="num" style="color:var(--ink-3);flex:none">${ev.date}</span>
+          <b style="flex:none">${initialsOf(ev.by)}</b>
+          <span style="color:var(--ink-2)">${ev.kind==='submission'?'invited submission':ev.kind==='request'?'requested review':'reviewed'}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.orgName||'')}</span>
+        </div>`).join('') : '<div class="muted" style="font-size:12px">—</div>'}</div>`;
   } else {
     $('#notesBody').innerHTML = noteKeys.length ? noteKeys.map(key=>{
       const [orgId, k] = [ +key.split(':')[0], key.split(':').slice(1).join(':') ];
@@ -1565,7 +1859,8 @@ function jumpToCell(orgId, k){
       td.classList.remove('cell-hi'); void td.offsetWidth; td.classList.add('cell-hi'); }
   });
 }
-$('#edNotes').addEventListener('click', ()=>{ renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
+$('#edNotes').addEventListener('click', ()=>{ drTab='comments'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
+$('#edReviews').addEventListener('click', ()=>{ drTab='reviews'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
 document.addEventListener('click', e=>{
   if (e.target.closest('#ctxMenu')) return;   // menu actions open popovers — don't instantly dismiss them
   const pop = $('#notePop');
@@ -1633,7 +1928,7 @@ Provide best-guess values for ONLY these fields, from your knowledge of this rea
       if (!empty.includes(k) || v==null || v==='') continue;
       const f = FIELDS.find(x=>x.k===k);
       o[k] = f?.arr ? (Array.isArray(v)?v:String(v).split(/[;|]/).map(s=>s.trim()).filter(Boolean))
-           : f?.num ? (parseFloat(v)||0) : String(v);
+           : f?.num ? ((parseFloat(String(v).replace(/[,$\s]/g,''))||0)/(f.mult||1)) : String(v);
       clearGathering(o, k, o[k], f); n++;
     }
     o.lastUpdated = new Date().toISOString().slice(0,10);
@@ -1692,7 +1987,12 @@ $('#edExport').addEventListener('click', ()=>{
 });
 function renderEditor(){
   const cols = activeCols();
-  $('#edTable').innerHTML = `<thead><tr><th class="vis-c" title="Display on site — on = visible in the library, globe, and briefs; off = tracked in Data Studio only. New organizations start off.">Show</th>${cols.map(c=>`<th class="${c.cls||''}" title="${esc(c.desc||'')}">${c.l}${c.ro?' ⓘ':''}</th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
+  $('#edTable').innerHTML = `<thead><tr><th class="vis-c" title="Show on site · open the brief · edit in vertical view">Show</th>${cols.map(c=>`<th data-th="${c.k}" class="${c.cls||''}${c.pub?' pub-c':''}" title="${esc((c.pub?'LIVE ON THE MEMBER SITE — this field is displayed publicly on briefs, tiles, the map, or tools.\n\n':'')+(c.desc||'')+'\n\nDrag the right edge to resize this column (saved to your view); double-click the edge to reset.')}">${c.l}${c.pub?' ●':''}${c.ro?' ⓘ':''}<span class="col-grip" data-grip="${c.k}"></span></th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
+  applyColWidths(); wireColResize();
+  if (!$('#pubLegend')){
+    $('#edCount').insertAdjacentHTML('afterend',
+      `<span id="pubLegend" class="muted" style="font-size:11px;margin-left:14px"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(201,165,92,.45);border:1px solid var(--gold-2,#C9A55C);vertical-align:-1px;margin-right:5px"></span>highlighted fields are live on the member site (briefs, tiles, map, tools)</span>`);
+  }
   $('#edTable').style.minWidth = Math.max(1200, cols.length*150)+'px';
   renderEdRows();
   $('#edBody').addEventListener('contextmenu', onCellContext);
@@ -1704,9 +2004,12 @@ function renderEdRows(){
     (!edState.tier || o.tier===edState.tier) &&
     (!edState.q || (o.name+' '+o.causes.join(' ')+' '+o.countries.join(' ')).toLowerCase().includes(edState.q)));
   $('#edCount').textContent = list.length+' of '+ORGS.length+' rows · '+cols.length+' of '+FIELDS.length+' fields';
-  $('#edBody').innerHTML = list.map(o=>`<tr data-id="${o.id}"><td class="vis-c"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label></td>${cols.map(c=>{
-    const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'');
-    if (c.k==='name') return `<td class="name-c${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
+  const wfRank = o=>{ const wf=o.workflow||{}; return wfLate(o) ? 0 : wf.req ? 1 : wf.sub ? 2 : 3; };
+  list.sort((a,b)=>wfRank(a)-wfRank(b));   // late first, then review requests, then submission invites
+  $('#edBody').innerHTML = list.map(o=>{ const wf=o.workflow||{}; const rowCls = (wf.req?'wf-req':wf.sub?'wf-sub':'') + (wfLate(o)?' wf-late':'');
+    return `<tr data-id="${o.id}" class="${rowCls}"><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
+    const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
+    if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
     if (c.fx) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(c.fx(o))}</td>`;
     if (c.ro) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(o[c.k])}</td>`;
     if (c.sel){
@@ -1716,19 +2019,33 @@ function renderEdRows(){
       return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></td>`;
     }
     let v = o[c.k]; if (Array.isArray(v)) v = v.join('; ');
+    if (c.num) v = fmtCellNum(c, v);
     if (c.img) return `<td class="${noted}" data-k="${c.k}" title="${esc(c.desc||'')}"><span style="cursor:pointer;margin-right:6px" onclick="window.pickImage&&pickImage(${o.id},'${c.k}')">📷</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(v)}</span></td>`;
-    return `<td class="${noted}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
-  }).join('')}</tr>`).join('');
+    return `<td class="${noted}${c.num?' num-cell':''}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
+  }).join('')}</tr>`;}).join('');
   const body = $('#edBody');
   body.querySelectorAll('td[contenteditable], td [contenteditable]').forEach(td=>{
-    td.addEventListener('blur', ()=>commitCell(td));
-    td.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault(); td.blur();} });
+    td.addEventListener('blur', ()=>{ commitCell(td); td.closest('td').classList.remove('expanded'); });
+    td.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); td.blur();} });
+    // clicking into a cell expands it so the FULL contents are visible and editable
+    td.addEventListener('focus', ()=>td.closest('td').classList.add('expanded'));
+    // numeric columns refuse non-numeric characters at the keystroke level
+    const colDef = FIELDS.find(f=>f.k===td.closest('td').dataset.k);
+    if (colDef && colDef.num){
+      td.addEventListener('beforeinput', e=>{
+        if (e.data && /[^0-9.,\-$kKmMbB\s%]/.test(e.data)){ e.preventDefault(); flash('This column only accepts numbers'); }
+      });
+      td.addEventListener('paste', e=>{
+        const t = (e.clipboardData||window.clipboardData).getData('text');
+        if (/[^0-9.,\-$kKmMbB\s%]/.test(t)){ e.preventDefault(); flash('This column only accepts numbers'); }
+      });
+    }
   });
   body.querySelectorAll('input[data-vis]').forEach(cb=>cb.addEventListener('change', ()=>{
     const o = byId(cb.dataset.vis); if (!o) return;
     o.visibility = cb.checked ? 'shown' : 'hidden';
     cb.closest('.vswitch').title = cb.checked ? 'Shown on the site — click to hide' : 'Hidden from members — click to show';
-    buildPins(); window.PERSIST&&PERSIST.org(o);
+    buildPins(); if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o,'visibility',o.visibility) : PERSIST.org(o); }
     flash(cb.checked ? o.name+' is now live on the site' : o.name+' is now hidden from members');
   }));
   body.querySelectorAll('select').forEach(sel=>sel.addEventListener('change', ()=>{
@@ -1736,7 +2053,7 @@ function renderEdRows(){
     o[sel.dataset.k] = sel.value;
     clearGathering(o, sel.dataset.k, sel.value, FIELDS.find(f=>f.k===sel.dataset.k));
     if (sel.dataset.k==='tier'||sel.dataset.k==='visibility') buildPins();
-    flash('Updated '+o.name); window.PERSIST&&PERSIST.org(o);
+    flash('Updated '+o.name); if(window.PERSIST){PERSIST.orgField?PERSIST.orgField(o,sel.dataset.k,o[sel.dataset.k]):PERSIST.org(o);}
   }));
 }
 function onCellContext(e){
@@ -1753,7 +2070,15 @@ function commitCell(el){
   if (!o || !col || col.ro || col.fx) return;
   let v = el.textContent.trim();
   const old = o[key];
-  if (col.num){ if (v===''){ v = 0; } else { v = parseFloat(v); if (isNaN(v)) { el.textContent = Array.isArray(old)?old.join('; '):old; return; } } }
+  if (col.num){
+    if (v===''){ v = 0; }
+    else {
+      v = parseStudioNum(v);
+      if (v===null){ el.textContent = fmtCellNum(col, Array.isArray(old)?old.join('; '):old); flash('Not a number — reverted'); return; }
+      if (col.mult) v = v / col.mult;   // displayed in full dollars, stored in $M
+    }
+    el.textContent = fmtCellNum(col, v);
+  }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   const changed = JSON.stringify(v)!==JSON.stringify(old);
   if (!changed) return;
@@ -1761,7 +2086,128 @@ function commitCell(el){
   o.lastUpdated = new Date().toISOString().slice(0,10);
   if (key==='lat'||key==='lng'||key==='countries') { o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
-  flash('Updated '+o.name); window.PERSIST&&PERSIST.org(o);
+  flash('Updated '+o.name); if(window.PERSIST){PERSIST.orgField?PERSIST.orgField(o,key,v):PERSIST.org(o);}
+}
+
+/* ================= NUMBER FORMATTING ================= */
+/* Display: full numbers with thousands separators ($M-stored fields shown in
+   full dollars). Parse: accepts commas, $, spaces, and k/M/B suffixes. */
+function fmtCellNum(col, v){
+  if (v==='' || v==null) return '';
+  const n = +v;
+  if (!isFinite(n)) return String(v);
+  const full = col.mult ? n * col.mult : n;
+  const body = col.nocomma ? String(full) : full.toLocaleString('en-US', {maximumFractionDigits: 4});
+  if (col.unit==='$') return full===0 ? '' : '$'+body;
+  if (col.unit==='%') return full===0 ? '' : body+'%';
+  return body;
+}
+function parseStudioNum(s){
+  let t = String(s).replace(/[,$\s%]/g, '');
+  const suf = t.match(/^(-?[\d.]+)([kKmMbB])$/);
+  if (suf) t = String(parseFloat(suf[1]) * ({k:1e3,m:1e6,b:1e9})[suf[2].toLowerCase()]);
+  const n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+
+/* ================= COLUMN WIDTHS (per-user view preference) ================= */
+function colWKey(){ return 'ffg.colw.' + ((window.APP && APP.userId) || 'demo'); }
+function loadColW(){ try{ return JSON.parse(localStorage.getItem(colWKey())||'{}'); }catch(e){ return {}; } }
+function saveColW(w){ try{ localStorage.setItem(colWKey(), JSON.stringify(w)); }catch(e){} }
+function applyColWidths(){
+  let st = $('#colWidthStyle');
+  if (!st){ st = document.createElement('style'); st.id = 'colWidthStyle'; document.head.appendChild(st); }
+  const w = loadColW();
+  st.textContent = Object.entries(w).map(([k,px])=>
+    `table.editor td[data-k="${k}"], table.editor th[data-th="${k}"]{width:${px}px;min-width:${px}px;max-width:${px}px}`).join('\n');
+}
+function wireColResize(){
+  const head = $('#edTable').querySelector('thead'); if (!head) return;
+  head.querySelectorAll('.col-grip').forEach(grip=>{
+    grip.addEventListener('mousedown', e=>{
+      e.preventDefault(); e.stopPropagation();
+      const k = grip.dataset.grip, th = grip.closest('th');
+      const startX = e.clientX, startW = th.getBoundingClientRect().width;
+      const move = ev=>{
+        const w = Math.max(70, Math.min(720, Math.round(startW + ev.clientX - startX)));
+        const all = loadColW(); all[k] = w; saveColW(all); applyColWidths();
+      };
+      const up = ()=>{ document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+    });
+    grip.addEventListener('dblclick', e=>{
+      e.stopPropagation();
+      const all = loadColW(); delete all[grip.dataset.grip]; saveColW(all); applyColWidths();
+      flash('Column width reset');
+    });
+  });
+}
+
+/* ================= VERTICAL EDIT (transposed single-org view) ================= */
+window.openVerticalEdit = function(id){
+  const o = byId(id); if (!o) return;
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width = 'min(760px,95vw)'; box.style.maxHeight = '88vh'; box.style.overflow = 'auto';
+  const cats = [...new Set(FIELDS.map(f=>f.cat))];
+  box.innerHTML = `<div class="kicker">Data studio · vertical edit</div>
+    <h3 style="margin-bottom:2px">${esc(o.name)}</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:14px">Every field as a row — edits save live to the same cells as the table view. Text boxes grow as you type.</div>
+    ${cats.map(cat=>`<div class="kicker" style="margin:18px 0 6px">${cat}</div>
+      <div class="ve-grid">${FIELDS.filter(f=>f.cat===cat).map(f=>{
+        const pubTag = f.pub?'<span title="Live on the member site" style="color:var(--gold-2,#9A7B3F)"> ●</span>':'';
+        if (f.fx) return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div><div class="ve-ro">${esc(f.fx(o))}</div>`;
+        if (f.ro) return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div><div class="ve-ro">${esc(o[f.k])}</div>`;
+        if (f.sel){
+          const noBlank = f.k==='tier'||f.k==='visibility';
+          const opts = (noBlank?[]:['']).concat(f.sel.filter(s=>s!==''));
+          const cur = f.k==='visibility' ? (o.visibility||'shown') : String(o[f.k]??'');
+          return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div>
+            <div><select class="ve-in" data-vk="${f.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></div>`;
+        }
+        let v = o[f.k]; if (Array.isArray(v)) v = v.join('; ');
+        if (f.num) v = fmtCellNum(f, v);
+        return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div>
+          <div><textarea class="ve-in" data-vk="${f.k}" rows="1" ${f.num?'data-num="1"':''} spellcheck="false">${esc(v??'')}</textarea></div>`;
+      }).join('')}</div>`).join('')}
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--hairline);padding-top:13px">
+      <button class="btn primary" onclick="closeModal();renderEdRows();flash('Vertical edits saved')">Done</button></div>`;
+  veil.classList.add('show');
+  const autos = ta=>{ ta.style.height='auto'; ta.style.height = Math.min(400, ta.scrollHeight+2)+'px'; };
+  box.querySelectorAll('textarea.ve-in').forEach(ta=>{
+    autos(ta);
+    ta.addEventListener('focus', ()=>autos(ta));
+    ta.addEventListener('input', ()=>{
+      autos(ta);
+      if (ta.dataset.num && /[^0-9.,\-$kKmMbB\s%]/.test(ta.value)){
+        ta.value = ta.value.replace(/[^0-9.,\-$kKmMbB\s%]/g,''); flash('This field only accepts numbers');
+      }
+    });
+    ta.addEventListener('blur', ()=>commitVertical(o, ta));
+  });
+  box.querySelectorAll('select.ve-in').forEach(sel=>sel.addEventListener('change', ()=>commitVertical(o, sel)));
+};
+function commitVertical(o, el){
+  const key = el.dataset.vk, col = FIELDS.find(f=>f.k===key);
+  if (!col || col.ro || col.fx) return;
+  let v = (el.value||'').trim();
+  const old = o[key];
+  if (col.num){
+    if (v===''){ v = 0; }
+    else {
+      const n = parseStudioNum(v);
+      if (n===null){ el.value = fmtCellNum(col, old); flash('Not a number — reverted'); return; }
+      v = col.mult ? n/col.mult : n;
+    }
+    el.value = fmtCellNum(col, v);
+  }
+  if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
+  if (JSON.stringify(v)===JSON.stringify(old)) return;
+  o[key] = v;
+  o.lastUpdated = new Date().toISOString().slice(0,10);
+  if (key==='lat'||key==='lng'||key==='countries'||key==='tier'||key==='visibility'){ o.region = regionOf(o); buildPins(); }
+  clearGathering(o, key, v, col);
+  flash(o.name+' updated');
+  if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o, key, v) : PERSIST.org(o); }
 }
 
 /* boot handled by backend layer */
@@ -2370,6 +2816,8 @@ function renderMarquee(){
   const tops = ORGS.filter(o=>o.tier==='top' && isShown(o));
   const host = $('#marqueeInner')?.closest('.marquee') || $('#tpHost');
   if (!host) return;
+  // Top picks bar parked for now — hide its card so From the field moves up.
+  { const card = host.closest('.card'); if (card) card.style.display = 'none'; clearInterval(tpTimer); return; }
   host.className = ''; host.id = 'tpHost'; host.style.maskImage='none';
   const pages = [];
   for (let i=0;i<tops.length;i+=5) pages.push(tops.slice(i,i+5));
@@ -2798,7 +3246,8 @@ function injectGlobeControls(){
     <button class="chip" data-gt="recommended">Recommended</button>
     <button class="chip" data-gm="mine">My orgs</button>
     <select id="gCause"><option value="">All causes</option>${CAUSES.map(c=>`<option>${c}</option>`).join('')}</select>
-    <div class="gmode"><button class="on" data-mode="globe">Globe</button><button data-mode="map">Map</button></div>
+    <!-- flat map view parked for now — keep the machinery, hide the toggle -->
+    <div class="gmode" style="display:none"><button class="on" data-mode="globe">Globe</button><button data-mode="map">Map</button></div>
   </div>
   <div class="gfilters" id="gRegions" style="display:none">${Object.keys(MAP_REGIONS).map(r=>`<button class="chip ${r==='World'?'on':''}" data-reg="${r}">${r}</button>`).join('')}</div>`);
   const bar = $('#gFilters');
@@ -2876,6 +3325,7 @@ function pinColor(o){
 
 function initGlobe(){
   injectGlobeControls();
+  if (state.globe && state.globe.mode !== 'globe') state.globe.mode = 'globe';   // map view parked
   if (globeState.built && !globeState.v2){
     // a pre-v2 renderer already owns the canvas (static builds boot early):
     // swap in a fresh canvas so the old loop draws into the void, then take over.
@@ -3251,10 +3701,42 @@ const FUNDER_THESIS = {
 };
 function supportersOf(o){ return o.sources.filter(s=>!/factory for good|meridian/i.test(s)); }
 
+/* ---------- recently viewed orgs (feeds the Organizations hover menu) ---------- */
+function recentKey(){ return 'ffg.recent.' + ((window.APP && APP.userId) || 'demo'); }
+function trackRecentOrg(o){
+  try{
+    let r = JSON.parse(localStorage.getItem(recentKey())||'[]');
+    r = [{id:o.id, name:o.name}, ...r.filter(x=>x.id!==o.id)].slice(0, 8);
+    localStorage.setItem(recentKey(), JSON.stringify(r));
+  }catch(e){}
+}
+(function wireOrgsDropdown(){
+  const btn = document.querySelector('#mainNav [data-route="#/orgs"]');
+  if (!btn || btn.closest('.orgs-wrap')) return;
+  const wrap = document.createElement('span');
+  wrap.className = 'orgs-wrap';
+  btn.parentNode.insertBefore(wrap, btn);
+  wrap.appendChild(btn);
+  const drop = document.createElement('div');
+  drop.className = 'orgs-drop';
+  wrap.appendChild(drop);
+  wrap.addEventListener('mouseenter', ()=>{
+    let r = [];
+    try{ r = JSON.parse(localStorage.getItem(recentKey())||'[]'); }catch(e){}
+    r = r.filter(x=>byId(x.id));
+    drop.innerHTML = r.length
+      ? `<div class="od-t">Recently viewed</div><div class="od-list">${r.map(x=>
+          `<button class="od-i" onclick="go('#/org/${x.id}')">${esc(x.name)}</button>`).join('')}</div>`
+      : `<div class="od-t">Recently viewed</div><div class="od-i" style="color:var(--ink-3);cursor:default">Briefs you open will appear here</div>`;
+  });
+})();
+
 function renderOrg(id){
   const o = byId(id);
   const root = $('#orgRoot');
   if (!o || (!isShown(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
+  state.orgTab = 'overview';   // every brief opens on Overview
+  trackRecentOrg(o);
   const insightsEligible = o.tier!=='represented';
   const tab = state.orgTab==='insights' && insightsEligible ? 'insights' : 'overview';
   const myGiven = MEMBER.donations.filter(d=>d.org===o.id).reduce((s,d)=>s+d.amount,0);
@@ -3262,7 +3744,7 @@ function renderOrg(id){
   const cs = o.countries.filter(c=>c!=='Global');
 
   root.innerHTML = `
-  <div class="back-link fade-up" onclick="history.length>1?history.back():go('#/orgs')">← Back to library</div>
+  <div class="back-link fade-up" onclick="go('#/orgs')">← Back to library</div>
   <div class="brief-hero fade-up">
     <div style="flex:1;min-width:300px">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -3304,8 +3786,8 @@ function renderOrg(id){
       <span><span class="muted">Team</span> &nbsp;≈ ${o.teamSize||'—'} staff</span>
       ${(o.stage||o.orgType)?`<span><span class="muted">Stage</span> &nbsp;${esc([o.stage,o.orgType].filter(Boolean).join(' · '))}</span>`:''}
       <div class="side-links" title="${o.tier==='represented'?'Full document access opens once an organization is recommended':''}">
-        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="flash('Data room access requested — our team will follow up')">Data room</button>
-        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="flash('Opening GiveSpark profile…')">GiveSpark</button>
+        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="${o.dataRoomLink&&/^https?:/.test(o.dataRoomLink)?`window.open('${esc(o.dataRoomLink)}','_blank')`:`flash('Data room access requested — our team will follow up')`}">Data room${o.dataRoomLink?' ↗':''}</button>
+        <button class="pill ${o.tier==='represented'?'locked':''}" onclick="${o.givesparkLink&&/^https?:/.test(o.givesparkLink)?`window.open('${esc(o.givesparkLink)}','_blank')`:`flash('GiveSpark listing coming soon for this organization')`}">GiveSpark${o.givesparkLink?' ↗':''}</button>
         <button class="pill" onclick="window.open('${esc(o.website)}','_blank')">Website ↗</button>
         <button class="pill ${o.tier==='represented'?'locked':''}" onclick="openCalc(${o.id})">Cost-effectiveness</button>
       </div>
@@ -3397,7 +3879,7 @@ function orgInsightsHTML(o){
   const absPct = o.budgetM>0 ? Math.min(100, o.absorbencyM/o.budgetM*100) : 0;
   const dims = [
     ['Intervention evidence','interventionEvidenceQuality','iev'],['Organization evidence','orgEvidenceQuality','oev'],
-    ['Leadership & team','','team'],['Growth & scalability','potentialForScale','grow'],
+    ['Leadership & team','teamRating','team'],['Growth & scalability','potentialForScale','grow'],
     ['Cost effectiveness','ceRating','ce'],['Importance','importance','imp'],
     ['Tractability','tractability','tract'],['Neglectedness','neglectedness','negl']];
   const innovDesc = 'How novel the approach is relative to standard practice (1 = well-established playbook, 5 = genuinely new).';
@@ -3654,6 +4136,17 @@ renderDashboard = function(a){
   if (!BASE_NET) { snapshotBaseNet(); if (state.scope!=='me') setCommunityScope(state.circle||null); }
   renderScopePills();
   _renderDashboard_d(a);
+  // FFG collective view: the real full logo carries the header
+  if (state.scope!=='me' && !state.circle && window.IS_LIGHT !== false){
+    const g = $('#dashGreeting');
+    if (g && !g.querySelector('img')){
+      g.innerHTML = `<span style="display:inline-flex;align-items:center;gap:14px">
+        <img src="https://www.truekeep.ai/api/asset-proxy/page-media/35d80f0e-bbd4-408b-a303-20c8badd882a/bf81542a-7b83-4692-9e38-2052028317f9.svg"
+          alt="Factory for Good" style="height:52px;display:block"
+          onerror="this.outerHTML='<span>Factory <i>for</i> Good</span>'">
+        <span style="font-size:.55em;color:var(--ink-3);font-family:var(--sans)">Collective</span></span>`;
+    }
+  }
 };
 
 /* ---------- nav + route ---------- */
@@ -3672,7 +4165,8 @@ renderDashboard = function(a){
           <div><div class="kicker">Donor studio</div>
           <h3 style="margin:0">Member profiles &amp; giving circles</h3>
           <div class="muted" id="dsSummary" style="font-size:12px;margin-top:4px"></div></div>
-          <div style="display:flex;gap:8px"><button class="btn" id="dsNewCircle">+ New circle</button>
+          <div style="display:flex;gap:8px"><button class="btn" id="dsComments">💬 Comments</button>
+          <button class="btn" id="dsNewCircle">+ New circle</button>
           <button class="btn primary" id="dsAddProfile">+ Add profile</button></div>
         </div>
         <div id="dsCircles" style="margin:10px 0 14px"></div>
@@ -3746,7 +4240,8 @@ window.renderDonorStudio = function(){
         <td><div class="dn-notes dn-ed" contenteditable data-f="staffNotes">${esc(dn.staffNotes||'')}</div></td>
         <td><div style="display:flex;flex-direction:column;gap:6px">
           <button class="btn dn-open" data-open="${dn.id}">Open dashboard →</button>
-          <button class="btn dn-open" data-gifts="${dn.id}">Manage gifts</button></div></td>
+          <button class="btn dn-open" data-gifts="${dn.id}">Manage gifts</button>
+          <button class="btn dn-open" data-cmt="${dn.id}">💬 Comment${NOTES.filter(n=>n.donorId===dn.id&&!n.resolved).length?` (${NOTES.filter(n=>n.donorId===dn.id&&!n.resolved).length})`:''}</button></div></td>
       </tr>`;}).join('')}
     ${(!dsCircleFilter?pend:[]).map(iv=>`<tr style="opacity:.62">
         <td><div class="dn-nm"><span class="dn-ava" style="background:var(--ink-3,#797772)">✉</span>
@@ -3776,6 +4271,9 @@ window.renderDonorStudio = function(){
   }));
   tb.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click', ()=>viewAsDonor(b.dataset.open)));
   tb.querySelectorAll('[data-gifts]').forEach(b=>b.addEventListener('click', ()=>openDonorGifts(b.dataset.gifts)));
+  tb.querySelectorAll('[data-cmt]').forEach(b=>b.addEventListener('click', ()=>openDonorComment(b.dataset.cmt)));
+  const cbtn = $('#dsComments');
+  if (cbtn) cbtn.onclick = ()=>{ renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); };
   $('#dsNewCircle').onclick = ()=>openCirclePicker($('#dsNewCircle'), null);
   $('#dsAddProfile').onclick = addProfileRow;
 };
@@ -3849,6 +4347,37 @@ function addProfileRow(){
     closeModal(); renderDonorStudio(); flash('Profile created');
   });
 }
+
+/* ---------- donor-profile comments (@mention teammates, resolvable) ---------- */
+window.openDonorComment = function(dnId){
+  const dn = donorList().find(x=>x.id===dnId); if (!dn) return;
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width = 'min(470px,94vw)'; box.style.maxHeight = '82vh'; box.style.overflow = 'auto';
+  const existing = NOTES.filter(n=>n.donorId===dn.id && !n.resolved);
+  box.innerHTML = `<div class="kicker">Donor studio · comments</div>
+    <h3 style="margin-bottom:10px">${esc(dn.fullName)}</h3>
+    ${existing.map(n=>`<div style="font-size:12.5px;color:var(--ink-2);padding:8px 0;border-bottom:1px solid var(--hairline)">${mentionHTML(n.text)}
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:4px"><span>${esc(n.author)}</span>
+      <span style="color:var(--good);cursor:pointer" onclick="resolveNote(${n.id});openDonorComment('${dn.id}')">✓ Resolve</span></div></div>`).join('')
+      || '<div class="muted" style="font-size:12.5px;margin-bottom:6px">No open comments on this profile yet.</div>'}
+    <textarea id="dcTxt" placeholder="Comment for the team… use @ to tag a teammate" style="width:100%;min-height:74px;background:var(--surface);border:1px solid var(--divider,var(--hairline));border-radius:9px;padding:9px 11px;font-size:13px;font-family:inherit;outline:none;resize:vertical;margin-top:10px"></textarea>
+    ${mentionChipsHTML('#dcTxt')}
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn primary" id="dcSave">Comment</button></div>`;
+  veil.classList.add('show');
+  wireComposer($('#dcTxt'), '#dcSave');
+  $('#dcSave').addEventListener('click', ()=>{
+    const t = $('#dcTxt').value.trim(); if (!t) return;
+    const nn = {id:noteSeq++, orgId:null, donorId:dn.id, donorName:dn.fullName, k:'profile',
+      text:t, author:(window.APP&&APP.profile?.full_name)||MEMBER.fullName, resolved:false, mentions:extractMentions(t)};
+    NOTES.push(nn);
+    if (window.PERSIST && PERSIST.comment) PERSIST.comment(nn);
+    updateNoteCnt(); renderNotesPanel?.(); renderDonorStudio();
+    flash('Comment added'+(nn.mentions.length?' — tagged '+nn.mentions.map(m=>'@'+m.split(' ')[0]).join(', '):''));
+    closeModal();
+  });
+};
 
 /* ---------- staff gift management (full history + plans, any member) ---------- */
 function spliceGift(dn, id){
@@ -4044,6 +4573,8 @@ window.viewAsDonor = function(id){
     scope:state.scope, circle:state.circle,
   };
   window.VIEW_AS = dn;
+  // a member profile's view must be exactly what THEY see — no staff chrome
+  if (dn.role !== 'staff') document.body.classList.add('va-member');
   MEMBER.name = dn.name; MEMBER.fullName = dn.fullName; MEMBER.memberSince = dn.memberSince;
   MEMBER.donations = dn.donations; MEMBER.planned = dn.planned;
   SHORTLIST.length = 0; (dn.shortlist||[]).forEach(s=>SHORTLIST.push(typeof s==='object'?s:{id:s, planned:100000}));
@@ -4064,6 +4595,7 @@ window.exitViewAs = function(){
   SHORTLIST.length = 0; SELF_SNAP.shortlist.forEach(s=>SHORTLIST.push(s));
   state.scope = SELF_SNAP.scope; state.circle = SELF_SNAP.circle;
   window.VIEW_AS = null; SELF_SNAP = null;
+  document.body.classList.remove('va-member');
   setCommunityScope(state.circle||null);
   $('#viewAsBar')?.remove();
   $('#topMemberName').textContent = MEMBER.fullName;
@@ -4075,7 +4607,7 @@ window.exitViewAs = function(){
 /* dataset swaps (login, demo toggle) invalidate donor-layer state */
 window.__resetDonorLayer = function(){
   BASE_NET = null; state.circle = null; SELF_SNAP = null;
-  window.VIEW_AS = null; document.querySelector('#viewAsBar')?.remove();
+  window.VIEW_AS = null; document.body.classList.remove('va-member'); document.querySelector('#viewAsBar')?.remove();
 };
 
 /* run once on load (static builds render before this layer exists) */
@@ -4197,6 +4729,8 @@ const FFG_TOOLS = [
 
 function toolsRoute(){
   if (!location.hash.startsWith('#/tools')) return false;
+  // FFG team only — members are routed back to their dashboard
+  if (window.APP && APP.ready && !APP.staff){ go('#/dashboard'); return true; }
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-tools').classList.add('active');
   $$('#mainNav button').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/tools'));
@@ -4661,12 +5195,17 @@ async function loadDonorRoster(){
 }
 async function loadStudioAnnotations(){
   try{
-    const [cs, ns] = await Promise.all([
+    const [cs, ns, wfe] = await Promise.all([
       sb.rest('org_comments?select=*&resolved=eq.false&order=created_at'),
       sb.rest('org_cell_notes?select=*'),
+      sb.rest('org_workflow_events?select=*&order=created_at.desc').catch(()=>[]),
     ]);
+    WFLOG.length = 0;
+    wfe.forEach(e=>WFLOG.push({kind:e.kind, orgId:e.org_id, orgName:(byId(e.org_id)||{}).name||'', by:e.author_name||'Staff', date:(e.created_at||'').slice(0,10), dbId:e.id}));
     NOTES.length = 0;
-    cs.forEach(c=>NOTES.push({id:c.id, dbId:c.id, orgId:c.org_id, k:c.field, text:c.body, author:c.author_name||'Staff', resolved:false}));
+    cs.forEach(c=>NOTES.push({id:c.id, dbId:c.id, orgId:c.org_id, donorId:c.donor_id||null, k:c.field, text:c.body,
+      author:c.author_name||'Staff', resolved:false,
+      mentions:(c.mentions||'').split(/;\s*/).filter(Boolean)}));
     Object.keys(CELLNOTES).forEach(k=>delete CELLNOTES[k]);
     ns.forEach(n=>CELLNOTES[n.org_id+':'+n.field] = n.body);
     if (typeof updateNoteCnt==='function' && $('#edNoteCnt')) updateNoteCnt();
@@ -4680,6 +5219,13 @@ window.PERSIST = {
     const {region, ...data} = o;
     sb.rest('orgs?id=eq.'+o.id, {method:'PATCH', body:{data}}).catch(e=>flash('Save failed: '+e.message));
   },
+  /* single-field atomic update — teammates editing different cells can never
+     overwrite each other's work (the server merges just this key into the row) */
+  orgField(o, key, value){
+    if (APP.demo) return;
+    sb.rest('rpc/org_set_field', {method:'POST', body:{oid:o.id, fkey:key, fval:value}})
+      .catch(()=>{ this.org(o); });   // older databases: fall back to full-row save
+  },
   orgInsert(o){
     if (APP.demo) return;
     const {region, ...data} = o;
@@ -4687,7 +5233,8 @@ window.PERSIST = {
   },
   comment(n){
     if (APP.demo) return;
-    sb.rest('org_comments', {method:'POST', body:{org_id:n.orgId, field:n.k, body:n.text, author_name:n.author}})
+    sb.rest('org_comments', {method:'POST', body:{org_id:n.orgId??null, donor_id:n.donorId||null, field:n.k, body:n.text,
+      author_name:n.author, mentions:(n.mentions||[]).join('; ')||null}})
       .then(rows=>{ if(rows?.[0]) n.dbId = rows[0].id; })
       .catch(e=>flash('Comment not saved: '+e.message));
   },
@@ -4700,6 +5247,21 @@ window.PERSIST = {
     if (body) sb.rest('org_cell_notes', {method:'POST', headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
       body:{org_id:orgId, field, body}}).catch(e=>flash('Note not saved: '+e.message));
     else sb.rest(`org_cell_notes?org_id=eq.${orgId}&field=eq.${encodeURIComponent(field)}`, {method:'DELETE'}).catch(()=>{});
+  },
+  /* review workflow activity log (staff-only table) */
+  wfEvent(ev){
+    if (APP.demo) return;
+    sb.rest('org_workflow_events', {method:'POST', body:{org_id:ev.orgId, kind:ev.kind, author_name:ev.by}})
+      .then(rows=>{
+        if (!rows?.[0]) return;
+        ev.dbId = rows[0].id;                       // remembered so a retraction can be un-counted
+        if (ev._retracted) this.wfEventDelete(ev.dbId);   // retracted before the id came back
+      })
+      .catch(()=>{});
+  },
+  wfEventDelete(dbId){
+    if (APP.demo) return;
+    sb.rest('org_workflow_events?id=eq.'+dbId, {method:'DELETE'}).catch(()=>{});
   },
   /* ---- Donor studio (staff only; RLS enforces server-side) ---- */
   donor(dn){
@@ -4862,6 +5424,8 @@ function applyRole(){
   if (studioBtn) studioBtn.style.display = APP.staff ? '' : 'none';
   const donorsBtn = document.querySelector('#mainNav [data-route="#/donors"]');
   if (donorsBtn) donorsBtn.style.display = APP.staff ? '' : 'none';
+  const toolsBtn = document.querySelector('#mainNav [data-route="#/tools"]');
+  if (toolsBtn) toolsBtn.style.display = APP.staff ? '' : 'none';
   if (APP.staff && !$('#demoToggle')){
     document.querySelector('#mainNav').insertAdjacentHTML('beforeend',
       `<button id="demoToggle" onclick="setDemo(!APP.demo)" title="Toggle the illustrative demo dataset">Demo</button>`);
@@ -4899,7 +5463,7 @@ window.autofillRow = async function(id){
       if (!empty.includes(k) || v==null || v==='') continue;
       const f = FIELDS.find(x=>x.k===k);
       o[k] = f?.arr ? (Array.isArray(v)?v:String(v).split(/[;|]/).map(s=>s.trim()).filter(Boolean))
-           : f?.num ? (parseFloat(v)||0) : String(v);
+           : f?.num ? ((parseFloat(String(v).replace(/[,$\s]/g,''))||0)/(f.mult||1)) : String(v);
       clearGathering(o, k, o[k], f); n++;
     }
     o.lastUpdated = new Date().toISOString().slice(0,10);

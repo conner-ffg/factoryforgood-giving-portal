@@ -157,6 +157,44 @@ begin
 end $$;
 grant execute on function public.circle_stats(text) to authenticated;
 
+-- ---- org review workflow activity log --------------------------
+-- Feeds the Reviews panel: who invited submissions, requested
+-- reviews, and completed reviews — totaled by week and month.
+create table if not exists public.org_workflow_events (
+  id bigint generated always as identity primary key,
+  org_id int references public.orgs(id) on delete cascade,
+  kind text not null check (kind in ('submission','request','review')),
+  author_name text,
+  created_at timestamptz not null default now()
+);
+alter table public.org_workflow_events enable row level security;
+drop policy if exists wf_events_staff on public.org_workflow_events;
+create policy wf_events_staff on public.org_workflow_events for all
+  using (public.is_staff()) with check (public.is_staff());
+
+-- ---- comment @mentions + donor-profile comments ----------------
+-- Comments can tag teammates (semicolon-separated full names) and can
+-- attach to a donor profile instead of an org cell.
+alter table public.org_comments alter column org_id drop not null;
+alter table public.org_comments add column if not exists donor_id uuid references public.profiles(id) on delete cascade;
+alter table public.org_comments add column if not exists mentions text;
+
+-- ---- atomic single-field org updates ---------------------------
+-- The Data Studio saves each edited cell as its own merge, so two
+-- teammates editing different fields of the same org can never
+-- overwrite each other's work with a stale full-row save.
+create or replace function public.org_set_field(oid int, fkey text, fval jsonb)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_staff() then
+    raise exception 'staff only';
+  end if;
+  update orgs set data = jsonb_set(data, array[fkey], coalesce(fval, 'null'::jsonb), true)
+  where id = oid;
+end $$;
+grant execute on function public.org_set_field(int, text, jsonb) to authenticated;
+
 -- ---- seed the mock-up circles (safe if they already exist) ----
 insert into public.circles (id, name, description) values
   ('simmons-family', 'Simmons Family Circle', 'Three generations of the Simmons family giving together.'),

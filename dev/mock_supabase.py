@@ -24,6 +24,7 @@ CIRCLE_MEMBERS = [{'circle_id': 'test-circle', 'user_id': 'u-member'},
 DONOR_NOTES = {}
 INVITES = []
 NOTIFS = []
+WF_EVENTS = []
 seq = itertools.count(1)
 
 def circle_stats(cid):
@@ -111,6 +112,13 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, [{'org_id': k, 'total': v[0], 'donors': len(v[1])} for k, v in agg.items()])
         if p.path == '/rest/v1/rpc/network_members':
             return self._send(200, sum(1 for u in USERS.values() if u['role'] == 'member'))
+        if p.path == '/rest/v1/rpc/org_set_field':
+            u2 = user_from(self.headers)
+            if not u2 or u2['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            b2 = self._body()
+            oid = int(b2['oid'])
+            if oid in ORGS: ORGS[oid]['data'][b2['fkey']] = b2['fval']
+            return self._send(200, None)
         if p.path == '/rest/v1/rpc/circle_stats':
             u2 = user_from(self.headers)
             if not u2: return self._send(401, {'message': 'JWT required'})
@@ -131,7 +139,8 @@ class H(BaseHTTPRequestHandler):
             ORGS[b['id']] = {'id': b['id'], 'data': b['data']}; return self._send(201, [ORGS[b['id']]])
         if p.path == '/rest/v1/org_comments':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
-            c = {'id': next(seq), 'org_id': b['org_id'], 'field': b['field'], 'body': b['body'],
+            c = {'id': next(seq), 'org_id': b.get('org_id'), 'donor_id': b.get('donor_id'),
+                 'field': b['field'], 'body': b['body'], 'mentions': b.get('mentions'),
                  'author_name': b.get('author_name'), 'resolved': False}
             COMMENTS.append(c); return self._send(201, [c])
         if p.path == '/rest/v1/org_cell_notes':
@@ -153,6 +162,11 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             INVITES.append({'email': b.get('email'), 'note': b.get('note', '')})
             return self._send(201, [b])
+        if p.path == '/rest/v1/org_workflow_events':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            ev = {'id': next(seq), 'org_id': b.get('org_id'), 'kind': b.get('kind'),
+                  'author_name': b.get('author_name'), 'created_at': '2026-07-28T12:00:00Z'}
+            WF_EVENTS.append(ev); return self._send(201, [ev])
         if p.path == '/rest/v1/shortlist':
             owner = b.get('user_id')
             if owner != u['id'] and u['role'] != 'staff': return self._send(403, {'message': 'RLS: own rows only'})
@@ -200,6 +214,9 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/donor_notes':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, [{'user_id': k, 'body': v} for k, v in DONOR_NOTES.items()])
+        if p.path == '/rest/v1/org_workflow_events':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            return self._send(200, list(reversed(WF_EVENTS)))
         if p.path == '/rest/v1/invites':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, INVITES)
@@ -278,6 +295,11 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             CIRCLE_MEMBERS[:] = [m for m in CIRCLE_MEMBERS
                                  if not (m['circle_id'] == f.get('circle_id') and m['user_id'] == f.get('user_id'))]
+            return self._send(204)
+        if p.path == '/rest/v1/org_workflow_events':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            eid = int(f['id'])
+            WF_EVENTS[:] = [e for e in WF_EVENTS if e['id'] != eid]
             return self._send(204)
         if p.path == '/rest/v1/shortlist':
             owner = f.get('user_id')
