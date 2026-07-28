@@ -37,11 +37,30 @@
 html{scroll-behavior:smooth}
 body{background:#F7F5F1;color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.6;min-height:100vh;position:relative}
 /* brand gradient — corners and periphery only, interior stays surface-50 */
-body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;transition:opacity 1.2s;background:
   radial-gradient(640px 420px at -4% -6%, rgba(232,201,176,.55), transparent 62%),
   radial-gradient(700px 460px at 104% -8%, rgba(191,216,232,.5), transparent 60%),
   radial-gradient(560px 400px at 106% 106%, rgba(43,46,69,.16), transparent 58%),
   radial-gradient(520px 380px at -6% 108%, rgba(232,201,176,.35), transparent 60%)}
+/* dynamic mesh — brand colors drifting slowly behind the dashboard, library & briefs */
+body.mesh-on::before{opacity:0}
+body::after{content:'';position:fixed;inset:-22%;z-index:-2;pointer-events:none;opacity:0;transition:opacity 1.2s;
+  background:
+    radial-gradient(42% 34% at 16% 20%, rgba(232,201,176,.6), transparent 68%),
+    radial-gradient(38% 32% at 84% 14%, rgba(146,193,220,.5), transparent 68%),
+    radial-gradient(46% 40% at 78% 86%, rgba(43,46,69,.18), transparent 66%),
+    radial-gradient(36% 30% at 20% 88%, rgba(158,209,187,.4), transparent 68%),
+    radial-gradient(28% 24% at 54% 48%, rgba(239,203,103,.14), transparent 70%);
+  filter:blur(30px);
+  animation:meshDrift 30s ease-in-out infinite alternate}
+body.mesh-on::after{opacity:1}
+@keyframes meshDrift{
+  0%{transform:translate3d(0,0,0) scale(1) rotate(0deg)}
+  33%{transform:translate3d(2.4%,-1.8%,0) scale(1.07) rotate(1.6deg)}
+  66%{transform:translate3d(-1.6%,2.2%,0) scale(1.04) rotate(-1.2deg)}
+  100%{transform:translate3d(-2.6%,-1.4%,0) scale(1.09) rotate(1.1deg)}
+}
+@media (prefers-reduced-motion:reduce){body::after{animation:none}}
 ::selection{background:rgba(41,140,192,.22)}
 a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--divider)}
 a:hover{text-decoration-color:var(--ink)}
@@ -269,13 +288,33 @@ table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(-
 .saved-flash.show{opacity:1;transform:none}
 .modal-veil{position:fixed;inset:0;background:rgba(20,20,19,.32);z-index:80;display:none;align-items:center;justify-content:center}
 .modal-veil.show{display:flex}
+/* soft entrance — used when updates auto-surface on org entry */
+.modal-veil.soft{animation:veilFade .8s ease}
+.modal-veil.soft .modal{animation:modalRise .8s cubic-bezier(.2,.6,.2,1)}
+@keyframes veilFade{from{opacity:0}to{opacity:1}}
+@keyframes modalRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .modal{width:min(560px,92vw);background:#F7F5F1;border:1px solid var(--divider);border-radius:16px;padding:28px 30px;box-shadow:var(--shadow)}
 .modal h3{font-size:21px;margin-bottom:4px}
 .calc-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
 .calc-row b{color:var(--ink);font-weight:500}
 .modal input[type=number]{background:#fff;border:1px solid var(--divider);color:var(--ink);border-radius:9px;padding:9px 13px;font-size:14px;width:100%;font-family:inherit;outline:none;margin:10px 0 4px}
-table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:0;z-index:4;background:#fff;width:150px;min-width:150px;max-width:150px;text-align:center;padding:7px 6px}
+table.editor td.upd-c, table.editor th.upd-c{position:sticky;left:0;z-index:4;background:#fff;width:42px;min-width:42px;max-width:42px;text-align:center;padding:7px 4px}
+table.editor th.upd-c{z-index:7;background:var(--surface-3)}
+table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:42px;z-index:4;background:#fff;width:150px;min-width:150px;max-width:150px;text-align:center;padding:7px 6px}
 table.editor th.vis-c{z-index:7;background:var(--surface-3)}
+.upd-ic{position:relative;font-size:11px}
+.upd-ic.on{background:#F4E9D2;border-color:#C9A55C;color:#7A5F2C}
+.upd-n{position:absolute;top:-6px;right:-7px;background:#C9A55C;color:#fff;border-radius:8px;font-size:8.5px;font-style:normal;font-weight:700;line-height:1;padding:2px 4px;min-width:7px}
+.upd-row{display:flex;align-items:center;gap:8px;border:1px solid var(--divider,#DEDBD6);border-radius:10px;padding:8px 12px;margin-bottom:7px;font-size:13px;background:var(--surface)}
+.upd-row.editing{border-color:#C9A55C;background:#FBF7EE}
+.upd-row-ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.upd-form{border:1px solid #C9A55C;border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#FBF8F1}
+.upd-ai{border:1px dashed #C9A55C;border-radius:10px;padding:11px 13px;margin-bottom:13px;background:#fff}
+.upd-ai input[type=text]{border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px}
+.upd-ai button:disabled{opacity:.55;cursor:wait}
+.upd-form-grid{display:grid;grid-template-columns:92px 1fr;gap:8px 12px;align-items:start}
+.upd-form-grid label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding-top:7px}
+.upd-form-grid input,.upd-form-grid select,.upd-form-grid textarea{width:100%;border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;background:#fff;resize:vertical}
 .vswitch{display:inline-block;width:30px;height:17px;position:relative;cursor:pointer;vertical-align:middle}
 .vswitch input{display:none}
 .vswitch i{position:absolute;inset:0;border-radius:999px;background:var(--divider);transition:background .2s}
@@ -345,9 +384,9 @@ textarea.ve-in:focus,select.ve-in:focus{border-color:#C9A55C;box-shadow:0 0 0 1.
 .row-ic.wf-req-ic.on{background:#92C1DC;border-color:#5C93B5;color:#14303F}
 .row-ic.wf-done-ic.on{background:#9ED1BB;border-color:#5F9B7F;color:#123526}
 table.editor tr.wf-req td{background:rgba(146,193,220,.16)}
-table.editor tr.wf-req td.vis-c,table.editor tr.wf-req td.name-c{background:#E7F1F8}
+table.editor tr.wf-req td.vis-c,table.editor tr.wf-req td.upd-c,table.editor tr.wf-req td.name-c{background:#E7F1F8}
 table.editor tr.wf-sub td{background:rgba(239,203,103,.13)}
-table.editor tr.wf-sub td.vis-c,table.editor tr.wf-sub td.name-c{background:#F8F0DC}
+table.editor tr.wf-sub td.vis-c,table.editor tr.wf-sub td.upd-c,table.editor tr.wf-sub td.name-c{background:#F8F0DC}
 
 /* @mention typeahead */
 .ac-pop{position:fixed;z-index:999;background:#fff;border:1px solid var(--divider,#DEDBD6);border-radius:10px;box-shadow:0 12px 32px rgba(20,20,19,.16);padding:4px;max-height:180px;overflow:auto}
@@ -357,7 +396,7 @@ table.editor tr.wf-sub td.vis-c,table.editor tr.wf-sub td.name-c{background:#F8F
 .ac-pop .ac-i:hover{background:rgba(20,20,19,.05)}
 /* late workflow rows */
 table.editor tr.wf-late td{border-top:2px solid #C0392B!important;border-bottom:2px solid #C0392B!important}
-table.editor tr.wf-late td.vis-c{border-left:4px solid #C0392B}
+table.editor tr.wf-late td.upd-c{border-left:4px solid #C0392B}
 table.editor tr.wf-late td.name-c{color:#C0392B;font-weight:600}
 </style>
 <script>
@@ -1987,7 +2026,7 @@ $('#edExport').addEventListener('click', ()=>{
 });
 function renderEditor(){
   const cols = activeCols();
-  $('#edTable').innerHTML = `<thead><tr><th class="vis-c" title="Show on site · open the brief · edit in vertical view">Show</th>${cols.map(c=>`<th data-th="${c.k}" class="${c.cls||''}${c.pub?' pub-c':''}" title="${esc((c.pub?'LIVE ON THE MEMBER SITE — this field is displayed publicly on briefs, tiles, the map, or tools.\n\n':'')+(c.desc||'')+'\n\nDrag the right edge to resize this column (saved to your view); double-click the edge to reset.')}">${c.l}${c.pub?' ●':''}${c.ro?' ⓘ':''}<span class="col-grip" data-grip="${c.k}"></span></th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
+  $('#edTable').innerHTML = `<thead><tr><th class="upd-c" title="From the field — click a row's icon to draft, schedule, and publish that organization's quarterly partner updates">🗞</th><th class="vis-c" title="Show on site · open the brief · edit in vertical view">Show</th>${cols.map(c=>`<th data-th="${c.k}" class="${c.cls||''}${c.pub?' pub-c':''}" title="${esc((c.pub?'LIVE ON THE MEMBER SITE — this field is displayed publicly on briefs, tiles, the map, or tools.\n\n':'')+(c.desc||'')+'\n\nDrag the right edge to resize this column (saved to your view); double-click the edge to reset.')}">${c.l}${c.pub?' ●':''}${c.ro?' ⓘ':''}<span class="col-grip" data-grip="${c.k}"></span></th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
   applyColWidths(); wireColResize();
   if (!$('#pubLegend')){
     $('#edCount').insertAdjacentHTML('afterend',
@@ -2007,7 +2046,12 @@ function renderEdRows(){
   const wfRank = o=>{ const wf=o.workflow||{}; return wfLate(o) ? 0 : wf.req ? 1 : wf.sub ? 2 : 3; };
   list.sort((a,b)=>wfRank(a)-wfRank(b));   // late first, then review requests, then submission invites
   $('#edBody').innerHTML = list.map(o=>{ const wf=o.workflow||{}; const rowCls = (wf.req?'wf-req':wf.sub?'wf-sub':'') + (wfLate(o)?' wf-late':'');
-    return `<tr data-id="${o.id}" class="${rowCls}"><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
+    const ups = (window.ORG_UPDATES||[]).filter(u=>u.orgId===o.id || (!u.orgId && u.org===o.name));
+    const liveN = window.updIsLive ? ups.filter(u=>updIsLive(u)).length : 0;
+    const updTitle = ups.length
+      ? `From the field — ${liveN} live, ${ups.length-liveN} draft or upcoming. Click to view past updates and plan next quarter's.`
+      : 'From the field — no updates logged yet. Click to draft this organization\'s first quarterly update.';
+    return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
     if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
     if (c.fx) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(c.fx(o))}</td>`;
@@ -2142,6 +2186,149 @@ function wireColResize(){
     });
   });
 }
+
+/* ================= FROM THE FIELD — per-org quarterly updates manager ================= */
+let updMgrState = {orgId:null, editId:null};
+function orgUpdatesOf(o){ return (window.ORG_UPDATES||[]).filter(u=>u.orgId===o.id || (!u.orgId && u.org===o.name)); }
+function updQtrOptions(sel){
+  // 2024-Q1 through six quarters ahead of today, newest first
+  const cur = curQuarter(); let y = +cur.slice(0,4), n = +cur.slice(6);
+  for (let i=0;i<6;i++){ n++; if (n>4){ n=1; y++; } }
+  const out = [];
+  for (let yy=y; yy>=2024; yy--) for (let qq=(yy===y?n:4); qq>=1; qq--) out.push(yy+'-Q'+qq);
+  return out.map(q=>`<option value="${q}" ${q===sel?'selected':''}>${qtrLabel(q)}${q===cur?' — current quarter':''}</option>`).join('');
+}
+function updStatusChip(u){
+  const cur = curQuarter();
+  if (updIsLive(u)) return '<span class="pill" style="background:#DFE9DC;border-color:#7FA87F;color:#2C4E2C">● Live</span>';
+  if (u.quarter > cur) return u.status==='draft'
+    ? '<span class="pill">Draft · planned for '+esc(qtrLabel(u.quarter))+'</span>'
+    : '<span class="pill gold">Scheduled — goes live when '+esc(qtrLabel(u.quarter))+' starts</span>';
+  return '<span class="pill" style="border-color:#C0392B;color:#C0392B">Draft — its quarter has already started</span>';
+}
+window.openUpdatesMgr = function(id){
+  updMgrState = {orgId:id, editId:null};
+  renderUpdMgr();
+  $('#modalVeil').classList.add('show');
+};
+window.updMgrEdit = function(eid){ updMgrState.editId = eid; renderUpdMgr(); const t=$('#umTitle'); if(t) t.focus(); };
+function renderUpdMgr(){
+  const o = byId(updMgrState.orgId); if (!o) return;
+  const box = $('#modalBox');
+  box.style.width = 'min(740px,95vw)'; box.style.maxHeight = '88vh'; box.style.overflow = 'auto';
+  const cur = curQuarter();
+  const ups = orgUpdatesOf(o).slice().sort((a,b)=> a.quarter<b.quarter?1:a.quarter>b.quarter?-1:0);
+  const upcoming = ups.filter(u=>u.quarter>cur), log = ups.filter(u=>u.quarter<=cur);
+  const row = u => `<div class="upd-row ${String(updMgrState.editId)===String(u.id)?'editing':''}">
+      <span class="pill" style="flex:none">${esc(qtrLabel(u.quarter))}</span>${updStatusChip(u)}
+      <span class="upd-row-ttl">${esc(u.title||'(untitled)')}</span>
+      ${u.link?'<span title="Has a public update link">🔗</span>':''}${u.video?'<span title="Has a video link">🎬</span>':''}
+      <span class="res" onclick="updMgrEdit('${u.id}')">✎ Edit</span></div>`;
+  const eu = updMgrState.editId && updMgrState.editId!=='new' ? ups.find(u=>String(u.id)===String(updMgrState.editId)) : null;
+  const form = updMgrState.editId ? `
+    <div class="upd-form">
+      <div class="kicker" style="margin-bottom:8px">${eu?'Edit update':'New update'}</div>
+      <div class="upd-ai">
+        <div style="font-size:12px;color:var(--ink-3);margin-bottom:7px">✦ <b>Auto-write with Claude</b> — paste the link to the org's update, article, or story (and/or attach a PDF or text file). Claude reads the source, then drafts the title, summary, and mini-blog storytelling below. Everything stays editable before you save.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="umAiUrl" type="text" placeholder="https:// — link to the update / article / report" style="flex:1;min-width:200px" value="${esc(eu?eu.link||'':'')}">
+          <input id="umAiFile" type="file" accept=".pdf,.txt,.md" style="max-width:200px;font-size:11.5px">
+          <button class="btn" id="umAiGo" onclick="aiWriteUpdate()">✦ Auto-write</button>
+        </div>
+      </div>
+      <div class="upd-form-grid">
+        <label>Quarter</label><select id="umQuarter">${updQtrOptions(eu?eu.quarter:cur)}</select>
+        <label>Status</label><select id="umStatus">
+          <option value="draft" ${(!eu||eu.status==='draft')?'selected':''}>Draft — visible only here</option>
+          <option value="ready" ${eu&&eu.status!=='draft'?'selected':''}>Publish — live once its quarter has started</option></select>
+        <label>Title</label><input id="umTitle" type="text" placeholder="Headline for the update" value="${esc(eu?eu.title:'')}">
+        <label>Summary</label><textarea id="umSum" rows="2" placeholder="One or two sentences shown on the dashboard card">${esc(eu?eu.sum||'':'')}</textarea>
+        <label>Blog body</label><textarea id="umBody" rows="7" placeholder="The full article. Leave a blank line between paragraphs.">${esc(eu&&eu.body?eu.body.join('\n\n'):'')}</textarea>
+        <label>Public link</label><input id="umLink" type="text" placeholder="https:// — the org's own public update or report" value="${esc(eu?eu.link||'':'')}">
+        <label>Video link</label><input id="umVideo" type="text" placeholder="https:// — YouTube, Vimeo, etc." value="${esc(eu?eu.video||'':'')}">
+        <label>Hero image</label><input id="umImg" type="text" placeholder="https:// image URL (blank = the org's saved hero photo)" value="${esc(eu?eu.img||'':'')}">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        ${eu?`<span class="res" style="color:var(--crit)" onclick="delUpdMgr('${eu.id}')">✕ Delete this update</span>`:'<span></span>'}
+        <span style="display:flex;gap:8px"><button class="btn" onclick="updMgrState.editId=null;renderUpdMgr()">Cancel</button>
+        <button class="btn primary" onclick="saveUpdMgr()">Save update</button></span>
+      </div>
+    </div>` : '';
+  box.innerHTML = `<div class="kicker">Data studio · from the field</div>
+    <h3 style="margin-bottom:2px;display:inline-flex;align-items:center;gap:8px">${typeof orgLogo==='function'?orgLogo(o,22):''}${esc(o.name)}</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:12px">The real quarterly updates log — draft next quarter's update ahead of time, keep the record of what ran. Published updates go live on every member's dashboard the moment their quarter starts (it is ${qtrLabel(cur)} now). Rows highlighted 🗞 gold in the studio have a live update.</div>
+    ${updMgrState.editId?'':'<button class="btn primary" style="margin-bottom:12px" onclick="updMgrEdit(\'new\')">＋ Draft an update</button>'}
+    ${form}
+    <div class="kicker" style="margin:14px 0 6px">Upcoming · planned for next quarters</div>
+    ${upcoming.length?upcoming.map(row).join(''):'<div class="muted" style="font-size:12.5px;padding:2px 0 4px">Nothing planned yet — draft next quarter\'s update so it goes live automatically.</div>'}
+    <div class="kicker" style="margin:16px 0 6px">Log · current & past quarters</div>
+    ${log.length?log.map(row).join(''):'<div class="muted" style="font-size:12.5px;padding:2px 0 4px">No past updates recorded for this organization.</div>'}
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;border-top:1px solid var(--hairline);padding-top:12px">
+      <button class="btn" onclick="closeModal()">Close</button></div>`;
+}
+/* ✦ Auto-write: Claude reads the linked or attached source and drafts the
+   title + summary + mini-blog body. Server-side (staff-gated) — the API key
+   never touches the browser. */
+function fileToB64(f){ return new Promise((ok,er)=>{ const rd=new FileReader(); rd.onload=()=>ok(String(rd.result).split(',')[1]); rd.onerror=er; rd.readAsDataURL(f); }); }
+window.aiWriteUpdate = async function(){
+  const o = byId(updMgrState.orgId); if (!o) return;
+  const url = $('#umAiUrl').value.trim();
+  const f = $('#umAiFile').files[0];
+  if (!url && !f){ flash('Paste a link or attach a file first'); return; }
+  if (f && f.size > 4*1024*1024){ flash('Attachment too large — keep it under 4 MB'); return; }
+  const btn = $('#umAiGo'); btn.disabled = true; btn.textContent = '✦ Reading & writing…';
+  try{
+    let doc = null, text = null;
+    if (f){
+      if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) doc = {media_type:'application/pdf', data: await fileToB64(f)};
+      else text = await f.text();
+    }
+    const r = await fetch('/api/updatewrite', {method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(sb.session?.access_token||'')},
+      body: JSON.stringify({org:{name:o.name, website:o.website}, quarter:qtrLabel($('#umQuarter').value), url:url||null, doc, text})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    if (j.title) $('#umTitle').value = j.title;
+    if (j.summary) $('#umSum').value = j.summary;
+    if (j.body) $('#umBody').value = (Array.isArray(j.body)?j.body:[String(j.body)]).join('\n\n');
+    if (url && !$('#umLink').value.trim()) $('#umLink').value = url;
+    flash('✦ Draft written from the source — review, edit, and save');
+  }catch(e){ flash('Auto-write failed: '+e.message); }
+  btn.disabled = false; btn.textContent = '✦ Auto-write';
+};
+window.saveUpdMgr = function(){
+  const o = byId(updMgrState.orgId); if (!o) return;
+  const title = $('#umTitle').value.trim();
+  if (!title){ flash('Give the update a title first'); return; }
+  let u;
+  if (updMgrState.editId==='new'){
+    u = {id:'n'+Math.random().toString(36).slice(2,9), orgId:o.id, org:o.name};
+    ORG_UPDATES.push(u);
+  } else {
+    u = ORG_UPDATES.find(x=>String(x.id)===String(updMgrState.editId)); if (!u) return;
+    u.orgId = u.orgId || o.id; u.org = u.org || o.name;
+  }
+  u.quarter = $('#umQuarter').value; u.status = $('#umStatus').value;
+  u.title = title; u.sum = $('#umSum').value.trim();
+  u.body = $('#umBody').value.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  u.link = $('#umLink').value.trim(); u.video = $('#umVideo').value.trim(); u.img = $('#umImg').value.trim();
+  window.PERSIST && PERSIST.orgUpdate && PERSIST.orgUpdate(u);
+  updMgrState.editId = null;
+  renderUpdMgr(); if ($('#edBody')) renderEdRows();
+  if (typeof renderUpdates==='function' && $('#updatesSec')) renderUpdates();
+  flash(updIsLive(u) ? 'Update saved — live on the member dashboard now'
+    : u.status==='draft' ? 'Draft saved — not visible to members'
+    : 'Update scheduled — goes live when '+qtrLabel(u.quarter)+' starts');
+};
+window.delUpdMgr = function(uid){
+  const i = ORG_UPDATES.findIndex(x=>String(x.id)===String(uid)); if (i<0) return;
+  const [u] = ORG_UPDATES.splice(i,1);
+  if (u.dbId && window.PERSIST && PERSIST.orgUpdateDelete) PERSIST.orgUpdateDelete(u.dbId);
+  updMgrState.editId = null;
+  renderUpdMgr(); if ($('#edBody')) renderEdRows();
+  if (typeof renderUpdates==='function' && $('#updatesSec')) renderUpdates();
+  flash('Update deleted');
+};
 
 /* ================= VERTICAL EDIT (transposed single-org view) ================= */
 window.openVerticalEdit = function(id){
@@ -2847,7 +3034,7 @@ function renderMarquee(){
 }
 
 /* ---------- partner updates ---------- */
-const UPDATES = [
+const SEED_UPDATES = [
  {org:'Fortify Health', title:'Twelve new mills join the fortification network in Maharashtra', sum:'Quarterly expansion brings iron-fortified flour within reach of 4 million more people; independent lab checks passed at 96 percent of sites.', causes:['Global Health','Agriculture & Food'],
   body:['Fortify Health signed twelve chakki mills in Maharashtra this quarter, the largest single expansion of its fortification network to date. Each mill now blends iron, folic acid, and B12 premix into wheat flour at the point of grinding, which means families get fortified flour without changing anything about how they buy or cook.','Independent laboratory checks covered every active site. Ninety-six percent passed on the first sample; the remaining mills were re-calibrated and passed on the second. The team publishes the full lab results in its data room.','The expansion brings fortified flour within reach of roughly four million more people. The binding constraint is now premix logistics rather than mill recruitment, and the operations team is piloting regional premix depots to cut delivery times in half.','What this means for funders: the cost per person-year of fortification is holding under one dollar even as the network scales, and the team can absorb additional funding without diluting quality controls.']},
  {org:'Lead Exposure Elimination Project', title:'Malawi adopts national lead-paint standard following LEEP pilot', sum:'Regulation drafted with LEEP support takes effect in January; paint sampling shows compliance rising two quarters ahead of schedule.', causes:['Global Health'],
@@ -2861,17 +3048,29 @@ const UPDATES = [
  {org:'StrongMinds', title:'Group therapy outcomes hold at six-month follow-up', sum:'New cohort data shows depression-free rates of 80 percent sustained; expansion into public clinics in Uganda continues.', causes:['Mental Health'],
   body:['StrongMinds published six-month follow-up data for its latest treatment cohorts: 80 percent of women who completed group interpersonal therapy remained depression-free, consistent with the organization\u2019s long-running results.','The more consequential news is where therapy is happening. Groups now run inside Ugandan public health clinics with government-employed facilitators, a channel that could eventually carry the model without StrongMinds delivering it directly.','Task-shifted therapy - trained lay facilitators rather than psychiatrists - is what keeps the cost per person treated low enough to matter at population scale.','Household spillovers (children\u2019s school attendance, partner employment) continue to show up in the data, suggesting the headline outcome understates the true impact.']},
 ];
+/* Real quarterly updates, managed per-org from the Data studio's leftmost 🗞 column.
+   The seeds above are the launch examples; once the org_updates table exists they are
+   replaced on sign-in by whatever the team has actually drafted and published. */
+window.curQuarter = function(d){ d = d || new Date(); return d.getFullYear() + '-Q' + (Math.floor(d.getMonth()/3) + 1); };
+window.qtrLabel = q => q ? q.slice(5) + ' ' + q.slice(0,4) : '';
+window.updIsLive = u => u.status !== 'draft' && u.quarter <= curQuarter();
+window.updOrgOf = u => ORGS.find(x=>x.id===u.orgId) || ORGS.find(x=>x.name===u.org);
+window.updCauses = u => { const o = updOrgOf(u); return ((o && o.causes && o.causes.length ? o.causes : u.causes) || []).slice(0,2); };
+window.ORG_UPDATES = SEED_UPDATES.map((u,i)=>({id:'seed'+(i+1), quarter:'2026-Q2', status:'ready', link:'', video:'', ...u}));
+
 function updHero(u){
-  const o = ORGS.find(x=>x.name===u.org);
-  // same hero photo chain as the org's brief page: staff-set intervention photo -> website screenshot
+  const o = updOrgOf(u);
+  // same hero photo chain as the org's brief page: staff-set update image -> intervention photo -> website screenshot
   const dom = o && typeof domainOf==='function' ? domainOf(o) : '';
   const photo = (u.img && /^https?:/.test(u.img)) ? u.img
     : (o && o.interventionImage && /^https?:/.test(o.interventionImage)) ? o.interventionImage
     : dom ? 'https://image.thum.io/get/width/700/crop/430/noanimate/https://'+dom : '';
   const logo = (o && typeof orgLogo==='function') ? orgLogo(o,22) : '';
-  const nm = `<span class="nm" style="display:inline-flex;align-items:center;gap:7px">${logo}${esc(u.org)}</span>`;
-  const c1 = window.SITE_THEME.causeHex[u.causes[0]] || '#263759';
-  const c2 = window.SITE_THEME.causeHex[u.causes[1]||u.causes[0]] || '#298CC0';
+  const name = o ? o.name : (u.org||'');
+  const nm = `<span class="nm" style="display:inline-flex;align-items:center;gap:7px">${logo}${esc(name)}</span>`;
+  const causes = updCauses(u);
+  const c1 = window.SITE_THEME.causeHex[causes[0]] || '#263759';
+  const c2 = window.SITE_THEME.causeHex[causes[1]||causes[0]] || '#298CC0';
   // gradient art is always the base layer; the photo sits on top and removes itself if it fails to load
   return `<div class="upd-hero" style="background:
     radial-gradient(220px 130px at 85% -10%, ${c2}55, transparent 70%),
@@ -2881,6 +3080,22 @@ function updHero(u){
     ${photo?`<img class="upd-photo" src="${esc(photo)}" alt="" loading="lazy" onerror="this.remove()">`:''}
     <span class="upd-shade"></span>${nm}</div>`;
 }
+/* every current outstanding update (its quarter has started + it is published),
+   from orgs shown on the site — top-pick orgs first, newest quarter first */
+function liveUpdatesList(){
+  const rank = u => { const o = updOrgOf(u); return o && o.tier==='top' ? 0 : 1; };
+  return (window.ORG_UPDATES||[]).filter(u=>{ const o = updOrgOf(u); return o && isShown(o) && updIsLive(u); })
+    .sort((a,b)=> rank(a)-rank(b) || (a.quarter<b.quarter?1:a.quarter>b.quarter?-1:0) || String(a.id).localeCompare(String(b.id)));
+}
+let updPage = 0, updTimer = null, updPages = [];
+function updCardHTML(u){
+  const causes = updCauses(u);
+  return `<div class="upd-card" onclick="openUpdateArticle('${u.id}')">${updHero(u)}
+    <div class="upd-body"><div class="ttl">${esc(u.title)}</div>
+    <div class="sum">${esc(u.sum)}</div>
+    <div class="pills"><span class="pill" style="font-size:10px">${esc(qtrLabel(u.quarter))}</span>${causes.map(c=>`<span class="pill" style="font-size:10px"><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:5px"></span>${c}</span>`).join('')}</div>
+    </div></div>`;
+}
 function renderUpdates(){
   let sec = $('#updatesSec');
   if (!sec){
@@ -2888,34 +3103,79 @@ function renderUpdates(){
       <div class="card fade-up in" id="updatesSec" style="margin-top:4px">
       <div class="kicker">From the field</div>
       <h3 style="margin-bottom:16px">Updates from our partner organizations</h3>
-      <div class="updates-grid" id="updGrid"></div></div>`);
+      <div class="updates-grid" id="updGrid" style="transition:opacity .7s"></div>
+      <div class="tp-dots" id="updDots"></div></div>`);
     sec = $('#updatesSec');
   }
-  const shown = new Set(ORGS.filter(isShown).map(o=>o.name));
-  const items = UPDATES.filter(u=>shown.has(u.org)).slice(0,6);
-  $('#updGrid').innerHTML = items.map(u=>{
-    const idx = UPDATES.indexOf(u);
-    return `<div class="upd-card" onclick="openUpdateArticle(${idx})">${updHero(u)}
-      <div class="upd-body"><div class="ttl">${esc(u.title)}</div>
-      <div class="sum">${esc(u.sum)}</div>
-      <div class="pills">${u.causes.map(c=>`<span class="pill" style="font-size:10px"><span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:5px"></span>${c}</span>`).join('')}</div>
-      </div></div>`;}).join('');
+  const items = liveUpdatesList();
+  updPages = []; for (let i=0;i<items.length;i+=3) updPages.push(items.slice(i,i+3));
+  clearInterval(updTimer); updTimer = null;
+  if (!updPages.length){
+    $('#updGrid').innerHTML = '<div class="muted" style="font-size:13px;padding:6px 2px">No partner updates are live this quarter yet — they appear here the moment one is published in the Data studio.</div>';
+    $('#updDots').innerHTML = ''; return;
+  }
+  if (updPage >= updPages.length) updPage = 0;
+  paintUpdates(false);
+  // auto-acknowledge new quarters: fade-shift through every outstanding update, a page at a time
+  updTimer = setInterval(()=>{ if (updPages.length>1 && !sec.matches(':hover')){ updPage = (updPage+1)%updPages.length; paintUpdates(true); } }, 9000);
 }
-window.openUpdateArticle = function(i){
-  const u = UPDATES[i]; if (!u) return;
-  const o = ORGS.find(x=>x.name===u.org);
+function paintUpdates(fade){
+  const grid = $('#updGrid'); if (!grid) return;
+  const doPaint = ()=>{
+    grid.innerHTML = updPages[updPage].map(updCardHTML).join('');
+    $('#updDots').innerHTML = updPages.length>1 ? updPages.map((_,i)=>`<i class="${i===updPage?'on':''}" onclick="updGo(${i})"></i>`).join('') : '';
+    grid.style.opacity = 0; requestAnimationFrame(()=>requestAnimationFrame(()=>{ grid.style.opacity = 1; }));
+  };
+  if (fade){ grid.style.opacity = 0; setTimeout(doPaint, 700); } else doPaint();
+}
+window.updGo = i => { updPage = i; paintUpdates(true); };
+window.openUpdateArticle = function(uid){
+  const u = (window.ORG_UPDATES||[]).find(x=>String(x.id)===String(uid)); if (!u) return;
+  const o = updOrgOf(u);
+  const causes = updCauses(u);
   const veil = $('#modalVeil'), box = $('#modalBox');
   box.style.width = 'min(720px,94vw)'; box.style.maxHeight = '86vh'; box.style.overflow = 'auto';
+  const links = [
+    u.link ? `<a href="${esc(u.link)}" target="_blank" rel="noopener" style="font-size:13px">Read the public update ↗</a>` : '',
+    u.video ? `<a href="${esc(u.video)}" target="_blank" rel="noopener" style="font-size:13px">Watch the video ↗</a>` : '',
+  ].filter(Boolean).join('<span style="color:var(--ink-3);margin:0 8px">·</span>');
   box.innerHTML = `${updHero(u).replace('class="upd-hero"','class="upd-hero" style="height:150px;border-radius:12px;overflow:hidden;margin:-8px 0 16px"')}
-    <div class="kicker">From the field · ${esc(u.org)}</div>
+    <div class="kicker">From the field · ${esc(o?o.name:u.org)}</div>
     <h3 style="font-size:24px;line-height:1.25;margin-bottom:6px">${esc(u.title)}</h3>
-    <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:14px">Q2 2026 update · shared with Factory for Good members</div>
-    ${(u.body||[u.sum]).map(p=>`<p style="font-size:14px;line-height:1.7;color:var(--ink-2);margin-bottom:12px">${esc(p)}</p>`).join('')}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px">${u.causes.map(c=>`<span class="pill" style="font-size:10px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:5px"></span>${c}</span>`).join('')}</div>
+    <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:14px">${esc(qtrLabel(u.quarter))} update · shared with Factory for Good members</div>
+    ${(u.body&&u.body.length?u.body:[u.sum]).map(p=>`<p style="font-size:14px;line-height:1.7;color:var(--ink-2);margin-bottom:12px">${esc(p)}</p>`).join('')}
+    ${links?`<div style="margin:4px 0 10px">${links}</div>`:''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px">${causes.map(c=>`<span class="pill" style="font-size:10px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CAUSE_COLOR[c]};margin-right:5px"></span>${c}</span>`).join('')}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-top:1px solid var(--hairline);padding-top:14px">
-      ${o?`<a style="cursor:pointer;font-size:13px" onclick="closeModal();go('#/org/${o.id}')">View ${esc(u.org)}'s brief →</a>`:'<span></span>'}
+      <span style="display:flex;gap:16px;align-items:center">
+        ${o?`<a style="cursor:pointer;font-size:13px" onclick="closeModal();go('#/org/${o.id}')">View ${esc(o.name)}'s brief →</a>`:''}
+        ${o&&liveOrgUpdates(o).length>1?`<a style="cursor:pointer;font-size:13px" onclick="openOrgUpdates(${o.id})">All updates (${liveOrgUpdates(o).length})</a>`:''}
+      </span>
       <button class="btn" onclick="closeModal()">Close</button>
     </div>`;
+  veil.classList.add('show');
+};
+/* every published update from one org whose quarter has started — newest first */
+window.liveOrgUpdates = function(o){
+  return (window.ORG_UPDATES||[]).filter(u=>{ const uo = updOrgOf(u); return uo && uo.id===o.id && updIsLive(u); })
+    .sort((a,b)=> a.quarter<b.quarter?1:a.quarter>b.quarter?-1:0);
+};
+/* the brief page's "From the field" list: past and present updates for this org */
+window.openOrgUpdates = function(oid){
+  const o = ORGS.find(x=>x.id===oid); if (!o) return;
+  const ups = liveOrgUpdates(o); if (!ups.length){ flash('No published updates from '+o.name+' yet'); return; }
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width = 'min(640px,94vw)'; box.style.maxHeight = '82vh'; box.style.overflow = 'auto';
+  box.innerHTML = `<div class="kicker">From the field · ${esc(o.name)}</div>
+    <h3 style="margin-bottom:4px;display:inline-flex;align-items:center;gap:8px">${typeof orgLogo==='function'?orgLogo(o,22):''}Updates, past and present</h3>
+    <div class="muted" style="font-size:12.5px;margin-bottom:14px">Every quarterly update this organization has shared with Factory for Good members.</div>
+    ${ups.map(u=>`<div class="upd-row" style="cursor:pointer" onclick="openUpdateArticle('${u.id}')">
+      <span class="pill" style="flex:none">${esc(qtrLabel(u.quarter))}</span>
+      <span class="upd-row-ttl">${esc(u.title)}</span>
+      ${u.link?'<span title="Has a public update link">🔗</span>':''}${u.video?'<span title="Has a video link">🎬</span>':''}
+      <span class="res">Read →</span></div>`).join('')}
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;border-top:1px solid var(--hairline);padding-top:12px">
+      <button class="btn" onclick="closeModal()">Close</button></div>`;
   veil.classList.add('show');
 };
 const _renderDashboard = renderDashboard;
@@ -3166,6 +3426,15 @@ window.maybeTour = maybeTour;
   if (nav && !document.getElementById('tourBtn'))
     nav.insertAdjacentHTML('beforeend','<button id="tourBtn" onclick="startTour(true)">Tour</button>');
 })();
+/* dynamic mesh background — on for the dashboard, library, and org briefs */
+function syncMesh(){
+  const h = location.hash || '#/dashboard';
+  const on = h.startsWith('#/dashboard') || h.startsWith('#/orgs') || h.startsWith('#/org/');
+  document.body.classList.toggle('mesh-on', on);
+}
+window.addEventListener('hashchange', syncMesh);
+syncMesh();
+
 window.dismissOverlay = function(){
   const el = $('#impactOverlay'); if (!el) return;
   el.style.transition='opacity .5s'; el.style.opacity=0;
@@ -3794,10 +4063,15 @@ function renderOrg(id){
     </div>
     </div>
   </div>
-  ${insightsEligible?`<div class="panel-tabs fade-up" style="margin-bottom:18px">
+  ${(()=>{
+    const un = window.liveOrgUpdates ? liveOrgUpdates(o).length : 0;
+    const updPill = un ? `<button class="pill" style="align-self:center;margin:0 0 8px 14px;line-height:1.6" title="Quarterly 'From the field' updates this organization has shared with members" onclick="openOrgUpdates(${o.id})">🗞 View updates · ${un}</button>` : '';
+    if (insightsEligible) return `<div class="panel-tabs fade-up" style="margin-bottom:18px">
     <button data-otab="overview" class="${tab==='overview'?'active':''}">Overview</button>
-    <button data-otab="insights" class="${tab==='insights'?'active':''}">Deeper insights</button>
-  </div>`:''}
+    <button data-otab="insights" class="${tab==='insights'?'active':''}">Deeper insights</button>${updPill}
+  </div>`;
+    return updPill ? `<div class="panel-tabs fade-up" style="margin-bottom:18px">${updPill}</div>` : '';
+  })()}
   <div id="orgTabBody">${tab==='overview'?orgOverviewHTML(o):orgInsightsHTML(o)}</div>
   ${relatedHTML(o)}`;
 
@@ -3809,6 +4083,22 @@ function renderOrg(id){
     $$('#orgTabBody .fade-up').forEach((el,i)=>setTimeout(()=>el.classList.add('in'),40+i*70));
   }));
   afterOrgRender(o);
+  // From the field: the first visit to an org with live updates surfaces them as an overlay
+  const lus = window.liveOrgUpdates ? liveOrgUpdates(o) : [];
+  if (lus.length){
+    let seen = false;
+    try{ seen = !!sessionStorage.getItem('ffg.updseen.'+o.id); }catch(e){}
+    if (!seen){
+      try{ sessionStorage.setItem('ffg.updseen.'+o.id, '1'); }catch(e){}
+      setTimeout(()=>{
+        if (!location.hash.startsWith('#/org/'+o.id)) return;   // navigated away already
+        const veil = $('#modalVeil');
+        veil.classList.add('soft');                              // fade the summary in
+        openOrgUpdates(o.id);                                    // same view as the pill
+        setTimeout(()=>veil.classList.remove('soft'), 900);
+      }, 450);
+    }
+  }
 }
 
 function estPanelHTML(o, amt){
@@ -5150,6 +5440,19 @@ async function loadLiveData(){
     }
     member.circles = myCircles.map(c=>c.id);
   }catch(e){}
+  // From the field — the real quarterly updates log (drafted + published in the Data studio).
+  // Loaded for every signed-in member so the dashboard rotation shows only real updates.
+  try{
+    const ur = await sb.rest('org_updates?select=*&order=quarter.desc');
+    if (Array.isArray(ur) && window.ORG_UPDATES){
+      ORG_UPDATES.length = 0;
+      ur.forEach(r=>ORG_UPDATES.push({id:r.id, dbId:r.id, orgId:r.org_id,
+        org:(orgs.find(o=>o.id===r.org_id)||{}).name||'',
+        quarter:r.quarter, title:r.title||'', sum:r.summary||'',
+        body:String(r.body||'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean),
+        link:r.link_url||'', video:r.video_url||'', img:r.img||'', status:r.status||'draft'}));
+    }
+  }catch(e){}   // database without the org_updates table yet — the built-in samples stay
   setData({orgs, member, network:{name:'Our collective', members, alloc}});
   DB.circles = myCircles;
   if (APP.staff){
@@ -5262,6 +5565,23 @@ window.PERSIST = {
   wfEventDelete(dbId){
     if (APP.demo) return;
     sb.rest('org_workflow_events?id=eq.'+dbId, {method:'DELETE'}).catch(()=>{});
+  },
+  /* From the field quarterly updates (staff-only writes; members read) */
+  orgUpdate(u){
+    if (APP.demo) return;
+    const row = {org_id:u.orgId, quarter:u.quarter, title:u.title, summary:u.sum||'',
+      body:(u.body||[]).join('\n\n'), link_url:u.link||null, video_url:u.video||null,
+      img:u.img||null, status:u.status||'draft'};
+    if (u.dbId)
+      sb.rest('org_updates?id=eq.'+u.dbId, {method:'PATCH', body:row}).catch(e=>flash('Update not saved: '+e.message));
+    else
+      sb.rest('org_updates', {method:'POST', body:row})
+        .then(rows=>{ if (rows?.[0]){ u.dbId = rows[0].id; u.id = rows[0].id; } })
+        .catch(e=>flash('Update not saved: '+e.message));
+  },
+  orgUpdateDelete(dbId){
+    if (APP.demo) return;
+    sb.rest('org_updates?id=eq.'+dbId, {method:'DELETE'}).catch(()=>{});
   },
   /* ---- Donor studio (staff only; RLS enforces server-side) ---- */
   donor(dn){
@@ -5467,9 +5787,20 @@ window.autofillRow = async function(id){
       clearGathering(o, k, o[k], f); n++;
     }
     o.lastUpdated = new Date().toISOString().slice(0,10);
+    // researched sources + flagged best guesses arrive per field — pinned as cell notes
+    let ns = 0;
+    for (const k of Object.keys(j.values||{})){
+      if (!empty.includes(k) || j.values[k]==null) continue;
+      const url = (j.sources||{})[k], why = (j.uncertain||{})[k];
+      let note = '';
+      if (why) note = 'Auto-fill BEST GUESS — verify: '+why + (url?' · '+url:'');
+      else if (url) note = 'Auto-fill source: '+url;
+      if (note){ CELLNOTES[o.id+':'+k] = note; PERSIST.note(o.id, k, note); ns++; }
+    }
+    if (ns && typeof updateNoteCnt==='function') updateNoteCnt();
     o.region = regionOf(o); buildPins(); renderEdRows();
     PERSIST.org(o);
-    flash(`✦ Filled ${n} field${n===1?'':'s'} for ${o.name} — review before publishing`);
+    flash(`✦ Filled ${n} field${n===1?'':'s'} for ${o.name}${ns?` with ${ns} source note${ns===1?'':'s'}`:''} — review before publishing`);
   }catch(err){ flash('Auto-fill failed: '+String(err.message).slice(0,120)); }
 };
 document.addEventListener('DOMContentLoaded', ()=>{ const b=$('#edAI'); if (b) b.style.display='none'; });
@@ -5488,7 +5819,7 @@ async function bootAfterAuth(){
   hideGate(); applyRole();
   if (!location.hash || location.hash.includes('access_token')) location.hash = '#/dashboard';
   route();
-  if (window.maybeTour) setTimeout(maybeTour, 700);
+  // the full-screen impact overlay is reserved for Demo mode entry (setDemo)
 }
 async function bootApp(){
   injectGate();

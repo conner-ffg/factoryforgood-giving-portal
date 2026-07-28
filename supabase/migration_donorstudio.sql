@@ -201,3 +201,84 @@ insert into public.circles (id, name, description) values
   ('climate-founders', 'Climate Founders Circle', 'Founders pooling for climate and environment interventions.'),
   ('next-gen', 'Next Generation Circle', 'Emerging philanthropists building their first portfolios.')
 on conflict (id) do nothing;
+
+-- ================================================================
+-- FROM THE FIELD — real quarterly partner updates
+-- Drafted and published from the Data studio's leftmost column.
+-- Members read them; only staff write. An update is live on member
+-- dashboards once its quarter has started AND status = 'ready'.
+-- ================================================================
+create table if not exists public.org_updates (
+  id bigint generated always as identity primary key,
+  org_id int not null references public.orgs(id) on delete cascade,
+  quarter text not null,               -- 'YYYY-Qn', e.g. '2026-Q3'
+  title text not null default '',
+  summary text default '',
+  body text default '',                -- blog body; blank line between paragraphs
+  link_url text,                       -- the org's own public update
+  video_url text,
+  img text,                            -- hero image override
+  status text not null default 'draft' check (status in ('draft','ready')),
+  created_at timestamptz not null default now()
+);
+alter table public.org_updates enable row level security;
+drop policy if exists org_updates_read on public.org_updates;
+create policy org_updates_read on public.org_updates for select
+  to authenticated using (true);
+drop policy if exists org_updates_staff_write on public.org_updates;
+create policy org_updates_staff_write on public.org_updates for all
+  using (public.is_staff()) with check (public.is_staff());
+
+-- Seed the launch examples as real, editable Q2 2026 log entries
+-- (matched by org name; skipped for any org that already has a Q2 2026 row).
+insert into public.org_updates (org_id, quarter, title, summary, body, status)
+select o.id, '2026-Q2', s.title, s.summary, s.body, 'ready'
+from (values
+  ('Fortify Health', 'Twelve new mills join the fortification network in Maharashtra', 'Quarterly expansion brings iron-fortified flour within reach of 4 million more people; independent lab checks passed at 96 percent of sites.', 'Fortify Health signed twelve chakki mills in Maharashtra this quarter, the largest single expansion of its fortification network to date. Each mill now blends iron, folic acid, and B12 premix into wheat flour at the point of grinding, which means families get fortified flour without changing anything about how they buy or cook.
+
+Independent laboratory checks covered every active site. Ninety-six percent passed on the first sample; the remaining mills were re-calibrated and passed on the second. The team publishes the full lab results in its data room.
+
+The expansion brings fortified flour within reach of roughly four million more people. The binding constraint is now premix logistics rather than mill recruitment, and the operations team is piloting regional premix depots to cut delivery times in half.
+
+What this means for funders: the cost per person-year of fortification is holding under one dollar even as the network scales, and the team can absorb additional funding without diluting quality controls.'),
+  ('Lead Exposure Elimination Project', 'Malawi adopts national lead-paint standard following LEEP pilot', 'Regulation drafted with LEEP support takes effect in January; paint sampling shows compliance rising two quarters ahead of schedule.', 'Malawi’s Bureau of Standards formally adopted a 90 ppm lead-paint limit, the standard LEEP helped draft after its 2024 market study found lead in over a third of sampled paints. The regulation takes effect in January.
+
+Manufacturer engagement started before the rule was final. Two of the three largest producers have already reformulated, and market sampling shows compliant paint rising two quarters ahead of the adoption timeline.
+
+LEEP’s playbook - study the market, brief the regulator, help manufacturers switch suppliers - has now contributed to standards in more than a dozen countries. The team estimates the Malawi standard alone will protect hundreds of thousands of children from a lifetime of lead exposure.
+
+Reformulation is cheap; the expensive part is knowing whom to call. That is precisely the gap this organization fills, and why its cost per child protected stays in the single dollars.'),
+  ('GiveDirectly', 'Field notes: what recipients bought in Q2, in their own words', 'New spending survey across 2,400 households; small-business investment and school fees again lead the list.', 'GiveDirectly surveyed 2,400 recipient households across three programs about how they used their transfers this quarter. As in prior rounds, the leading categories were small-business investment, school fees, and home improvements - not the consumption fears that cash programs still face.
+
+One recurring pattern: recipients pooling portions of their transfers into informal savings groups, then rotating lump sums to members for larger purchases like roofing iron and livestock.
+
+The survey instrument and raw anonymized data are public. Independent researchers continue to find no meaningful increase in temptation-goods spending, consistent with the broader cash-transfer literature.
+
+For funders, the takeaway is stable: cash remains the benchmark. Programs that cannot beat handing people money should be asked why.'),
+  ('Educate Girls', 'Door-to-door census reaches its ten-millionth household', 'Community volunteers have now mapped out-of-school girls across four Indian states; re-enrollment holding at 92 percent.', 'Team Balika volunteers knocked on their ten-millionth door this quarter. The census - village by village, household by household - is how Educate Girls finds the girls no enrollment drive ever reaches: those invisible to school records because they were never enrolled at all.
+
+Across the four states now mapped, re-enrollment of identified girls is holding at 92 percent, and the remedial learning program keeps closing foundational gaps within two academic terms.
+
+The census data has become infrastructure in its own right; two state governments now use it for their own planning.
+
+The organization’s development-impact-bond years taught it to price outcomes precisely, and that discipline shows in its unit economics as it scales toward its ten-year goal.'),
+  ('Shrimp Welfare Project', 'Three major producers commit to electrical stunning', 'Commitments cover an estimated 1.2 billion animals annually; implementation audits begin this fall.', 'Three of the world’s larger shrimp producers signed commitments to install electrical stunning on their harvest lines, replacing slow asphyxiation on ice. Together the commitments cover an estimated 1.2 billion animals per year.
+
+The Shrimp Welfare Project supplies the stunners and the technical integration support; producers supply the throughput. That split is why a single hire and a shipping container of equipment can move welfare standards for entire supply chains.
+
+Implementation audits begin this fall, with results to be published openly, and two additional producers are in late-stage conversations.
+
+Per animal affected, this remains among the cheapest suffering-reduction work our team tracks - fractions of a cent per shrimp per year.'),
+  ('StrongMinds', 'Group therapy outcomes hold at six-month follow-up', 'New cohort data shows depression-free rates of 80 percent sustained; expansion into public clinics in Uganda continues.', 'StrongMinds published six-month follow-up data for its latest treatment cohorts: 80 percent of women who completed group interpersonal therapy remained depression-free, consistent with the organization’s long-running results.
+
+The more consequential news is where therapy is happening. Groups now run inside Ugandan public health clinics with government-employed facilitators, a channel that could eventually carry the model without StrongMinds delivering it directly.
+
+Task-shifted therapy - trained lay facilitators rather than psychiatrists - is what keeps the cost per person treated low enough to matter at population scale.
+
+Household spillovers (children’s school attendance, partner employment) continue to show up in the data, suggesting the headline outcome understates the true impact.')
+) as s(org_name, title, summary, body)
+join public.orgs o on o.data->>'name' = s.org_name
+where not exists (
+  select 1 from public.org_updates u
+  where u.org_id = o.id and u.quarter = '2026-Q2'
+);

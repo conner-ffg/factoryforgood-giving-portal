@@ -244,6 +244,98 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('vertical edit lists all fields as rows', await page.evaluate(() =>
     document.querySelectorAll('#modalBox .ve-in').length > 60));
   await page.evaluate(() => closeModal());
+  // From the field: real quarterly updates managed from the leftmost 🗞 column
+  check('updates column is the first studio column', await page.evaluate(() =>
+    document.querySelector('#edTable thead th').classList.contains('upd-c') &&
+    !!document.querySelector('#edBody tr td.upd-c .upd-ic')));
+  check('live update badge on Fortify Health row', await page.evaluate(() => {
+    const tr = [...document.querySelectorAll('#edBody tr')].find(t => byId(+t.dataset.id).name === 'Fortify Health');
+    return !!tr && tr.querySelector('.upd-ic').classList.contains('on') && tr.querySelector('.upd-n').textContent === '1';
+  }));
+  await page.evaluate(() => openUpdatesMgr(ORGS.find(o => o.name === 'Fortify Health').id));
+  await page.waitForTimeout(300);
+  check('manager logs the Q2 update as live', await page.evaluate(() =>
+    document.querySelector('#modalBox').textContent.includes('Twelve new mills') &&
+    document.querySelector('#modalBox').textContent.includes('● Live')));
+  await page.evaluate(() => updMgrEdit('new'));
+  await page.waitForTimeout(250);
+  await page.fill('#umTitle', 'Premix depots pilot underway');
+  await page.fill('#umSum', 'Planned announcement for the Q4 rotation.');
+  await page.fill('#umBody', 'First paragraph.\n\nSecond paragraph.');
+  await page.evaluate(() => {
+    document.querySelector('#umQuarter').value = '2026-Q4';
+    document.querySelector('#umStatus').value = 'ready';
+  });
+  await page.evaluate(() => saveUpdMgr());
+  await page.waitForTimeout(800);
+  check('drafted future update persists + shows as scheduled', await page.evaluate(async () => {
+    const rows = await sb.rest('org_updates?select=*');
+    const mine = rows.find(r => r.title === 'Premix depots pilot underway');
+    return !!mine && mine.quarter === '2026-Q4' && mine.status === 'ready' &&
+      document.querySelector('#modalBox').textContent.includes('Scheduled');
+  }));
+  await page.evaluate(() => updMgrEdit('new'));
+  await page.waitForTimeout(250);
+  check('AI auto-write controls in the update form', await page.evaluate(() =>
+    !!document.querySelector('#umAiUrl') && !!document.querySelector('#umAiFile') && !!document.querySelector('#umAiGo')));
+  await page.evaluate(async () => {
+    const orig = window.fetch;
+    window.fetch = (u, opts) => String(u).includes('/api/updatewrite')
+      ? Promise.resolve({ ok: true, json: async () => ({ title: 'Stub title', summary: 'Stub summary.', body: ['Para one.', 'Para two.'] }) })
+      : orig(u, opts);
+    document.querySelector('#umAiUrl').value = 'https://example.org/update';
+    await aiWriteUpdate();
+    window.fetch = orig;
+  });
+  await page.waitForTimeout(200);
+  check('auto-write fills title, summary, mini-blog body + link', await page.evaluate(() =>
+    document.querySelector('#umTitle').value === 'Stub title' &&
+    document.querySelector('#umSum').value === 'Stub summary.' &&
+    document.querySelector('#umBody').value === 'Para one.\n\nPara two.' &&
+    document.querySelector('#umLink').value === 'https://example.org/update'));
+  await page.evaluate(() => { updMgrState.editId = null; closeModal(); });
+  await page.evaluate(() => go('#/dashboard')); await page.waitForTimeout(900);
+  check('From the field shows only real live updates', await page.evaluate(() => {
+    const t = document.querySelector('#updGrid').textContent;
+    return t.includes('Malawi lead-paint standard') && t.includes('Twelve new mills') &&
+      !t.includes('Premix depots') && !t.includes('Immunization reminders');
+  }));
+  check('update article cites its real quarter + links', await page.evaluate(() => {
+    const u = ORG_UPDATES.find(x => x.quarter === '2026-Q3');
+    openUpdateArticle(u.id);
+    const box = document.querySelector('#modalBox');
+    const ok = box.textContent.includes('Q3 2026 update') && box.textContent.includes('Watch the video');
+    closeModal(); return ok;
+  }));
+  check('dynamic mesh gradient on for the dashboard', await page.evaluate(() =>
+    document.body.classList.contains('mesh-on')));
+  await page.evaluate(() => go('#/org/' + ORGS.find(o => o.name === 'Lead Exposure Elimination Project').id));
+  await page.waitForTimeout(1200);
+  check('entering an org with updates fades in the summary list', await page.evaluate(() =>
+    document.querySelector('#modalVeil').classList.contains('show') &&
+    document.querySelector('#modalBox').textContent.includes('Updates, past and present') &&
+    document.querySelector('#modalBox').textContent.includes('Malawi lead-paint standard')));
+  await page.evaluate(() => closeModal());
+  check('re-entry does not re-open the overlay', await page.evaluate(async () => {
+    const id = ORGS.find(o => o.name === 'Lead Exposure Elimination Project').id;
+    go('#/dashboard'); await new Promise(r => setTimeout(r, 150));
+    go('#/org/' + id); await new Promise(r => setTimeout(r, 800));
+    return !document.querySelector('#modalVeil').classList.contains('show');
+  }));
+  check('View updates pill sits beside the Deeper insights tab', await page.evaluate(() =>
+    [...document.querySelectorAll('.panel-tabs .pill')].some(p => p.textContent.includes('View updates')) &&
+    !!document.querySelector('.panel-tabs [data-otab="insights"]')));
+  check('brief updates list opens the real article', await page.evaluate(() => {
+    const o = ORGS.find(x => x.name === 'Lead Exposure Elimination Project');
+    openOrgUpdates(o.id);
+    const listOk = document.querySelector('#modalBox').textContent.includes('Malawi lead-paint standard');
+    const row = document.querySelector('#modalBox .upd-row'); if (row) row.click();
+    const artOk = document.querySelector('#modalBox').textContent.includes('Q3 2026 update');
+    closeModal(); return listOk && artOk;
+  }));
+  await page.evaluate(() => go('#/editor')); await page.waitForTimeout(600);
+  check('mesh gradient off outside dashboard/library/briefs', await page.evaluate(() =>
+    !document.body.classList.contains('mesh-on')));
   // review workflow: invite submission → queue → reviewed, with logged activity
   const wfIds = await page.evaluate(() => [...document.querySelectorAll('#edBody tr')].slice(0, 3).map(tr => +tr.dataset.id));
   await page.evaluate(ids => { wfAction(ids[1], 'sub'); wfAction(ids[2], 'req'); }, wfIds);
@@ -370,6 +462,8 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   // demo mode
   await page.click('#demoToggle'); await page.waitForTimeout(1200);
   check('demo banner visible', await page.evaluate(() => !!document.querySelector('#demoBar')));
+  check('impact overlay appears on demo entry only', await page.evaluate(() => !!document.querySelector('#impactOverlay')));
+  await page.evaluate(() => dismissOverlay()); await page.waitForTimeout(600);
   check('demo shows illustrative portfolio', await page.evaluate(() => scopeData('me').total) > 1e6);
   await page.evaluate(() => setDemo(false)); await page.waitForTimeout(1500);
   check('back to live totals', await page.evaluate(() => scopeData('network').total) === 450000);
@@ -384,6 +478,8 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.fill('#gateEmail', 'staff@factoryforgood.com');
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'pw'); await page.click('#gatePwGo');
   await page.waitForTimeout(1800);
+  check('no intro overlay on a general sign-in or refresh', await page.evaluate(() =>
+    !document.querySelector('#impactOverlay')));
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
   check('comments restored after fresh login', await page.evaluate(() => NOTES.length) === 3);
   check('mentions + donor link survive reload', await page.evaluate(() =>

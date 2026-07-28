@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "api/autofill.js": { "maxDuration": 60 },
+    "api/updatewrite.js": { "maxDuration": 60 }
+  }
+}

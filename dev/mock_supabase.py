@@ -25,6 +25,21 @@ DONOR_NOTES = {}
 INVITES = []
 NOTIFS = []
 WF_EVENTS = []
+# From the field quarterly updates (org 1 = Fortify Health, 3 = LEEP, 2 = Suvita)
+ORG_UPDATES = [
+    {'id': 9001, 'org_id': 1, 'quarter': '2026-Q2', 'title': 'Twelve new mills join the fortification network',
+     'summary': 'Quarterly expansion brings fortified flour within reach of 4 million more people.',
+     'body': 'Fortify Health signed twelve chakki mills this quarter.\n\nIndependent laboratory checks covered every active site.',
+     'link_url': 'https://fortifyhealth.global/q2-update', 'video_url': None, 'img': None, 'status': 'ready'},
+    {'id': 9002, 'org_id': 3, 'quarter': '2026-Q3', 'title': 'Malawi lead-paint standard takes effect',
+     'summary': 'Regulation drafted with LEEP support is now enforced; compliance sampling under way.',
+     'body': 'The 90 ppm limit is now law.\n\nMarket sampling begins next month.',
+     'link_url': None, 'video_url': 'https://youtube.com/watch?v=leep-malawi', 'img': None, 'status': 'ready'},
+    {'id': 9003, 'org_id': 2, 'quarter': '2026-Q4', 'title': 'Immunization reminders reach a new state',
+     'summary': 'Planned announcement for the Q4 rotation.',
+     'body': 'Draft copy pending final numbers from the field team.',
+     'link_url': None, 'video_url': None, 'img': None, 'status': 'draft'},
+]
 seq = itertools.count(1)
 
 def circle_stats(cid):
@@ -167,6 +182,13 @@ class H(BaseHTTPRequestHandler):
             ev = {'id': next(seq), 'org_id': b.get('org_id'), 'kind': b.get('kind'),
                   'author_name': b.get('author_name'), 'created_at': '2026-07-28T12:00:00Z'}
             WF_EVENTS.append(ev); return self._send(201, [ev])
+        if p.path == '/rest/v1/org_updates':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            row = {'id': 9000 + next(seq), 'org_id': b.get('org_id'), 'quarter': b.get('quarter'),
+                   'title': b.get('title', ''), 'summary': b.get('summary', ''), 'body': b.get('body', ''),
+                   'link_url': b.get('link_url'), 'video_url': b.get('video_url'), 'img': b.get('img'),
+                   'status': b.get('status', 'draft')}
+            ORG_UPDATES.append(row); return self._send(201, [row])
         if p.path == '/rest/v1/shortlist':
             owner = b.get('user_id')
             if owner != u['id'] and u['role'] != 'staff': return self._send(403, {'message': 'RLS: own rows only'})
@@ -217,6 +239,8 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/rest/v1/org_workflow_events':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, list(reversed(WF_EVENTS)))
+        if p.path == '/rest/v1/org_updates':
+            return self._send(200, sorted(ORG_UPDATES, key=lambda r: r['quarter'], reverse=True))
         if p.path == '/rest/v1/invites':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, INVITES)
@@ -277,6 +301,12 @@ class H(BaseHTTPRequestHandler):
             for n in NOTIFS:
                 if n['id'] == nid: n.update(b); return self._send(200, [n])
             return self._send(404, {'message': 'not found'})
+        if p.path == '/rest/v1/org_updates':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            rid = int(f['id'])
+            for r in ORG_UPDATES:
+                if r['id'] == rid: r.update(b); return self._send(200, [r])
+            return self._send(404, {'message': 'not found'})
         return self._send(404, {'message': 'mock: no route'})
 
     def do_DELETE(self):
@@ -300,6 +330,11 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             eid = int(f['id'])
             WF_EVENTS[:] = [e for e in WF_EVENTS if e['id'] != eid]
+            return self._send(204)
+        if p.path == '/rest/v1/org_updates':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            rid = int(f['id'])
+            ORG_UPDATES[:] = [r for r in ORG_UPDATES if r['id'] != rid]
             return self._send(204)
         if p.path == '/rest/v1/shortlist':
             owner = f.get('user_id')

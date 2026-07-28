@@ -594,7 +594,7 @@ $('#edExport').addEventListener('click', ()=>{
 });
 function renderEditor(){
   const cols = activeCols();
-  $('#edTable').innerHTML = `<thead><tr><th class="vis-c" title="Show on site · open the brief · edit in vertical view">Show</th>${cols.map(c=>`<th data-th="${c.k}" class="${c.cls||''}${c.pub?' pub-c':''}" title="${esc((c.pub?'LIVE ON THE MEMBER SITE — this field is displayed publicly on briefs, tiles, the map, or tools.\n\n':'')+(c.desc||'')+'\n\nDrag the right edge to resize this column (saved to your view); double-click the edge to reset.')}">${c.l}${c.pub?' ●':''}${c.ro?' ⓘ':''}<span class="col-grip" data-grip="${c.k}"></span></th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
+  $('#edTable').innerHTML = `<thead><tr><th class="upd-c" title="From the field — click a row's icon to draft, schedule, and publish that organization's quarterly partner updates">🗞</th><th class="vis-c" title="Show on site · open the brief · edit in vertical view">Show</th>${cols.map(c=>`<th data-th="${c.k}" class="${c.cls||''}${c.pub?' pub-c':''}" title="${esc((c.pub?'LIVE ON THE MEMBER SITE — this field is displayed publicly on briefs, tiles, the map, or tools.\n\n':'')+(c.desc||'')+'\n\nDrag the right edge to resize this column (saved to your view); double-click the edge to reset.')}">${c.l}${c.pub?' ●':''}${c.ro?' ⓘ':''}<span class="col-grip" data-grip="${c.k}"></span></th>`).join('')}</tr></thead><tbody id="edBody"></tbody>`;
   applyColWidths(); wireColResize();
   if (!$('#pubLegend')){
     $('#edCount').insertAdjacentHTML('afterend',
@@ -614,7 +614,12 @@ function renderEdRows(){
   const wfRank = o=>{ const wf=o.workflow||{}; return wfLate(o) ? 0 : wf.req ? 1 : wf.sub ? 2 : 3; };
   list.sort((a,b)=>wfRank(a)-wfRank(b));   // late first, then review requests, then submission invites
   $('#edBody').innerHTML = list.map(o=>{ const wf=o.workflow||{}; const rowCls = (wf.req?'wf-req':wf.sub?'wf-sub':'') + (wfLate(o)?' wf-late':'');
-    return `<tr data-id="${o.id}" class="${rowCls}"><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
+    const ups = (window.ORG_UPDATES||[]).filter(u=>u.orgId===o.id || (!u.orgId && u.org===o.name));
+    const liveN = window.updIsLive ? ups.filter(u=>updIsLive(u)).length : 0;
+    const updTitle = ups.length
+      ? `From the field — ${liveN} live, ${ups.length-liveN} draft or upcoming. Click to view past updates and plan next quarter's.`
+      : 'From the field — no updates logged yet. Click to draft this organization\'s first quarterly update.';
+    return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
     if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
     if (c.fx) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(c.fx(o))}</td>`;
@@ -749,6 +754,149 @@ function wireColResize(){
     });
   });
 }
+
+/* ================= FROM THE FIELD — per-org quarterly updates manager ================= */
+let updMgrState = {orgId:null, editId:null};
+function orgUpdatesOf(o){ return (window.ORG_UPDATES||[]).filter(u=>u.orgId===o.id || (!u.orgId && u.org===o.name)); }
+function updQtrOptions(sel){
+  // 2024-Q1 through six quarters ahead of today, newest first
+  const cur = curQuarter(); let y = +cur.slice(0,4), n = +cur.slice(6);
+  for (let i=0;i<6;i++){ n++; if (n>4){ n=1; y++; } }
+  const out = [];
+  for (let yy=y; yy>=2024; yy--) for (let qq=(yy===y?n:4); qq>=1; qq--) out.push(yy+'-Q'+qq);
+  return out.map(q=>`<option value="${q}" ${q===sel?'selected':''}>${qtrLabel(q)}${q===cur?' — current quarter':''}</option>`).join('');
+}
+function updStatusChip(u){
+  const cur = curQuarter();
+  if (updIsLive(u)) return '<span class="pill" style="background:#DFE9DC;border-color:#7FA87F;color:#2C4E2C">● Live</span>';
+  if (u.quarter > cur) return u.status==='draft'
+    ? '<span class="pill">Draft · planned for '+esc(qtrLabel(u.quarter))+'</span>'
+    : '<span class="pill gold">Scheduled — goes live when '+esc(qtrLabel(u.quarter))+' starts</span>';
+  return '<span class="pill" style="border-color:#C0392B;color:#C0392B">Draft — its quarter has already started</span>';
+}
+window.openUpdatesMgr = function(id){
+  updMgrState = {orgId:id, editId:null};
+  renderUpdMgr();
+  $('#modalVeil').classList.add('show');
+};
+window.updMgrEdit = function(eid){ updMgrState.editId = eid; renderUpdMgr(); const t=$('#umTitle'); if(t) t.focus(); };
+function renderUpdMgr(){
+  const o = byId(updMgrState.orgId); if (!o) return;
+  const box = $('#modalBox');
+  box.style.width = 'min(740px,95vw)'; box.style.maxHeight = '88vh'; box.style.overflow = 'auto';
+  const cur = curQuarter();
+  const ups = orgUpdatesOf(o).slice().sort((a,b)=> a.quarter<b.quarter?1:a.quarter>b.quarter?-1:0);
+  const upcoming = ups.filter(u=>u.quarter>cur), log = ups.filter(u=>u.quarter<=cur);
+  const row = u => `<div class="upd-row ${String(updMgrState.editId)===String(u.id)?'editing':''}">
+      <span class="pill" style="flex:none">${esc(qtrLabel(u.quarter))}</span>${updStatusChip(u)}
+      <span class="upd-row-ttl">${esc(u.title||'(untitled)')}</span>
+      ${u.link?'<span title="Has a public update link">🔗</span>':''}${u.video?'<span title="Has a video link">🎬</span>':''}
+      <span class="res" onclick="updMgrEdit('${u.id}')">✎ Edit</span></div>`;
+  const eu = updMgrState.editId && updMgrState.editId!=='new' ? ups.find(u=>String(u.id)===String(updMgrState.editId)) : null;
+  const form = updMgrState.editId ? `
+    <div class="upd-form">
+      <div class="kicker" style="margin-bottom:8px">${eu?'Edit update':'New update'}</div>
+      <div class="upd-ai">
+        <div style="font-size:12px;color:var(--ink-3);margin-bottom:7px">✦ <b>Auto-write with Claude</b> — paste the link to the org's update, article, or story (and/or attach a PDF or text file). Claude reads the source, then drafts the title, summary, and mini-blog storytelling below. Everything stays editable before you save.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="umAiUrl" type="text" placeholder="https:// — link to the update / article / report" style="flex:1;min-width:200px" value="${esc(eu?eu.link||'':'')}">
+          <input id="umAiFile" type="file" accept=".pdf,.txt,.md" style="max-width:200px;font-size:11.5px">
+          <button class="btn" id="umAiGo" onclick="aiWriteUpdate()">✦ Auto-write</button>
+        </div>
+      </div>
+      <div class="upd-form-grid">
+        <label>Quarter</label><select id="umQuarter">${updQtrOptions(eu?eu.quarter:cur)}</select>
+        <label>Status</label><select id="umStatus">
+          <option value="draft" ${(!eu||eu.status==='draft')?'selected':''}>Draft — visible only here</option>
+          <option value="ready" ${eu&&eu.status!=='draft'?'selected':''}>Publish — live once its quarter has started</option></select>
+        <label>Title</label><input id="umTitle" type="text" placeholder="Headline for the update" value="${esc(eu?eu.title:'')}">
+        <label>Summary</label><textarea id="umSum" rows="2" placeholder="One or two sentences shown on the dashboard card">${esc(eu?eu.sum||'':'')}</textarea>
+        <label>Blog body</label><textarea id="umBody" rows="7" placeholder="The full article. Leave a blank line between paragraphs.">${esc(eu&&eu.body?eu.body.join('\n\n'):'')}</textarea>
+        <label>Public link</label><input id="umLink" type="text" placeholder="https:// — the org's own public update or report" value="${esc(eu?eu.link||'':'')}">
+        <label>Video link</label><input id="umVideo" type="text" placeholder="https:// — YouTube, Vimeo, etc." value="${esc(eu?eu.video||'':'')}">
+        <label>Hero image</label><input id="umImg" type="text" placeholder="https:// image URL (blank = the org's saved hero photo)" value="${esc(eu?eu.img||'':'')}">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        ${eu?`<span class="res" style="color:var(--crit)" onclick="delUpdMgr('${eu.id}')">✕ Delete this update</span>`:'<span></span>'}
+        <span style="display:flex;gap:8px"><button class="btn" onclick="updMgrState.editId=null;renderUpdMgr()">Cancel</button>
+        <button class="btn primary" onclick="saveUpdMgr()">Save update</button></span>
+      </div>
+    </div>` : '';
+  box.innerHTML = `<div class="kicker">Data studio · from the field</div>
+    <h3 style="margin-bottom:2px;display:inline-flex;align-items:center;gap:8px">${typeof orgLogo==='function'?orgLogo(o,22):''}${esc(o.name)}</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:12px">The real quarterly updates log — draft next quarter's update ahead of time, keep the record of what ran. Published updates go live on every member's dashboard the moment their quarter starts (it is ${qtrLabel(cur)} now). Rows highlighted 🗞 gold in the studio have a live update.</div>
+    ${updMgrState.editId?'':'<button class="btn primary" style="margin-bottom:12px" onclick="updMgrEdit(\'new\')">＋ Draft an update</button>'}
+    ${form}
+    <div class="kicker" style="margin:14px 0 6px">Upcoming · planned for next quarters</div>
+    ${upcoming.length?upcoming.map(row).join(''):'<div class="muted" style="font-size:12.5px;padding:2px 0 4px">Nothing planned yet — draft next quarter\'s update so it goes live automatically.</div>'}
+    <div class="kicker" style="margin:16px 0 6px">Log · current & past quarters</div>
+    ${log.length?log.map(row).join(''):'<div class="muted" style="font-size:12.5px;padding:2px 0 4px">No past updates recorded for this organization.</div>'}
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;border-top:1px solid var(--hairline);padding-top:12px">
+      <button class="btn" onclick="closeModal()">Close</button></div>`;
+}
+/* ✦ Auto-write: Claude reads the linked or attached source and drafts the
+   title + summary + mini-blog body. Server-side (staff-gated) — the API key
+   never touches the browser. */
+function fileToB64(f){ return new Promise((ok,er)=>{ const rd=new FileReader(); rd.onload=()=>ok(String(rd.result).split(',')[1]); rd.onerror=er; rd.readAsDataURL(f); }); }
+window.aiWriteUpdate = async function(){
+  const o = byId(updMgrState.orgId); if (!o) return;
+  const url = $('#umAiUrl').value.trim();
+  const f = $('#umAiFile').files[0];
+  if (!url && !f){ flash('Paste a link or attach a file first'); return; }
+  if (f && f.size > 4*1024*1024){ flash('Attachment too large — keep it under 4 MB'); return; }
+  const btn = $('#umAiGo'); btn.disabled = true; btn.textContent = '✦ Reading & writing…';
+  try{
+    let doc = null, text = null;
+    if (f){
+      if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) doc = {media_type:'application/pdf', data: await fileToB64(f)};
+      else text = await f.text();
+    }
+    const r = await fetch('/api/updatewrite', {method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(sb.session?.access_token||'')},
+      body: JSON.stringify({org:{name:o.name, website:o.website}, quarter:qtrLabel($('#umQuarter').value), url:url||null, doc, text})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    if (j.title) $('#umTitle').value = j.title;
+    if (j.summary) $('#umSum').value = j.summary;
+    if (j.body) $('#umBody').value = (Array.isArray(j.body)?j.body:[String(j.body)]).join('\n\n');
+    if (url && !$('#umLink').value.trim()) $('#umLink').value = url;
+    flash('✦ Draft written from the source — review, edit, and save');
+  }catch(e){ flash('Auto-write failed: '+e.message); }
+  btn.disabled = false; btn.textContent = '✦ Auto-write';
+};
+window.saveUpdMgr = function(){
+  const o = byId(updMgrState.orgId); if (!o) return;
+  const title = $('#umTitle').value.trim();
+  if (!title){ flash('Give the update a title first'); return; }
+  let u;
+  if (updMgrState.editId==='new'){
+    u = {id:'n'+Math.random().toString(36).slice(2,9), orgId:o.id, org:o.name};
+    ORG_UPDATES.push(u);
+  } else {
+    u = ORG_UPDATES.find(x=>String(x.id)===String(updMgrState.editId)); if (!u) return;
+    u.orgId = u.orgId || o.id; u.org = u.org || o.name;
+  }
+  u.quarter = $('#umQuarter').value; u.status = $('#umStatus').value;
+  u.title = title; u.sum = $('#umSum').value.trim();
+  u.body = $('#umBody').value.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  u.link = $('#umLink').value.trim(); u.video = $('#umVideo').value.trim(); u.img = $('#umImg').value.trim();
+  window.PERSIST && PERSIST.orgUpdate && PERSIST.orgUpdate(u);
+  updMgrState.editId = null;
+  renderUpdMgr(); if ($('#edBody')) renderEdRows();
+  if (typeof renderUpdates==='function' && $('#updatesSec')) renderUpdates();
+  flash(updIsLive(u) ? 'Update saved — live on the member dashboard now'
+    : u.status==='draft' ? 'Draft saved — not visible to members'
+    : 'Update scheduled — goes live when '+qtrLabel(u.quarter)+' starts');
+};
+window.delUpdMgr = function(uid){
+  const i = ORG_UPDATES.findIndex(x=>String(x.id)===String(uid)); if (i<0) return;
+  const [u] = ORG_UPDATES.splice(i,1);
+  if (u.dbId && window.PERSIST && PERSIST.orgUpdateDelete) PERSIST.orgUpdateDelete(u.dbId);
+  updMgrState.editId = null;
+  renderUpdMgr(); if ($('#edBody')) renderEdRows();
+  if (typeof renderUpdates==='function' && $('#updatesSec')) renderUpdates();
+  flash('Update deleted');
+};
 
 /* ================= VERTICAL EDIT (transposed single-org view) ================= */
 window.openVerticalEdit = function(id){
