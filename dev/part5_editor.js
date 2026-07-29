@@ -1,10 +1,26 @@
 <script>
 /* ================= DATA STUDIO — FIELD DICTIONARY ================= */
 const RATE5 = ['','Very Low','Low','Medium','High','Very High'];
+/* The suffering → flourishing ladder: what each state number actually means */
+window.STATE_WORDS = {1:'Acute suffering',2:'Severe suffering',3:'Unstable',4:'Uncomfortable',5:'Stable',6:'Well',7:'Comfortable',8:'Secure',9:'Thriving',10:'Flourishing'};
+const STATE_LADDER = 'What each state means:\n' + Object.entries(STATE_WORDS).map(([n,w])=>'  '+n+' — '+w).join('\n');
+/* ~ approximate numbers display as a sensible range (half → double, nicely rounded) */
+window.fmtApproxRange = function(v, money){
+  v = +v; if (!isFinite(v) || v<=0) return '';
+  // an approximate value reads as a floor: ~107 -> 75+, ~50 -> 35+, ~$1M -> $750K+
+  const t = v*0.75;
+  const p = Math.pow(10, Math.floor(Math.log10(Math.max(1e-9,t))));
+  const steps = [1,1.5,2,2.5,3,3.5,4,5,7.5,10];
+  const m = t/p;
+  const lo = ([...steps].reverse().find(x=>x<=m+1e-9)||1)*p;
+  const f = n => money ? '$'+(n>=1e9?(+(n/1e9).toFixed(1))+'B':n>=1e6?(+(n/1e6).toFixed(1))+'M':n>=1e3?(+(n/1e3).toFixed(1))+'K':n) : String(n);
+  return f(lo)+'+';
+};
 const FIELDS = [
  // Identity & Basic Info
  {k:'id', l:'Record ID', cat:'Identity & Basic Info', ro:1, desc:'Internal system identifier. Do not change once assigned.'},
  {k:'name', l:'Display Name', pub:1, cat:'Identity & Basic Info', cls:'name-c', core:1, desc:'Shorter public-facing name, if different from the legal name.'},
+ {k:'tier', l:'Tier', pub:1, cat:'Identity & Basic Info', sel:['top','recommended','represented','flagged'], core:1, desc:'Meridian conviction tier: top pick, recommended, represented, or flagged (tracked internally, never showcased to members).'},
  {k:'legalName', l:'Legal Organization Name', cat:'Identity & Basic Info', desc:'Full registered legal name.'},
  {k:'logoUrl', l:'Logo Image', pub:1, core:1, cat:'Identity & Basic Info', img:1, desc:'Link to the org\'s logo file. Click the camera to paste a URL or upload a file.'},
  {k:'ein', l:'EIN', cat:'Identity & Basic Info', desc:'US tax ID (XX-XXXXXXX). Primary identifier for domestic orgs.'},
@@ -15,7 +31,6 @@ const FIELDS = [
  {k:'contactEmail', l:'Contact Email', cat:'Identity & Basic Info', desc:'Primary contact at the org for grant and donor coordination.'},
  {k:'fiscalSponsor', l:'Intermediary (Fiscal Sponsor)', cat:'Identity & Basic Info', desc:'Fiscal sponsor or intermediary name, if the org isn\'t a direct 501(c)(3) or local equivalent.'},
  {k:'orgType', l:'Org Type', pub:1, cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based'], core:1, desc:'Organization model type.'},
- {k:'tier', l:'Tier', pub:1, cat:'Identity & Basic Info', sel:['top','recommended','represented'], core:1, desc:'Meridian conviction tier: top pick, recommended, or represented.'},
  {k:'visibility', l:'Display on site', cat:'Identity & Basic Info', sel:['shown','hidden'], desc:'shown = appears in the library, globe, marquee, and briefs. hidden = tracked in Data Studio only, invisible to members until you flip it. New organizations start hidden.'},
  {k:'founded', l:'Start Date/Year', pub:1, cat:'Identity & Basic Info', num:1, nocomma:1, core:1, desc:'Year the org was founded.'},
  {k:'yearsOp', l:'Years in Operation', cat:'Identity & Basic Info', ro:1, fx:o=>2026-(+o.founded||2026), desc:'Auto-calculated from Start Date/Year.'},
@@ -59,8 +74,8 @@ const FIELDS = [
  {k:'governmentAdoption', l:'Government Adoption', cat:'Reach, Scale & Financials', desc:'Whether and how much government has adopted or funded the approach.'},
  {k:'franchiseReplication', l:'Franchise/Replication by Other NGOs', cat:'Reach, Scale & Financials', desc:'Whether other organizations have successfully replicated or franchised the model.'},
  // Impact Measurement & Cost-Effectiveness
- {k:'sufferMin', l:'Suffering Min (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state before the intervention (1 = acute suffering).'},
- {k:'flourishMax', l:'Flourishing Max (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state after the intervention (10 = full flourishing).'},
+ {k:'sufferMin', l:'Suffering Min (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state BEFORE the intervention.\n\n'+STATE_LADDER},
+ {k:'flourishMax', l:'Flourishing Max (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Maximum beneficiary state AFTER the intervention.\n\n'+STATE_LADDER},
  {k:'depthOfIntervention', l:'Depth of Intervention (1–10)', cat:'Impact & Cost-Effectiveness', num:1, desc:'Depth of the outcome (1 = minor/singular … 10 = major/life-altering).'},
  {k:'impactLongevity', l:'Impact Longevity (1–10)', cat:'Impact & Cost-Effectiveness', num:1, desc:'Duration of outcomes (1 = under 6 months … 10 = permanent/lifelong).'},
  {k:'innovativeness', l:'Innovativeness (1–5)', pub:1, core:1, cat:'Impact & Cost-Effectiveness', num:1, desc:'How novel the approach is relative to standard practice.'},
@@ -188,14 +203,30 @@ window.wfAction = function(orgId, kind){
     }
   }
   if (kind==='done'){
+    // integrity rules: the first review needs an open request (no single-person
+    // sign-off straight from a submission), and nobody reviews their own request
+    const firstTime = !wf.done && !wf.doneBy;
+    if (!wf.req && firstTime){
+      flash('Request a review first — an organization\'s first review must fulfil an open review request'); return;
+    }
+    if (wf.req && wf.req.by === me){
+      flash('Two sets of eyes: you requested this review, so a different team member must perform it'); return;
+    }
+    // a review COUNTS toward the team-activity totals only when it fulfils an
+    // open (re-)request; otherwise it just refreshes the review date + history
+    const counted = !!wf.req;
     wf.done = {by:me, date};
-    if (wf.req){ wf.reqDone = wf.req; delete wf.req; }   // fulfilled — keeps counting, remembered for the hover
-    if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; }   // a review also fulfills an open submission invite
-    wfLog('review', o); flash(o.name+' marked reviewed');
+    wf.doneBy = Object.assign({}, wf.doneBy, {[me]: date});   // each member's most recent review
+    if (wf.req){ wf.reqDone = wf.req; delete wf.req; }
+    if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; }        // a review also fulfills an open submission invite
+    wfLog(counted ? 'review' : 'review0', o);
+    flash(counted ? o.name+' reviewed — request fulfilled and counted'
+                  : o.name+' review date updated (no open request — not added to the tallies)');
   }
   if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o, 'workflow', o.workflow) : PERSIST.org(o); }
   updateNoteCnt(); renderEdRows();
   if ($('#notesDrawer').classList.contains('show')) renderNotesPanel();
+  if ($('#reviewDrawer') && $('#reviewDrawer').classList.contains('show')) renderReviewPanel();
 };
 function wfDaysOld(d){ try{ return Math.floor((Date.now() - new Date(d+'T00:00:00').getTime())/864e5); }catch(e){ return 0; } }
 function wfLate(o){
@@ -205,10 +236,12 @@ function wfLate(o){
 function wfTipHTML(o){
   const wf = o.workflow || {};
   const row = (label, e, late)=> e ? `<div style="display:flex;justify-content:space-between;gap:14px"><span style="color:var(--ink-3)">${label}</span><b ${late?'style="color:#C0392B"':''}>${initialsOf(e.by)} · ${e.date}${late?' · '+wfDaysOld(e.date)+'d waiting':''}</b></div>` : '';
+  const members = Object.entries(wf.doneBy||{}).sort((a,b)=>b[1]<a[1]?-1:1);
   const body = [
     row('Submission invited', wf.sub || wf.subDone, wf.sub && wfDaysOld(wf.sub.date)>=6),
     row('Review requested', wf.req || wf.reqDone, wf.req && wfDaysOld(wf.req.date)>=6),
-    row('Reviewed', wf.done),
+    row('Most recent review', wf.done),
+    members.length>1 ? members.map(([n,d])=>`<div style="display:flex;justify-content:space-between;gap:14px;padding-left:10px"><span style="color:var(--ink-3)">↳ ${initialsOf(n)} last reviewed</span><b>${d}</b></div>`).join('') : '',
   ].filter(Boolean).join('');
   return `<div style="min-width:220px"><b>${esc(o.name)} — workflow</b><div style="margin-top:5px;display:flex;flex-direction:column;gap:3px;font-size:12px">${body || '<span style="color:var(--ink-3)">No workflow activity yet.</span>'}</div></div>`;
 }
@@ -383,60 +416,7 @@ function renderNotesPanel(){
         <div class="m"><span>${esc(n.author)}</span><span class="res" onclick="event.stopPropagation();resolveNote(${n.id})">✓ Resolve</span></div>
       </div>`;}).join('')
       : `<div class="muted" style="padding:26px 4px;font-size:13px">${who?'No open comments tag @'+esc(who)+'.':'No open comments. Right-click any cell (or use 💬 in the Donor studio) to add one.'}</div>`);
-  } else if (drTab==='reviews'){
-    const queue = ORGS.filter(o=>o.workflow && o.workflow.req);
-    const subQueue = ORGS.filter(o=>o.workflow && o.workflow.sub);
-    const late = [...queue.filter(o=>wfDaysOld(o.workflow.req.date)>=6).map(o=>({o, kind:'review', e:o.workflow.req})),
-                  ...subQueue.filter(o=>wfDaysOld(o.workflow.sub.date)>=6).map(o=>({o, kind:'submission', e:o.workflow.sub}))];
-    const week = wfWeekStart(), month = wfMonthStart();
-    const people = {};
-    WFLOG.forEach(ev=>{
-      const p = people[ev.by] = people[ev.by] || {submission:[0,0,0], request:[0,0,0], review:[0,0,0]};
-      const bucket = p[ev.kind]; if (!bucket) return;
-      bucket[2]++; if (ev.date>=month) bucket[1]++; if (ev.date>=week) bucket[0]++;
-    });
-    const cell = a=>`<span class="num">${a[0]}</span> / <span class="num">${a[1]}</span> / <span class="num">${a[2]}</span>`;
-    $('#notesBody').innerHTML = `
-      ${late.length ? `<div style="border:2px solid #C0392B;border-radius:11px;padding:10px 13px;margin-bottom:14px;background:rgba(192,57,43,.05)">
-        <div class="kicker" style="color:#C0392B;font-weight:700;margin-bottom:6px">⚠ Late — waiting 6+ calendar days</div>
-        ${late.map(({o,kind,e})=>`<div class="note-item" style="border-color:rgba(192,57,43,.25)" onclick="jumpToCell(${o.id},'name')">
-          <div class="f" style="color:#C0392B">${esc(o.name)} <span class="pill" style="margin-left:6px;border-color:#C0392B;color:#C0392B">${kind==='review'?'awaiting review':'awaiting submission'} · ${wfDaysOld(e.date)}d</span></div>
-          <div class="m"><span>${kind==='review'?'requested':'invited'} by ${initialsOf(e.by)} · ${e.date}</span>
-          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'${kind==='review'?'done':'req'}')">${kind==='review'?'✓ Mark reviewed':'⏳ Move to review'}</span></div>
-        </div>`).join('')}</div>` : ''}
-      <div class="kicker" style="margin-bottom:8px">Review queue · ${queue.length}</div>
-      <div style="max-height:190px;overflow:auto">${queue.length ? queue.map(o=>`<div class="note-item" onclick="jumpToCell(${o.id},'name')">
-          <div class="f">${esc(o.name)} <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
-          <div class="m"><span>requested by ${initialsOf(o.workflow.req.by)} · ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}</span>
-          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span></div>
-        </div>`).join('')
-        : '<div class="muted" style="font-size:12.5px;padding:8px 4px 14px">Nothing waiting for review. Click ⏳ on any row to queue it.</div>'}</div>
-      <div class="hr"></div>
-      <div class="kicker" style="margin-bottom:8px">Submission requests · ${subQueue.length}</div>
-      <div style="max-height:170px;overflow:auto">${subQueue.length ? subQueue.map(o=>`<div class="note-item" onclick="jumpToCell(${o.id},'name')">
-          <div class="f">${esc(o.name)} <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
-          <div class="m"><span>invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago</span>
-          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'req')">⏳ Fulfil → request review</span></div>
-        </div>`).join('')
-        : '<div class="muted" style="font-size:12.5px;padding:8px 4px 14px">No open submission invites. Use the checkbox on any row to invite org data.</div>'}</div>
-      <div class="hr"></div>
-      <div class="kicker" style="margin-bottom:6px">Team activity · week / month / all-time</div>
-      ${Object.keys(people).length ? `<table style="width:100%;font-size:11.5px;border-collapse:collapse">
-        <tr style="color:var(--ink-3);text-align:left"><th style="font-weight:500;padding:3px 0">Person</th><th style="font-weight:500">Submissions</th><th style="font-weight:500">Review req.</th><th style="font-weight:500">Reviews</th></tr>
-        ${Object.entries(people).map(([name,p])=>`<tr style="border-top:1px solid var(--hairline)">
-          <td style="padding:5px 0"><b>${initialsOf(name)}</b> <span class="muted">${esc(name)}</span></td>
-          <td>${cell(p.submission)}</td><td>${cell(p.request)}</td><td>${cell(p.review)}</td></tr>`).join('')}
-      </table>` : '<div class="muted" style="font-size:12px">No workflow activity recorded yet.</div>'}
-      <div class="hr"></div>
-      <div class="kicker" style="margin-bottom:6px">History</div>
-      <div style="max-height:220px;overflow:auto">${WFLOG.length ? WFLOG.map(ev=>`
-        <div style="display:flex;gap:9px;align-items:baseline;font-size:12px;padding:5px 0;border-bottom:1px solid var(--hairline)">
-          <span class="num" style="color:var(--ink-3);flex:none">${ev.date}</span>
-          <b style="flex:none">${initialsOf(ev.by)}</b>
-          <span style="color:var(--ink-2)">${ev.kind==='submission'?'invited submission':ev.kind==='request'?'requested review':'reviewed'}</span>
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.orgName||'')}</span>
-        </div>`).join('') : '<div class="muted" style="font-size:12px">—</div>'}</div>`;
-  } else {
+    } else {
     $('#notesBody').innerHTML = noteKeys.length ? noteKeys.map(key=>{
       const [orgId, k] = [ +key.split(':')[0], key.split(':').slice(1).join(':') ];
       const o = byId(orgId), col = FIELDS.find(f=>f.k===k);
@@ -452,6 +432,104 @@ $('#drTabs').addEventListener('click', e=>{
   const b = e.target.closest('button[data-drtab]'); if(!b) return;
   drTab = b.dataset.drtab; renderNotesPanel();
 });
+/* ================= REVIEW QUEUE — standalone drawer ================= */
+document.body.insertAdjacentHTML('beforeend', `
+<div class="drawer" id="reviewDrawer">
+  <div class="dr-head"><div class="kicker">Data studio</div><h3>Review queue</h3>
+  <div class="muted" style="font-size:12px" id="reviewSub">Submissions, review requests, and team activity</div>
+  <div class="dr-tabs" id="rvTabs">
+    <button data-rvtab="sub">Submissions</button>
+    <button data-rvtab="req" class="active">Review requests</button>
+    <button data-rvtab="done">Reviewed &amp; activity</button>
+  </div></div>
+  <div class="dr-body" id="reviewBody"></div>
+</div>`);
+let rvTab = 'req';
+$('#rvTabs').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-rvtab]'); if (!b) return;
+  rvTab = b.dataset.rvtab; renderReviewPanel();
+});
+function rvItem(o, meta, action){
+  return `<div class="note-item" onclick="jumpToCell(${o.id},'name')">
+    <div class="f"><b>${esc(o.name)}</b> <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
+    <div class="m"><span>${meta}</span>${action||''}</div></div>`;
+}
+function renderReviewPanel(){
+  const queue = ORGS.filter(o=>o.workflow && o.workflow.req);
+  const subQueue = ORGS.filter(o=>o.workflow && o.workflow.sub);
+  const reviewed = ORGS.filter(o=>o.workflow && o.workflow.done)
+    .sort((a,b)=> a.workflow.done.date<b.workflow.done.date?1:-1);
+  $('#reviewSub').textContent = `${subQueue.length} open invite${subQueue.length===1?'':'s'} · ${queue.length} awaiting review · ${reviewed.length} reviewed`;
+  $$('#rvTabs button').forEach(b=>b.classList.toggle('active', b.dataset.rvtab===rvTab));
+  const lateBox = (items, kindLabel)=> items.length ? `<div class="rv-box rv-late">
+      <div class="rv-title" style="color:#B4544A">⚠ Late — waiting 6+ calendar days</div>
+      ${items.map(({o,kind,e})=>`<div class="note-item" style="border-color:rgba(180,84,74,.3)" onclick="jumpToCell(${o.id},'name')">
+        <div class="f" style="color:#B4544A"><b>${esc(o.name)}</b> <span class="pill" style="margin-left:6px;border-color:#B4544A;color:#B4544A">${kindLabel} · ${wfDaysOld(e.date)}d</span></div>
+        <div class="m"><span>${kind==='review'?'requested':'invited'} by ${initialsOf(e.by)} · ${e.date}</span>
+        <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'${kind==='review'?'done':'req'}')">${kind==='review'?'✓ Mark reviewed':'⏳ Move to review'}</span></div>
+      </div>`).join('')}</div>` : '';
+  let html = '';
+  if (rvTab==='sub'){
+    const late = subQueue.filter(o=>wfDaysOld(o.workflow.sub.date)>=6).map(o=>({o, kind:'submission', e:o.workflow.sub}));
+    html = lateBox(late, 'awaiting submission') + `<div class="rv-box">
+      <div class="rv-title">Submission invites · ${subQueue.length}</div>
+      ${subQueue.length ? subQueue.map(o=>rvItem(o,
+        `invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago`,
+        `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'req')">⏳ Fulfil → request review</span>`)).join('')
+      : '<div class="muted" style="font-size:12.5px;padding:6px 2px">No open submission invites. Use the checkbox on any studio row to invite org data.</div>'}</div>`;
+  } else if (rvTab==='req'){
+    const late = queue.filter(o=>wfDaysOld(o.workflow.req.date)>=6).map(o=>({o, kind:'review', e:o.workflow.req}));
+    html = lateBox(late, 'awaiting review') + `<div class="rv-box">
+      <div class="rv-title">Review queue · ${queue.length}</div>
+      ${queue.length ? queue.map(o=>rvItem(o,
+        `requested by ${initialsOf(o.workflow.req.by)} · ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}`,
+        `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span>`)).join('')
+      : '<div class="muted" style="font-size:12.5px;padding:6px 2px">Nothing waiting for review. Click ⏳ on any studio row to queue it.</div>'}</div>`;
+  } else {
+    const week = wfWeekStart(), month = wfMonthStart();
+    const people = {};
+    WFLOG.forEach(ev=>{
+      const p = people[ev.by] = people[ev.by] || {submission:[0,0,0], request:[0,0,0], review:[0,0,0]};
+      const bucket = p[ev.kind]; if (!bucket) return;   // review0 (date-only reviews) never counts
+      bucket[2]++; if (ev.date>=month) bucket[1]++; if (ev.date>=week) bucket[0]++;
+    });
+    const cell = a=>`<span class="num">${a[0]}</span> / <span class="num">${a[1]}</span> / <span class="num">${a[2]}</span>`;
+    html = `<div class="rv-box">
+      <div class="rv-title">Recently reviewed · ${reviewed.length}</div>
+      <div style="max-height:220px;overflow:auto">${reviewed.length ? reviewed.map(o=>{
+        const by = Object.entries(o.workflow.doneBy||{[o.workflow.done.by]:o.workflow.done.date}).sort((a,b)=>b[1]<a[1]?-1:1);
+        return `<div class="note-item" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="jumpToCell(${o.id},'name')">
+          <div class="f"><b>${esc(o.name)}</b> <span class="pill" style="margin-left:6px">last reviewed ${o.workflow.done.date}</span></div>
+          <div class="m"><span>${by.map(([n,d])=>initialsOf(n)+' '+d).join(' · ')}</span></div></div>`;}).join('')
+      : '<div class="muted" style="font-size:12.5px;padding:6px 2px">No reviews recorded yet.</div>'}</div></div>
+    <div class="rv-box">
+      <div class="rv-title">Team activity · week / month / all-time</div>
+      <div class="muted" style="font-size:10.5px;margin-bottom:6px">Only reviews that fulfil an open request are counted — re-reviews without a new request update dates and history only.</div>
+      ${Object.keys(people).length ? `<table style="width:100%;font-size:11.5px;border-collapse:collapse">
+        <tr style="color:var(--ink-3);text-align:left"><th style="font-weight:500;padding:3px 0">Person</th><th style="font-weight:500">Submissions</th><th style="font-weight:500">Review req.</th><th style="font-weight:500">Reviews</th></tr>
+        ${Object.entries(people).map(([name,p])=>`<tr style="border-top:1px solid var(--hairline)">
+          <td style="padding:5px 0"><b>${initialsOf(name)}</b> <span class="muted">${esc(name)}</span></td>
+          <td>${cell(p.submission)}</td><td>${cell(p.request)}</td><td>${cell(p.review)}</td></tr>`).join('')}
+      </table>` : '<div class="muted" style="font-size:12px">No workflow activity recorded yet.</div>'}</div>
+    <div class="rv-box">
+      <div class="rv-title">History · by day, person, and stage</div>
+      <div style="max-height:280px;overflow:auto">${(()=>{
+        if (!WFLOG.length) return '<div class="muted" style="font-size:12px">—</div>';
+        const days = {};
+        WFLOG.forEach(ev=>{ const d = days[ev.date] = days[ev.date]||{}; (d[ev.by] = d[ev.by]||[]).push(ev); });
+        const stageOrd = {submission:0, request:1, review:2, review0:3};
+        const stageTxt = {submission:'invited submission', request:'requested review', review:'reviewed', review0:'logged a review (date only)'};
+        return Object.keys(days).sort().reverse().map(d=>`
+          <div class="rvh-day"><b>${d}</b></div>
+          ${Object.entries(days[d]).sort((a,b)=>a[0].localeCompare(b[0])).map(([person,evs])=>`
+            <div class="rvh-person"><b>${initialsOf(person)}</b> <span class="muted">${esc(person)}</span></div>
+            ${evs.slice().sort((a,b)=>(stageOrd[a.kind]??9)-(stageOrd[b.kind]??9)).map(ev=>`
+              <div class="rvh-line"><span style="color:var(--ink-2)">${stageTxt[ev.kind]||ev.kind}</span> · <b>${esc(ev.orgName||'')}</b></div>`).join('')}`).join('')}`).join('');
+      })()}</div></div>`;
+  }
+  $('#reviewBody').innerHTML = html;
+}
+
 function jumpToCell(orgId, k){
   closeDrawers();
   if (!location.hash.startsWith('#/editor')){ go('#/editor'); }
@@ -467,7 +545,7 @@ function jumpToCell(orgId, k){
   });
 }
 $('#edNotes').addEventListener('click', ()=>{ drTab='comments'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
-$('#edReviews').addEventListener('click', ()=>{ drTab='reviews'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
+$('#edReviews').addEventListener('click', ()=>{ renderReviewPanel(); $('#reviewDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
 document.addEventListener('click', e=>{
   if (e.target.closest('#ctxMenu')) return;   // menu actions open popovers — don't instantly dismiss them
   const pop = $('#notePop');
@@ -560,6 +638,11 @@ function clearGathering(o, key, v, col){
 /* ---- table ---- */
 $('#edSearch').addEventListener('input', e=>{ edState.q = e.target.value.toLowerCase(); renderEdRows(); });
 $('#edTier').addEventListener('change', e=>{ edState.tier = e.target.value; renderEdRows(); });
+$('#edTier').insertAdjacentHTML('afterend', `<select id="edRev" title="Focus on organizations by review status">
+  <option value="">Reviewed + unreviewed</option>
+  <option value="un">Unreviewed only</option>
+  <option value="done">Reviewed only</option></select>`);
+$('#edRev').addEventListener('change', e=>{ edState.rev = e.target.value; renderEdRows(); });
 (function(){ const g = $('#edGroup');
   ED_CATS.forEach(c=>g.insertAdjacentHTML('beforeend',`<option ${c==='Core'?'selected':''}>${c}</option>`));
   g.addEventListener('change', ()=>{ edState.group = g.value; renderEditor(); });
@@ -609,6 +692,7 @@ function renderEdRows(){
   const cols = activeCols();
   const list = ORGS.filter(o=>
     (!edState.tier || o.tier===edState.tier) &&
+    (!edState.rev || (edState.rev==='un' ? !(o.workflow&&o.workflow.done) : !!(o.workflow&&o.workflow.done))) &&
     (!edState.q || (o.name+' '+o.causes.join(' ')+' '+o.countries.join(' ')).toLowerCase().includes(edState.q)));
   $('#edCount').textContent = list.length+' of '+ORGS.length+' rows · '+cols.length+' of '+FIELDS.length+' fields';
   const wfRank = o=>{ const wf=o.workflow||{}; return wfLate(o) ? 0 : wf.req ? 1 : wf.sub ? 2 : 3; };
@@ -631,7 +715,7 @@ function renderEdRows(){
       return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></td>`;
     }
     let v = o[c.k]; if (Array.isArray(v)) v = v.join('; ');
-    if (c.num) v = fmtCellNum(c, v);
+    if (c.num) v = ((o._approx||{})[c.k]?'~':'') + fmtCellNum(c, v);
     if (c.img) return `<td class="${noted}" data-k="${c.k}" title="${esc(c.desc||'')}"><span style="cursor:pointer;margin-right:6px" onclick="window.pickImage&&pickImage(${o.id},'${c.k}')">📷</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(v)}</span></td>`;
     return `<td class="${noted}${c.num?' num-cell':''}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
   }).join('')}</tr>`;}).join('');
@@ -645,11 +729,11 @@ function renderEdRows(){
     const colDef = FIELDS.find(f=>f.k===td.closest('td').dataset.k);
     if (colDef && colDef.num){
       td.addEventListener('beforeinput', e=>{
-        if (e.data && /[^0-9.,\-$kKmMbB\s%]/.test(e.data)){ e.preventDefault(); flash('This column only accepts numbers'); }
+        if (e.data && /[^0-9.,\-$kKmMbB\s%~]/.test(e.data)){ e.preventDefault(); flash('This column only accepts numbers'); }
       });
       td.addEventListener('paste', e=>{
         const t = (e.clipboardData||window.clipboardData).getData('text');
-        if (/[^0-9.,\-$kKmMbB\s%]/.test(t)){ e.preventDefault(); flash('This column only accepts numbers'); }
+        if (/[^0-9.,\-$kKmMbB\s%~]/.test(t)){ e.preventDefault(); flash('This column only accepts numbers'); }
       });
     }
   });
@@ -682,23 +766,39 @@ function commitCell(el){
   if (!o || !col || col.ro || col.fx) return;
   let v = el.textContent.trim();
   const old = o[key];
+  let approx = false;
   if (col.num){
-    if (v===''){ v = 0; }
+    approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
+    if (v.trim()===''){ v = 0; approx = false; }
     else {
       v = parseStudioNum(v);
       if (v===null){ el.textContent = fmtCellNum(col, Array.isArray(old)?old.join('; '):old); flash('Not a number — reverted'); return; }
       if (col.mult) v = v / col.mult;   // displayed in full dollars, stored in $M
     }
-    el.textContent = fmtCellNum(col, v);
+    o._approx = Object.assign({}, o._approx);
+    if (approx) o._approx[key] = 1; else delete o._approx[key];
+    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)) PERSIST.orgField(o, '_approx', o._approx);
+    el.textContent = (approx?'~':'') + fmtCellNum(col, v);
   }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   const changed = JSON.stringify(v)!==JSON.stringify(old);
   if (!changed) return;
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
+  if (key==='countries') autoLatLng(o);
   if (key==='lat'||key==='lng'||key==='countries') { o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
   flash('Updated '+o.name);
+}
+
+/* countries set but no coordinates yet — drop the primary pin on the first known country */
+function autoLatLng(o){
+  if ((+o.lat||0) || (+o.lng||0)) return;
+  const ll = (o.countries||[]).map(c=>(window.COUNTRY_LL||{})[c]).find(Boolean);
+  if (!ll) return;
+  o.lat = ll[0]; o.lng = ll[1];
+  if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)){ PERSIST.orgField(o,'lat',o.lat); PERSIST.orgField(o,'lng',o.lng); }
+  flash('Pin placed from '+(o.countries[0]||'country')+' — adjust Service Lat/Lng to fine-tune');
 }
 
 /* ================= NUMBER FORMATTING ================= */
@@ -920,7 +1020,7 @@ window.openVerticalEdit = function(id){
             <div><select class="ve-in" data-vk="${f.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></div>`;
         }
         let v = o[f.k]; if (Array.isArray(v)) v = v.join('; ');
-        if (f.num) v = fmtCellNum(f, v);
+        if (f.num) v = ((o._approx||{})[f.k]?'~':'') + fmtCellNum(f, v);
         return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div>
           <div><textarea class="ve-in" data-vk="${f.k}" rows="1" ${f.num?'data-num="1"':''} spellcheck="false">${esc(v??'')}</textarea></div>`;
       }).join('')}</div>`).join('')}
@@ -933,8 +1033,8 @@ window.openVerticalEdit = function(id){
     ta.addEventListener('focus', ()=>autos(ta));
     ta.addEventListener('input', ()=>{
       autos(ta);
-      if (ta.dataset.num && /[^0-9.,\-$kKmMbB\s%]/.test(ta.value)){
-        ta.value = ta.value.replace(/[^0-9.,\-$kKmMbB\s%]/g,''); flash('This field only accepts numbers');
+      if (ta.dataset.num && /[^0-9.,\-$kKmMbB\s%~]/.test(ta.value)){
+        ta.value = ta.value.replace(/[^0-9.,\-$kKmMbB\s%~]/g,''); flash('This field only accepts numbers');
       }
     });
     ta.addEventListener('blur', ()=>commitVertical(o, ta));
@@ -947,18 +1047,23 @@ function commitVertical(o, el){
   let v = (el.value||'').trim();
   const old = o[key];
   if (col.num){
-    if (v===''){ v = 0; }
+    const approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
+    if (v.trim()===''){ v = 0; }
     else {
       const n = parseStudioNum(v);
       if (n===null){ el.value = fmtCellNum(col, old); flash('Not a number — reverted'); return; }
       v = col.mult ? n/col.mult : n;
     }
-    el.value = fmtCellNum(col, v);
+    o._approx = Object.assign({}, o._approx);
+    if (approx && v) o._approx[key] = 1; else delete o._approx[key];
+    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)) PERSIST.orgField(o, '_approx', o._approx);
+    el.value = (approx && v ?'~':'') + fmtCellNum(col, v);
   }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   if (JSON.stringify(v)===JSON.stringify(old)) return;
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
+  if (key==='countries') autoLatLng(o);
   if (key==='lat'||key==='lng'||key==='countries'||key==='tier'||key==='visibility'){ o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
   flash(o.name+' updated');

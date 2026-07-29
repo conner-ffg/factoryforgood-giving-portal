@@ -12,9 +12,9 @@ for o in json.load(open(os.path.join(os.path.dirname(__file__), 'demo-data.json'
     ORGS[o['id']] = {'id': o['id'], 'data': o}
 
 USERS = {
-    'staff@factoryforgood.com': {'id': 'u-staff', 'email': 'staff@factoryforgood.com', 'role': 'staff', 'full_name': 'Sam Staff'},
-    'member@example.com': {'id': 'u-member', 'email': 'member@example.com', 'role': 'member', 'full_name': 'Mia Member'},
-    'member2@example.com': {'id': 'u-member2', 'email': 'member2@example.com', 'role': 'member', 'full_name': 'Noah Chen'},
+    'staff@factoryforgood.com': {'id': 'u-staff', 'email': 'staff@factoryforgood.com', 'role': 'staff', 'full_name': 'Sam Staff', 'pw_set': True},
+    'member@example.com': {'id': 'u-member', 'email': 'member@example.com', 'role': 'member', 'full_name': 'Mia Member', 'pw_set': True},
+    'member2@example.com': {'id': 'u-member2', 'email': 'member2@example.com', 'role': 'member', 'full_name': 'Noah Chen', 'pw_set': True},
 }
 TOKENS = {}  # token -> user
 DONATIONS, COMMENTS, NOTES, SHORTLIST = [], [], {}, []
@@ -110,7 +110,7 @@ class H(BaseHTTPRequestHandler):
             if not invited: return self._send(400, {'msg': 'This portal is invite-only. Ask Factory for Good to invite ' + e})
             USERS[e] = {'id': 'u-' + e.split('@')[0], 'email': e,
                         'role': 'staff' if e.endswith('@factoryforgood.com') else 'member',
-                        'full_name': (b.get('data') or {}).get('full_name', ''), 'pw': b.get('password')}
+                        'full_name': (b.get('data') or {}).get('full_name', ''), 'pw': b.get('password'), 'pw_set': False}
             return self._send(200, {'user': {'id': USERS[e]['id'], 'email': e}})
         if p.path == '/auth/v1/otp':
             b = self._body()
@@ -207,7 +207,7 @@ class H(BaseHTTPRequestHandler):
         p = urllib.parse.urlparse(self.path)
         if p.path == '/auth/v1/user':
             u = user_from(self.headers)
-            return self._send(200, {'id': u['id'], 'email': u['email']}) if u else self._send(401, {})
+            return self._send(200, {'id': u['id'], 'email': u['email'], 'user_metadata': {'pw_set': u.get('pw_set', False)}}) if u else self._send(401, {})
         u = user_from(self.headers)
         if not u: return self._send(401, {'message': 'JWT required'})
         f = parse_filters(p.query)
@@ -267,6 +267,7 @@ class H(BaseHTTPRequestHandler):
         b = self._body()
         if p.path == '/auth/v1/user':
             if b.get('password'): u['pw'] = b['password']
+            if (b.get('data') or {}).get('pw_set'): u['pw_set'] = True
             return self._send(200, {'id': u['id'], 'email': u['email']})
         return self._send(404, {'message': 'mock: no route'})
 

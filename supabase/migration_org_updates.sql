@@ -46,3 +46,9 @@ begin
     where u.org_id = o.id and u.quarter = '2026-Q2'
   );
 end $seed_org_updates$;
+
+-- Review workflow: allow date-only reviews (kind 'review0') — reviews made
+-- without an open request refresh dates/history but never count in tallies.
+alter table public.org_workflow_events drop constraint if exists org_workflow_events_kind_check;
+alter table public.org_workflow_events add constraint org_workflow_events_kind_check
+  check (kind in ('submission','request','review','review0'));

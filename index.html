@@ -159,6 +159,7 @@ h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:.005em}
 .badge.top{color:#F7F5F1;background:var(--ink);font-weight:500}
 .badge.recommended{color:var(--ink);border:1px solid var(--ink);background:transparent}
 .badge.represented{color:var(--ink-3);border:1px solid var(--divider);background:transparent}
+.badge.flagged{color:#B4544A;border:1px solid #B4544A;background:rgba(180,84,74,.07)}
 .cause-chip{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2)}
 .cause-chip .dot{width:8px;height:8px;border-radius:50%}
 /* ---------- library ---------- */
@@ -270,17 +271,17 @@ h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:.005em}
 table.editor{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:2900px}
 table.editor th{position:sticky;top:0;z-index:5;background:var(--surface-3);color:var(--ink-2);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--divider);font-size:11.5px;white-space:nowrap}
 table.editor td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--ink-2);white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-table.editor td.name-c,table.editor th.name-c{position:sticky;left:150px;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
-table.editor th.name-c{z-index:6;background:var(--surface-3)}
+table.editor td.name-c,table.editor th.name-c{position:sticky;left:192px;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
+table.editor th.name-c{z-index:7;background:var(--surface-3)}
 table.editor td[contenteditable=true]{outline:none;cursor:text}
 table.editor td[contenteditable=true]:focus{background:rgba(41,140,192,.07);box-shadow:inset 0 0 0 1px var(--cerulean);color:var(--ink)}
 /* fields that are live on the member site */
-table.editor th.pub-c{color:var(--ink);font-weight:700;background:rgba(201,165,92,.22);border-bottom:2px solid #C9A55C}
-table.editor th.name-c.pub-c{background:rgba(201,165,92,.22)}
-table.editor td.pub{background:rgba(201,165,92,.055)}
+table.editor th.pub-c{color:var(--ink);font-weight:700;background:rgba(196,164,124,.22);border-bottom:2px solid #C4A47C}
+table.editor th.name-c.pub-c{background:#EADFC7}
+table.editor td.pub{background:rgba(196,164,124,.055)}
 table.editor td.name-c.pub{background:#fff}
 /* click-to-expand: a focused cell grows to show its FULL contents while editing */
-table.editor td.expanded{white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;max-width:480px!important;min-width:300px;background:#fff!important;box-shadow:0 10px 30px rgba(20,20,19,.22), inset 0 0 0 2px #C9A55C!important;position:relative;z-index:9;color:var(--ink);vertical-align:top;line-height:1.55}
+table.editor td.expanded{white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;max-width:480px!important;min-width:300px;background:#fff!important;box-shadow:0 10px 30px rgba(20,20,19,.22), inset 0 0 0 2px #C4A47C!important;position:relative;z-index:9;color:var(--ink);vertical-align:top;line-height:1.55}
 table.editor td.expanded [contenteditable]{white-space:pre-wrap;display:block}
 table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(--divider);border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit}
 .ed-note{font-size:12px;color:var(--ink-3)}
@@ -293,7 +294,7 @@ table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(-
 .modal-veil.soft .modal{animation:modalRise .8s cubic-bezier(.2,.6,.2,1)}
 @keyframes veilFade{from{opacity:0}to{opacity:1}}
 @keyframes modalRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-.modal{width:min(560px,92vw);background:#F7F5F1;border:1px solid var(--divider);border-radius:16px;padding:28px 30px;box-shadow:var(--shadow)}
+.modal{width:min(560px,92vw);background:radial-gradient(340px 210px at 100% 0%, rgba(191,216,232,.28), transparent 70%),radial-gradient(320px 200px at 0% 100%, rgba(232,201,176,.3), transparent 70%),#F7F5F1;border:1px solid var(--divider);border-radius:16px;padding:28px 30px;box-shadow:var(--shadow)}
 .modal h3{font-size:21px;margin-bottom:4px}
 .calc-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
 .calc-row b{color:var(--ink);font-weight:500}
@@ -303,13 +304,13 @@ table.editor th.upd-c{z-index:7;background:var(--surface-3)}
 table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:42px;z-index:4;background:#fff;width:150px;min-width:150px;max-width:150px;text-align:center;padding:7px 6px}
 table.editor th.vis-c{z-index:7;background:var(--surface-3)}
 .upd-ic{position:relative;font-size:11px}
-.upd-ic.on{background:#F4E9D2;border-color:#C9A55C;color:#7A5F2C}
-.upd-n{position:absolute;top:-6px;right:-7px;background:#C9A55C;color:#fff;border-radius:8px;font-size:8.5px;font-style:normal;font-weight:700;line-height:1;padding:2px 4px;min-width:7px}
+.upd-ic.on{background:#F4E9D2;border-color:#C4A47C;color:#7A5F2C}
+.upd-n{position:absolute;top:-6px;right:-7px;background:#C4A47C;color:#fff;border-radius:8px;font-size:8.5px;font-style:normal;font-weight:700;line-height:1;padding:2px 4px;min-width:7px}
 .upd-row{display:flex;align-items:center;gap:8px;border:1px solid var(--divider,#DEDBD6);border-radius:10px;padding:8px 12px;margin-bottom:7px;font-size:13px;background:var(--surface)}
-.upd-row.editing{border-color:#C9A55C;background:#FBF7EE}
+.upd-row.editing{border-color:#C4A47C;background:#FBF7EE}
 .upd-row-ttl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.upd-form{border:1px solid #C9A55C;border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#FBF8F1}
-.upd-ai{border:1px dashed #C9A55C;border-radius:10px;padding:11px 13px;margin-bottom:13px;background:#fff}
+.upd-form{border:1px solid #C4A47C;border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#FBF8F1}
+.upd-ai{border:1px dashed #C4A47C;border-radius:10px;padding:11px 13px;margin-bottom:13px;background:#fff}
 .upd-ai input[type=text]{border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px}
 .upd-ai button:disabled{opacity:.55;cursor:wait}
 .upd-form-grid{display:grid;grid-template-columns:92px 1fr;gap:8px 12px;align-items:start}
@@ -362,7 +363,7 @@ td.has-cellnote::before{content:'';position:absolute;top:0;left:0;border-style:s
 .va-member #mainNav [data-route="#/tools"],
 .va-member #demoToggle{display:none!important}
 /* @mentions in comments */
-.mention{color:var(--ink);background:rgba(201,165,92,.22);border-radius:5px;padding:0 4px;font-weight:600}
+.mention{color:var(--ink);background:rgba(196,164,124,.22);border-radius:5px;padding:0 4px;font-weight:600}
 .tagrow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px}
 .tag-chip{font-size:11px;border:1px solid var(--divider);border-radius:999px;padding:2px 9px;color:var(--ink-2);cursor:pointer;background:#fff;transition:all .15s}
 .tag-chip:hover{border-color:var(--ink);color:var(--ink)}
@@ -370,17 +371,17 @@ td.has-cellnote::before{content:'';position:absolute;top:0;left:0;border-style:s
 .row-ic{cursor:pointer;font-size:12px;color:var(--ink-3);border:1px solid var(--divider,#DEDBD6);border-radius:6px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:#fff;flex:none;transition:all .15s}
 .row-ic:hover{color:var(--ink);border-color:var(--ink)}
 th .col-grip{position:absolute;right:0;top:0;bottom:0;width:7px;cursor:col-resize;border-right:2px solid transparent}
-th .col-grip:hover{border-right-color:#C9A55C}
+th .col-grip:hover{border-right-color:#C4A47C}
 table.editor th{position:sticky}
 table.editor td.num-cell{font-variant-numeric:tabular-nums;text-align:right}
 .ve-grid{display:grid;grid-template-columns:230px 1fr;gap:7px 14px;align-items:start}
 .ve-lbl{font-size:12px;color:var(--ink-2);padding-top:7px;line-height:1.35}
 .ve-in{width:100%;background:#fff;border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;color:var(--ink);outline:none;resize:none;line-height:1.5;box-sizing:border-box}
-textarea.ve-in:focus,select.ve-in:focus{border-color:#C9A55C;box-shadow:0 0 0 1.5px rgba(201,165,92,.35)}
+textarea.ve-in:focus,select.ve-in:focus{border-color:#C4A47C;box-shadow:0 0 0 1.5px rgba(196,164,124,.35)}
 .ve-ro{font-size:12.5px;color:var(--ink-3);padding-top:7px}
 
 /* org review workflow */
-.wf-cb{width:14px;height:14px;accent-color:#C9A55C;cursor:pointer;flex:none;margin:0}
+.wf-cb{width:14px;height:14px;accent-color:#C4A47C;cursor:pointer;flex:none;margin:0}
 .row-ic.wf-req-ic.on{background:#92C1DC;border-color:#5C93B5;color:#14303F}
 .row-ic.wf-done-ic.on{background:#9ED1BB;border-color:#5F9B7F;color:#123526}
 table.editor tr.wf-req td{background:rgba(146,193,220,.16)}
@@ -388,16 +389,29 @@ table.editor tr.wf-req td.vis-c,table.editor tr.wf-req td.upd-c,table.editor tr.
 table.editor tr.wf-sub td{background:rgba(239,203,103,.13)}
 table.editor tr.wf-sub td.vis-c,table.editor tr.wf-sub td.upd-c,table.editor tr.wf-sub td.name-c{background:#F8F0DC}
 
+/* review-queue drawer: boxed, bold sections */
+.rv-box{border:1.5px solid var(--divider);border-radius:12px;padding:12px 14px;margin-bottom:14px;background:#fff}
+.rv-box .rv-title{font-weight:700;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--hairline)}
+.rv-box.rv-late{border-color:#B4544A;background:rgba(180,84,74,.05)}
+.rv-box .note-item .f b{font-weight:700}
+.rvh-day{font-size:12px;margin:10px 0 3px;border-bottom:2px solid var(--divider);padding-bottom:3px}
+.rvh-person{font-size:11.5px;margin:6px 0 2px;padding-left:4px}
+.rvh-line{font-size:12px;padding:1px 0 1px 22px}
+.gzoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:5px;z-index:5}
+.gzoom button{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.92);border:1px solid var(--divider);font-size:16px;line-height:1;cursor:pointer;color:var(--ink);box-shadow:0 3px 10px rgba(20,20,19,.12)}
+.gzoom button:hover{background:#fff;border-color:var(--ink-3)}
+#gAuto.on{background:var(--ink);color:#F7F5F1;border-color:var(--ink)}
+
 /* @mention typeahead */
 .ac-pop{position:fixed;z-index:999;background:#fff;border:1px solid var(--divider,#DEDBD6);border-radius:10px;box-shadow:0 12px 32px rgba(20,20,19,.16);padding:4px;max-height:180px;overflow:auto}
 .ac-pop .ac-i{padding:6px 10px;border-radius:7px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px}
-.ac-pop .ac-i.hi{background:rgba(201,165,92,.16);font-weight:600}
+.ac-pop .ac-i.hi{background:rgba(196,164,124,.16);font-weight:600}
 .ac-pop .ac-i .k{font-size:9.5px;border:1px solid var(--divider,#DEDBD6);border-radius:4px;padding:0 5px;color:#797772}
 .ac-pop .ac-i:hover{background:rgba(20,20,19,.05)}
 /* late workflow rows */
-table.editor tr.wf-late td{border-top:2px solid #C0392B!important;border-bottom:2px solid #C0392B!important}
-table.editor tr.wf-late td.upd-c{border-left:4px solid #C0392B}
-table.editor tr.wf-late td.name-c{color:#C0392B;font-weight:600}
+table.editor tr.wf-late td{border-top:2px solid #B4544A!important;border-bottom:2px solid #B4544A!important}
+table.editor tr.wf-late td.upd-c{border-left:4px solid #B4544A}
+table.editor tr.wf-late td.name-c{color:#B4544A;font-weight:600}
 </style>
 <script>
 window.SITE_THEME = {
@@ -416,8 +430,8 @@ window.SITE_THEME = {
 <body>
 <div class="topbar">
   <div class="brand" onclick="go('#/dashboard')">
-    <span class="mark">Factory <i>for</i> Good</span>
-    <span class="check"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#141413" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5.5 l2.5 2.5 4.5-6"/></svg></span>
+    <img src="https://www.truekeep.ai/api/asset-proxy/page-media/35d80f0e-bbd4-408b-a303-20c8badd882a/bf81542a-7b83-4692-9e38-2052028317f9.svg" alt="Factory for Good" style="height:30px;display:block" onerror="this.nextElementSibling.style.display='inline';this.remove()">
+    <span class="mark" style="display:none">Factory <i>for</i> Good</span>
   </div>
   <nav class="nav" id="mainNav">
     <button data-route="#/dashboard">Dashboard</button>
@@ -527,7 +541,7 @@ window.SITE_THEME = {
     <input type="search" id="edSearch" placeholder="Filter rows…">
     <select id="edTier">
       <option value="">All tiers</option><option value="top">Top picks</option>
-      <option value="recommended">Recommended</option><option value="represented">Represented</option>
+      <option value="recommended">Recommended</option><option value="represented">Represented</option><option value="flagged">Flagged</option>
     </select>
     <select id="edGroup"></select>
     <button class="btn" id="edAdd">+ Add organization</button>
@@ -554,7 +568,6 @@ window.SITE_THEME = {
   <div class="dr-tabs" id="drTabs">
     <button data-drtab="comments" class="active">Comments</button>
     <button data-drtab="cellnotes">Notes</button>
-    <button data-drtab="reviews">Reviews</button>
   </div></div>
   <div class="dr-body" id="notesBody"></div>
 </div>
@@ -574,9 +587,12 @@ const byId = id => ORGS.find(o => o.id === +id);
 const CAUSES = ['Global Health','Poverty & Livelihoods','Education','Agriculture & Food','Water & Sanitation','Climate & Environment','Animal Welfare','Mental Health','Rights & Justice','Humanitarian Relief'];
 const THEME = window.SITE_THEME;
 const CAUSE_COLOR = THEME.causeColor;
-const TIER_LABEL = {top:'Top pick', recommended:'Recommended', represented:'Represented'};
-const TIER_RANK = {top:0, recommended:1, represented:2};
+const TIER_LABEL = {top:'Top pick', recommended:'Recommended', represented:'Represented', flagged:'Flagged'};
+const TIER_RANK = {top:0, recommended:1, represented:2, flagged:9};
 const isShown = o => o.visibility!=='hidden';   // hidden orgs live only in Data Studio
+/* member-facing surfaces: flagged orgs are tracked in the studio but never showcased */
+const showcased = o => isShown(o) && o.tier!=='flagged';
+window.showcased = showcased;
 
 function regionOf(o){
   if (o.countries.length===1 && o.countries[0]==='Global') return 'Global';
@@ -897,7 +913,7 @@ function drawTrend(box, d){
 }
 
 function renderMarquee(){
-  const tops = ORGS.filter(o=>o.tier==='top' && isShown(o));
+  const tops = ORGS.filter(o=>o.tier==='top' && showcased(o));
   const cards = tops.map(o=>`
     <div class="mini-card" onclick="go('#/org/${o.id}')">
       <span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[o.causes[0]]}"></span>${o.causes[0]}${o.causes.length>1?" +"+(o.causes.length-1):""}</span>
@@ -913,7 +929,7 @@ const globeState = { built:false, rot:-20, tilt:-16, vel:0.055, dragging:false, 
 const D2R = Math.PI/180;
 const LAND3 = LAND.map(([la,ln])=>({la,ln}));
 function buildPins(){
-  globeState.pins = ORGS.filter(o=>o.tier!=='represented' && isShown(o)
+  globeState.pins = ORGS.filter(o=>o.tier!=='represented' && showcased(o)
     && Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0 && +o.lng===0))
     .map(o=>({o}));
 }
@@ -1140,7 +1156,7 @@ $('#drawerVeil').addEventListener('click', closeDrawers);
   });
 })();
 function renderLibrary(){
-  const vis = ORGS.filter(isShown);
+  const vis = ORGS.filter(showcased);
   const t = vis.filter(o=>o.tier==='top').length,
         r = vis.filter(o=>o.tier==='recommended').length,
         p = vis.filter(o=>o.tier==='represented').length;
@@ -1150,7 +1166,7 @@ function renderLibrary(){
 function libFiltered(){
   const {q,tier,cause,region,sort} = state.lib;
   let list = ORGS.filter(o=>
-    isShown(o) &&
+    showcased(o) &&
     (tier==='all'||o.tier===tier) &&
     (!cause||o.causes.includes(cause)) &&
     (!region||o.region===region) &&
@@ -1213,7 +1229,7 @@ function reachIcons(o){
 function renderOrg(id){
   const o = byId(id);
   const root = $('#orgRoot');
-  if (!o || (!isShown(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
+  if (!o || (!showcased(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
   const insightsEligible = o.tier!=='represented';
   const tab = state.orgTab==='insights' && insightsEligible ? 'insights' : 'overview';
   const confN = {High:3, Moderate:2, Emerging:1}[o.confidence]||1;
@@ -1357,7 +1373,7 @@ function orgInsightsHTML(o){
   </div>`;
 }
 function relatedHTML(o){
-  const rel = ORGS.filter(x=>isShown(x) && x.causes[0]===o.causes[0] && x.id!==o.id)
+  const rel = ORGS.filter(x=>showcased(x) && x.causes[0]===o.causes[0] && x.id!==o.id)
     .sort((a,b)=>TIER_RANK[a.tier]-TIER_RANK[b.tier]).slice(0,6);
   if (!rel.length) return '';
   return `<div style="margin-top:26px" class="fade-up">
@@ -1426,16 +1442,36 @@ function openCalc(id){
     box.querySelectorAll('.calc-row').forEach((r,i)=>r.replaceWith(tmp.querySelectorAll('.calc-row')[i]));
   });
 }
-function closeModal(){ $('#modalVeil').classList.remove('show'); }
+function closeModal(force){
+  const veil = $('#modalVeil');
+  if (veil.dataset.required && !force) return;   // first-login password setup must be completed
+  veil.classList.remove('show');
+}
 $('#modalVeil').addEventListener('click', e=>{ if (e.target===e.currentTarget) closeModal(); });
 </script>
 <script>
 /* ================= DATA STUDIO — FIELD DICTIONARY ================= */
 const RATE5 = ['','Very Low','Low','Medium','High','Very High'];
+/* The suffering → flourishing ladder: what each state number actually means */
+window.STATE_WORDS = {1:'Acute suffering',2:'Severe suffering',3:'Unstable',4:'Uncomfortable',5:'Stable',6:'Well',7:'Comfortable',8:'Secure',9:'Thriving',10:'Flourishing'};
+const STATE_LADDER = 'What each state means:\n' + Object.entries(STATE_WORDS).map(([n,w])=>'  '+n+' — '+w).join('\n');
+/* ~ approximate numbers display as a sensible range (half → double, nicely rounded) */
+window.fmtApproxRange = function(v, money){
+  v = +v; if (!isFinite(v) || v<=0) return '';
+  // an approximate value reads as a floor: ~107 -> 75+, ~50 -> 35+, ~$1M -> $750K+
+  const t = v*0.75;
+  const p = Math.pow(10, Math.floor(Math.log10(Math.max(1e-9,t))));
+  const steps = [1,1.5,2,2.5,3,3.5,4,5,7.5,10];
+  const m = t/p;
+  const lo = ([...steps].reverse().find(x=>x<=m+1e-9)||1)*p;
+  const f = n => money ? '$'+(n>=1e9?(+(n/1e9).toFixed(1))+'B':n>=1e6?(+(n/1e6).toFixed(1))+'M':n>=1e3?(+(n/1e3).toFixed(1))+'K':n) : String(n);
+  return f(lo)+'+';
+};
 const FIELDS = [
  // Identity & Basic Info
  {k:'id', l:'Record ID', cat:'Identity & Basic Info', ro:1, desc:'Internal system identifier. Do not change once assigned.'},
  {k:'name', l:'Display Name', pub:1, cat:'Identity & Basic Info', cls:'name-c', core:1, desc:'Shorter public-facing name, if different from the legal name.'},
+ {k:'tier', l:'Tier', pub:1, cat:'Identity & Basic Info', sel:['top','recommended','represented','flagged'], core:1, desc:'Factory for Good conviction tier: top pick, recommended, represented, or flagged (tracked internally, never showcased to members).'},
  {k:'legalName', l:'Legal Organization Name', cat:'Identity & Basic Info', desc:'Full registered legal name.'},
  {k:'logoUrl', l:'Logo Image', pub:1, core:1, cat:'Identity & Basic Info', img:1, desc:'Link to the org\'s logo file. Click the camera to paste a URL or upload a file.'},
  {k:'ein', l:'EIN', cat:'Identity & Basic Info', desc:'US tax ID (XX-XXXXXXX). Primary identifier for domestic orgs.'},
@@ -1446,7 +1482,6 @@ const FIELDS = [
  {k:'contactEmail', l:'Contact Email', cat:'Identity & Basic Info', desc:'Primary contact at the org for grant and donor coordination.'},
  {k:'fiscalSponsor', l:'Intermediary (Fiscal Sponsor)', cat:'Identity & Basic Info', desc:'Fiscal sponsor or intermediary name, if the org isn\'t a direct 501(c)(3) or local equivalent.'},
  {k:'orgType', l:'Org Type', pub:1, cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based'], core:1, desc:'Organization model type.'},
- {k:'tier', l:'Tier', pub:1, cat:'Identity & Basic Info', sel:['top','recommended','represented'], core:1, desc:'Factory for Good conviction tier: top pick, recommended, or represented.'},
  {k:'visibility', l:'Display on site', cat:'Identity & Basic Info', sel:['shown','hidden'], desc:'shown = appears in the library, globe, marquee, and briefs. hidden = tracked in Data Studio only, invisible to members until you flip it. New organizations start hidden.'},
  {k:'founded', l:'Start Date/Year', pub:1, cat:'Identity & Basic Info', num:1, nocomma:1, core:1, desc:'Year the org was founded.'},
  {k:'yearsOp', l:'Years in Operation', cat:'Identity & Basic Info', ro:1, fx:o=>2026-(+o.founded||2026), desc:'Auto-calculated from Start Date/Year.'},
@@ -1490,8 +1525,8 @@ const FIELDS = [
  {k:'governmentAdoption', l:'Government Adoption', cat:'Reach, Scale & Financials', desc:'Whether and how much government has adopted or funded the approach.'},
  {k:'franchiseReplication', l:'Franchise/Replication by Other NGOs', cat:'Reach, Scale & Financials', desc:'Whether other organizations have successfully replicated or franchised the model.'},
  // Impact Measurement & Cost-Effectiveness
- {k:'sufferMin', l:'Suffering Min (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state before the intervention (1 = acute suffering).'},
- {k:'flourishMax', l:'Flourishing Max (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state after the intervention (10 = full flourishing).'},
+ {k:'sufferMin', l:'Suffering Min (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Beneficiary state BEFORE the intervention.\n\n'+STATE_LADDER},
+ {k:'flourishMax', l:'Flourishing Max (1–10)', pub:1, cat:'Impact & Cost-Effectiveness', num:1, core:1, desc:'Maximum beneficiary state AFTER the intervention.\n\n'+STATE_LADDER},
  {k:'depthOfIntervention', l:'Depth of Intervention (1–10)', cat:'Impact & Cost-Effectiveness', num:1, desc:'Depth of the outcome (1 = minor/singular … 10 = major/life-altering).'},
  {k:'impactLongevity', l:'Impact Longevity (1–10)', cat:'Impact & Cost-Effectiveness', num:1, desc:'Duration of outcomes (1 = under 6 months … 10 = permanent/lifelong).'},
  {k:'innovativeness', l:'Innovativeness (1–5)', pub:1, core:1, cat:'Impact & Cost-Effectiveness', num:1, desc:'How novel the approach is relative to standard practice.'},
@@ -1619,14 +1654,30 @@ window.wfAction = function(orgId, kind){
     }
   }
   if (kind==='done'){
+    // integrity rules: the first review needs an open request (no single-person
+    // sign-off straight from a submission), and nobody reviews their own request
+    const firstTime = !wf.done && !wf.doneBy;
+    if (!wf.req && firstTime){
+      flash('Request a review first — an organization\'s first review must fulfil an open review request'); return;
+    }
+    if (wf.req && wf.req.by === me){
+      flash('Two sets of eyes: you requested this review, so a different team member must perform it'); return;
+    }
+    // a review COUNTS toward the team-activity totals only when it fulfils an
+    // open (re-)request; otherwise it just refreshes the review date + history
+    const counted = !!wf.req;
     wf.done = {by:me, date};
-    if (wf.req){ wf.reqDone = wf.req; delete wf.req; }   // fulfilled — keeps counting, remembered for the hover
-    if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; }   // a review also fulfills an open submission invite
-    wfLog('review', o); flash(o.name+' marked reviewed');
+    wf.doneBy = Object.assign({}, wf.doneBy, {[me]: date});   // each member's most recent review
+    if (wf.req){ wf.reqDone = wf.req; delete wf.req; }
+    if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; }        // a review also fulfills an open submission invite
+    wfLog(counted ? 'review' : 'review0', o);
+    flash(counted ? o.name+' reviewed — request fulfilled and counted'
+                  : o.name+' review date updated (no open request — not added to the tallies)');
   }
   if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o, 'workflow', o.workflow) : PERSIST.org(o); }
   updateNoteCnt(); renderEdRows();
   if ($('#notesDrawer').classList.contains('show')) renderNotesPanel();
+  if ($('#reviewDrawer') && $('#reviewDrawer').classList.contains('show')) renderReviewPanel();
 };
 function wfDaysOld(d){ try{ return Math.floor((Date.now() - new Date(d+'T00:00:00').getTime())/864e5); }catch(e){ return 0; } }
 function wfLate(o){
@@ -1636,10 +1687,12 @@ function wfLate(o){
 function wfTipHTML(o){
   const wf = o.workflow || {};
   const row = (label, e, late)=> e ? `<div style="display:flex;justify-content:space-between;gap:14px"><span style="color:var(--ink-3)">${label}</span><b ${late?'style="color:#C0392B"':''}>${initialsOf(e.by)} · ${e.date}${late?' · '+wfDaysOld(e.date)+'d waiting':''}</b></div>` : '';
+  const members = Object.entries(wf.doneBy||{}).sort((a,b)=>b[1]<a[1]?-1:1);
   const body = [
     row('Submission invited', wf.sub || wf.subDone, wf.sub && wfDaysOld(wf.sub.date)>=6),
     row('Review requested', wf.req || wf.reqDone, wf.req && wfDaysOld(wf.req.date)>=6),
-    row('Reviewed', wf.done),
+    row('Most recent review', wf.done),
+    members.length>1 ? members.map(([n,d])=>`<div style="display:flex;justify-content:space-between;gap:14px;padding-left:10px"><span style="color:var(--ink-3)">↳ ${initialsOf(n)} last reviewed</span><b>${d}</b></div>`).join('') : '',
   ].filter(Boolean).join('');
   return `<div style="min-width:220px"><b>${esc(o.name)} — workflow</b><div style="margin-top:5px;display:flex;flex-direction:column;gap:3px;font-size:12px">${body || '<span style="color:var(--ink-3)">No workflow activity yet.</span>'}</div></div>`;
 }
@@ -1815,60 +1868,7 @@ function renderNotesPanel(){
         <div class="m"><span>${esc(n.author)}</span><span class="res" onclick="event.stopPropagation();resolveNote(${n.id})">✓ Resolve</span></div>
       </div>`;}).join('')
       : `<div class="muted" style="padding:26px 4px;font-size:13px">${who?'No open comments tag @'+esc(who)+'.':'No open comments. Right-click any cell (or use 💬 in the Donor studio) to add one.'}</div>`);
-  } else if (drTab==='reviews'){
-    const queue = ORGS.filter(o=>o.workflow && o.workflow.req);
-    const subQueue = ORGS.filter(o=>o.workflow && o.workflow.sub);
-    const late = [...queue.filter(o=>wfDaysOld(o.workflow.req.date)>=6).map(o=>({o, kind:'review', e:o.workflow.req})),
-                  ...subQueue.filter(o=>wfDaysOld(o.workflow.sub.date)>=6).map(o=>({o, kind:'submission', e:o.workflow.sub}))];
-    const week = wfWeekStart(), month = wfMonthStart();
-    const people = {};
-    WFLOG.forEach(ev=>{
-      const p = people[ev.by] = people[ev.by] || {submission:[0,0,0], request:[0,0,0], review:[0,0,0]};
-      const bucket = p[ev.kind]; if (!bucket) return;
-      bucket[2]++; if (ev.date>=month) bucket[1]++; if (ev.date>=week) bucket[0]++;
-    });
-    const cell = a=>`<span class="num">${a[0]}</span> / <span class="num">${a[1]}</span> / <span class="num">${a[2]}</span>`;
-    $('#notesBody').innerHTML = `
-      ${late.length ? `<div style="border:2px solid #C0392B;border-radius:11px;padding:10px 13px;margin-bottom:14px;background:rgba(192,57,43,.05)">
-        <div class="kicker" style="color:#C0392B;font-weight:700;margin-bottom:6px">⚠ Late — waiting 6+ calendar days</div>
-        ${late.map(({o,kind,e})=>`<div class="note-item" style="border-color:rgba(192,57,43,.25)" onclick="jumpToCell(${o.id},'name')">
-          <div class="f" style="color:#C0392B">${esc(o.name)} <span class="pill" style="margin-left:6px;border-color:#C0392B;color:#C0392B">${kind==='review'?'awaiting review':'awaiting submission'} · ${wfDaysOld(e.date)}d</span></div>
-          <div class="m"><span>${kind==='review'?'requested':'invited'} by ${initialsOf(e.by)} · ${e.date}</span>
-          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'${kind==='review'?'done':'req'}')">${kind==='review'?'✓ Mark reviewed':'⏳ Move to review'}</span></div>
-        </div>`).join('')}</div>` : ''}
-      <div class="kicker" style="margin-bottom:8px">Review queue · ${queue.length}</div>
-      <div style="max-height:190px;overflow:auto">${queue.length ? queue.map(o=>`<div class="note-item" onclick="jumpToCell(${o.id},'name')">
-          <div class="f">${esc(o.name)} <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
-          <div class="m"><span>requested by ${initialsOf(o.workflow.req.by)} · ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}</span>
-          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span></div>
-        </div>`).join('')
-        : '<div class="muted" style="font-size:12.5px;padding:8px 4px 14px">Nothing waiting for review. Click ⏳ on any row to queue it.</div>'}</div>
-      <div class="hr"></div>
-      <div class="kicker" style="margin-bottom:8px">Submission requests · ${subQueue.length}</div>
-      <div style="max-height:170px;overflow:auto">${subQueue.length ? subQueue.map(o=>`<div class="note-item" onclick="jumpToCell(${o.id},'name')">
-          <div class="f">${esc(o.name)} <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
-          <div class="m"><span>invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago</span>
-          <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'req')">⏳ Fulfil → request review</span></div>
-        </div>`).join('')
-        : '<div class="muted" style="font-size:12.5px;padding:8px 4px 14px">No open submission invites. Use the checkbox on any row to invite org data.</div>'}</div>
-      <div class="hr"></div>
-      <div class="kicker" style="margin-bottom:6px">Team activity · week / month / all-time</div>
-      ${Object.keys(people).length ? `<table style="width:100%;font-size:11.5px;border-collapse:collapse">
-        <tr style="color:var(--ink-3);text-align:left"><th style="font-weight:500;padding:3px 0">Person</th><th style="font-weight:500">Submissions</th><th style="font-weight:500">Review req.</th><th style="font-weight:500">Reviews</th></tr>
-        ${Object.entries(people).map(([name,p])=>`<tr style="border-top:1px solid var(--hairline)">
-          <td style="padding:5px 0"><b>${initialsOf(name)}</b> <span class="muted">${esc(name)}</span></td>
-          <td>${cell(p.submission)}</td><td>${cell(p.request)}</td><td>${cell(p.review)}</td></tr>`).join('')}
-      </table>` : '<div class="muted" style="font-size:12px">No workflow activity recorded yet.</div>'}
-      <div class="hr"></div>
-      <div class="kicker" style="margin-bottom:6px">History</div>
-      <div style="max-height:220px;overflow:auto">${WFLOG.length ? WFLOG.map(ev=>`
-        <div style="display:flex;gap:9px;align-items:baseline;font-size:12px;padding:5px 0;border-bottom:1px solid var(--hairline)">
-          <span class="num" style="color:var(--ink-3);flex:none">${ev.date}</span>
-          <b style="flex:none">${initialsOf(ev.by)}</b>
-          <span style="color:var(--ink-2)">${ev.kind==='submission'?'invited submission':ev.kind==='request'?'requested review':'reviewed'}</span>
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.orgName||'')}</span>
-        </div>`).join('') : '<div class="muted" style="font-size:12px">—</div>'}</div>`;
-  } else {
+    } else {
     $('#notesBody').innerHTML = noteKeys.length ? noteKeys.map(key=>{
       const [orgId, k] = [ +key.split(':')[0], key.split(':').slice(1).join(':') ];
       const o = byId(orgId), col = FIELDS.find(f=>f.k===k);
@@ -1884,6 +1884,104 @@ $('#drTabs').addEventListener('click', e=>{
   const b = e.target.closest('button[data-drtab]'); if(!b) return;
   drTab = b.dataset.drtab; renderNotesPanel();
 });
+/* ================= REVIEW QUEUE — standalone drawer ================= */
+document.body.insertAdjacentHTML('beforeend', `
+<div class="drawer" id="reviewDrawer">
+  <div class="dr-head"><div class="kicker">Data studio</div><h3>Review queue</h3>
+  <div class="muted" style="font-size:12px" id="reviewSub">Submissions, review requests, and team activity</div>
+  <div class="dr-tabs" id="rvTabs">
+    <button data-rvtab="sub">Submissions</button>
+    <button data-rvtab="req" class="active">Review requests</button>
+    <button data-rvtab="done">Reviewed &amp; activity</button>
+  </div></div>
+  <div class="dr-body" id="reviewBody"></div>
+</div>`);
+let rvTab = 'req';
+$('#rvTabs').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-rvtab]'); if (!b) return;
+  rvTab = b.dataset.rvtab; renderReviewPanel();
+});
+function rvItem(o, meta, action){
+  return `<div class="note-item" onclick="jumpToCell(${o.id},'name')">
+    <div class="f"><b>${esc(o.name)}</b> <span class="pill" style="margin-left:6px">${TIER_LABEL[o.tier]||o.tier}</span></div>
+    <div class="m"><span>${meta}</span>${action||''}</div></div>`;
+}
+function renderReviewPanel(){
+  const queue = ORGS.filter(o=>o.workflow && o.workflow.req);
+  const subQueue = ORGS.filter(o=>o.workflow && o.workflow.sub);
+  const reviewed = ORGS.filter(o=>o.workflow && o.workflow.done)
+    .sort((a,b)=> a.workflow.done.date<b.workflow.done.date?1:-1);
+  $('#reviewSub').textContent = `${subQueue.length} open invite${subQueue.length===1?'':'s'} · ${queue.length} awaiting review · ${reviewed.length} reviewed`;
+  $$('#rvTabs button').forEach(b=>b.classList.toggle('active', b.dataset.rvtab===rvTab));
+  const lateBox = (items, kindLabel)=> items.length ? `<div class="rv-box rv-late">
+      <div class="rv-title" style="color:#B4544A">⚠ Late — waiting 6+ calendar days</div>
+      ${items.map(({o,kind,e})=>`<div class="note-item" style="border-color:rgba(180,84,74,.3)" onclick="jumpToCell(${o.id},'name')">
+        <div class="f" style="color:#B4544A"><b>${esc(o.name)}</b> <span class="pill" style="margin-left:6px;border-color:#B4544A;color:#B4544A">${kindLabel} · ${wfDaysOld(e.date)}d</span></div>
+        <div class="m"><span>${kind==='review'?'requested':'invited'} by ${initialsOf(e.by)} · ${e.date}</span>
+        <span class="res" onclick="event.stopPropagation();wfAction(${o.id},'${kind==='review'?'done':'req'}')">${kind==='review'?'✓ Mark reviewed':'⏳ Move to review'}</span></div>
+      </div>`).join('')}</div>` : '';
+  let html = '';
+  if (rvTab==='sub'){
+    const late = subQueue.filter(o=>wfDaysOld(o.workflow.sub.date)>=6).map(o=>({o, kind:'submission', e:o.workflow.sub}));
+    html = lateBox(late, 'awaiting submission') + `<div class="rv-box">
+      <div class="rv-title">Submission invites · ${subQueue.length}</div>
+      ${subQueue.length ? subQueue.map(o=>rvItem(o,
+        `invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago`,
+        `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'req')">⏳ Fulfil → request review</span>`)).join('')
+      : '<div class="muted" style="font-size:12.5px;padding:6px 2px">No open submission invites. Use the checkbox on any studio row to invite org data.</div>'}</div>`;
+  } else if (rvTab==='req'){
+    const late = queue.filter(o=>wfDaysOld(o.workflow.req.date)>=6).map(o=>({o, kind:'review', e:o.workflow.req}));
+    html = lateBox(late, 'awaiting review') + `<div class="rv-box">
+      <div class="rv-title">Review queue · ${queue.length}</div>
+      ${queue.length ? queue.map(o=>rvItem(o,
+        `requested by ${initialsOf(o.workflow.req.by)} · ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}`,
+        `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span>`)).join('')
+      : '<div class="muted" style="font-size:12.5px;padding:6px 2px">Nothing waiting for review. Click ⏳ on any studio row to queue it.</div>'}</div>`;
+  } else {
+    const week = wfWeekStart(), month = wfMonthStart();
+    const people = {};
+    WFLOG.forEach(ev=>{
+      const p = people[ev.by] = people[ev.by] || {submission:[0,0,0], request:[0,0,0], review:[0,0,0]};
+      const bucket = p[ev.kind]; if (!bucket) return;   // review0 (date-only reviews) never counts
+      bucket[2]++; if (ev.date>=month) bucket[1]++; if (ev.date>=week) bucket[0]++;
+    });
+    const cell = a=>`<span class="num">${a[0]}</span> / <span class="num">${a[1]}</span> / <span class="num">${a[2]}</span>`;
+    html = `<div class="rv-box">
+      <div class="rv-title">Recently reviewed · ${reviewed.length}</div>
+      <div style="max-height:220px;overflow:auto">${reviewed.length ? reviewed.map(o=>{
+        const by = Object.entries(o.workflow.doneBy||{[o.workflow.done.by]:o.workflow.done.date}).sort((a,b)=>b[1]<a[1]?-1:1);
+        return `<div class="note-item" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="jumpToCell(${o.id},'name')">
+          <div class="f"><b>${esc(o.name)}</b> <span class="pill" style="margin-left:6px">last reviewed ${o.workflow.done.date}</span></div>
+          <div class="m"><span>${by.map(([n,d])=>initialsOf(n)+' '+d).join(' · ')}</span></div></div>`;}).join('')
+      : '<div class="muted" style="font-size:12.5px;padding:6px 2px">No reviews recorded yet.</div>'}</div></div>
+    <div class="rv-box">
+      <div class="rv-title">Team activity · week / month / all-time</div>
+      <div class="muted" style="font-size:10.5px;margin-bottom:6px">Only reviews that fulfil an open request are counted — re-reviews without a new request update dates and history only.</div>
+      ${Object.keys(people).length ? `<table style="width:100%;font-size:11.5px;border-collapse:collapse">
+        <tr style="color:var(--ink-3);text-align:left"><th style="font-weight:500;padding:3px 0">Person</th><th style="font-weight:500">Submissions</th><th style="font-weight:500">Review req.</th><th style="font-weight:500">Reviews</th></tr>
+        ${Object.entries(people).map(([name,p])=>`<tr style="border-top:1px solid var(--hairline)">
+          <td style="padding:5px 0"><b>${initialsOf(name)}</b> <span class="muted">${esc(name)}</span></td>
+          <td>${cell(p.submission)}</td><td>${cell(p.request)}</td><td>${cell(p.review)}</td></tr>`).join('')}
+      </table>` : '<div class="muted" style="font-size:12px">No workflow activity recorded yet.</div>'}</div>
+    <div class="rv-box">
+      <div class="rv-title">History · by day, person, and stage</div>
+      <div style="max-height:280px;overflow:auto">${(()=>{
+        if (!WFLOG.length) return '<div class="muted" style="font-size:12px">—</div>';
+        const days = {};
+        WFLOG.forEach(ev=>{ const d = days[ev.date] = days[ev.date]||{}; (d[ev.by] = d[ev.by]||[]).push(ev); });
+        const stageOrd = {submission:0, request:1, review:2, review0:3};
+        const stageTxt = {submission:'invited submission', request:'requested review', review:'reviewed', review0:'logged a review (date only)'};
+        return Object.keys(days).sort().reverse().map(d=>`
+          <div class="rvh-day"><b>${d}</b></div>
+          ${Object.entries(days[d]).sort((a,b)=>a[0].localeCompare(b[0])).map(([person,evs])=>`
+            <div class="rvh-person"><b>${initialsOf(person)}</b> <span class="muted">${esc(person)}</span></div>
+            ${evs.slice().sort((a,b)=>(stageOrd[a.kind]??9)-(stageOrd[b.kind]??9)).map(ev=>`
+              <div class="rvh-line"><span style="color:var(--ink-2)">${stageTxt[ev.kind]||ev.kind}</span> · <b>${esc(ev.orgName||'')}</b></div>`).join('')}`).join('')}`).join('');
+      })()}</div></div>`;
+  }
+  $('#reviewBody').innerHTML = html;
+}
+
 function jumpToCell(orgId, k){
   closeDrawers();
   if (!location.hash.startsWith('#/editor')){ go('#/editor'); }
@@ -1899,7 +1997,7 @@ function jumpToCell(orgId, k){
   });
 }
 $('#edNotes').addEventListener('click', ()=>{ drTab='comments'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
-$('#edReviews').addEventListener('click', ()=>{ drTab='reviews'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
+$('#edReviews').addEventListener('click', ()=>{ renderReviewPanel(); $('#reviewDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
 document.addEventListener('click', e=>{
   if (e.target.closest('#ctxMenu')) return;   // menu actions open popovers — don't instantly dismiss them
   const pop = $('#notePop');
@@ -1992,6 +2090,11 @@ function clearGathering(o, key, v, col){
 /* ---- table ---- */
 $('#edSearch').addEventListener('input', e=>{ edState.q = e.target.value.toLowerCase(); renderEdRows(); });
 $('#edTier').addEventListener('change', e=>{ edState.tier = e.target.value; renderEdRows(); });
+$('#edTier').insertAdjacentHTML('afterend', `<select id="edRev" title="Focus on organizations by review status">
+  <option value="">Reviewed + unreviewed</option>
+  <option value="un">Unreviewed only</option>
+  <option value="done">Reviewed only</option></select>`);
+$('#edRev').addEventListener('change', e=>{ edState.rev = e.target.value; renderEdRows(); });
 (function(){ const g = $('#edGroup');
   ED_CATS.forEach(c=>g.insertAdjacentHTML('beforeend',`<option ${c==='Core'?'selected':''}>${c}</option>`));
   g.addEventListener('change', ()=>{ edState.group = g.value; renderEditor(); });
@@ -2041,6 +2144,7 @@ function renderEdRows(){
   const cols = activeCols();
   const list = ORGS.filter(o=>
     (!edState.tier || o.tier===edState.tier) &&
+    (!edState.rev || (edState.rev==='un' ? !(o.workflow&&o.workflow.done) : !!(o.workflow&&o.workflow.done))) &&
     (!edState.q || (o.name+' '+o.causes.join(' ')+' '+o.countries.join(' ')).toLowerCase().includes(edState.q)));
   $('#edCount').textContent = list.length+' of '+ORGS.length+' rows · '+cols.length+' of '+FIELDS.length+' fields';
   const wfRank = o=>{ const wf=o.workflow||{}; return wfLate(o) ? 0 : wf.req ? 1 : wf.sub ? 2 : 3; };
@@ -2063,7 +2167,7 @@ function renderEdRows(){
       return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></td>`;
     }
     let v = o[c.k]; if (Array.isArray(v)) v = v.join('; ');
-    if (c.num) v = fmtCellNum(c, v);
+    if (c.num) v = ((o._approx||{})[c.k]?'~':'') + fmtCellNum(c, v);
     if (c.img) return `<td class="${noted}" data-k="${c.k}" title="${esc(c.desc||'')}"><span style="cursor:pointer;margin-right:6px" onclick="window.pickImage&&pickImage(${o.id},'${c.k}')">📷</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(v)}</span></td>`;
     return `<td class="${noted}${c.num?' num-cell':''}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
   }).join('')}</tr>`;}).join('');
@@ -2077,11 +2181,11 @@ function renderEdRows(){
     const colDef = FIELDS.find(f=>f.k===td.closest('td').dataset.k);
     if (colDef && colDef.num){
       td.addEventListener('beforeinput', e=>{
-        if (e.data && /[^0-9.,\-$kKmMbB\s%]/.test(e.data)){ e.preventDefault(); flash('This column only accepts numbers'); }
+        if (e.data && /[^0-9.,\-$kKmMbB\s%~]/.test(e.data)){ e.preventDefault(); flash('This column only accepts numbers'); }
       });
       td.addEventListener('paste', e=>{
         const t = (e.clipboardData||window.clipboardData).getData('text');
-        if (/[^0-9.,\-$kKmMbB\s%]/.test(t)){ e.preventDefault(); flash('This column only accepts numbers'); }
+        if (/[^0-9.,\-$kKmMbB\s%~]/.test(t)){ e.preventDefault(); flash('This column only accepts numbers'); }
       });
     }
   });
@@ -2114,23 +2218,39 @@ function commitCell(el){
   if (!o || !col || col.ro || col.fx) return;
   let v = el.textContent.trim();
   const old = o[key];
+  let approx = false;
   if (col.num){
-    if (v===''){ v = 0; }
+    approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
+    if (v.trim()===''){ v = 0; approx = false; }
     else {
       v = parseStudioNum(v);
       if (v===null){ el.textContent = fmtCellNum(col, Array.isArray(old)?old.join('; '):old); flash('Not a number — reverted'); return; }
       if (col.mult) v = v / col.mult;   // displayed in full dollars, stored in $M
     }
-    el.textContent = fmtCellNum(col, v);
+    o._approx = Object.assign({}, o._approx);
+    if (approx) o._approx[key] = 1; else delete o._approx[key];
+    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)) PERSIST.orgField(o, '_approx', o._approx);
+    el.textContent = (approx?'~':'') + fmtCellNum(col, v);
   }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   const changed = JSON.stringify(v)!==JSON.stringify(old);
   if (!changed) return;
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
+  if (key==='countries') autoLatLng(o);
   if (key==='lat'||key==='lng'||key==='countries') { o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
   flash('Updated '+o.name); if(window.PERSIST){PERSIST.orgField?PERSIST.orgField(o,key,v):PERSIST.org(o);}
+}
+
+/* countries set but no coordinates yet — drop the primary pin on the first known country */
+function autoLatLng(o){
+  if ((+o.lat||0) || (+o.lng||0)) return;
+  const ll = (o.countries||[]).map(c=>(window.COUNTRY_LL||{})[c]).find(Boolean);
+  if (!ll) return;
+  o.lat = ll[0]; o.lng = ll[1];
+  if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)){ PERSIST.orgField(o,'lat',o.lat); PERSIST.orgField(o,'lng',o.lng); }
+  flash('Pin placed from '+(o.countries[0]||'country')+' — adjust Service Lat/Lng to fine-tune');
 }
 
 /* ================= NUMBER FORMATTING ================= */
@@ -2352,7 +2472,7 @@ window.openVerticalEdit = function(id){
             <div><select class="ve-in" data-vk="${f.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></div>`;
         }
         let v = o[f.k]; if (Array.isArray(v)) v = v.join('; ');
-        if (f.num) v = fmtCellNum(f, v);
+        if (f.num) v = ((o._approx||{})[f.k]?'~':'') + fmtCellNum(f, v);
         return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div>
           <div><textarea class="ve-in" data-vk="${f.k}" rows="1" ${f.num?'data-num="1"':''} spellcheck="false">${esc(v??'')}</textarea></div>`;
       }).join('')}</div>`).join('')}
@@ -2365,8 +2485,8 @@ window.openVerticalEdit = function(id){
     ta.addEventListener('focus', ()=>autos(ta));
     ta.addEventListener('input', ()=>{
       autos(ta);
-      if (ta.dataset.num && /[^0-9.,\-$kKmMbB\s%]/.test(ta.value)){
-        ta.value = ta.value.replace(/[^0-9.,\-$kKmMbB\s%]/g,''); flash('This field only accepts numbers');
+      if (ta.dataset.num && /[^0-9.,\-$kKmMbB\s%~]/.test(ta.value)){
+        ta.value = ta.value.replace(/[^0-9.,\-$kKmMbB\s%~]/g,''); flash('This field only accepts numbers');
       }
     });
     ta.addEventListener('blur', ()=>commitVertical(o, ta));
@@ -2379,18 +2499,23 @@ function commitVertical(o, el){
   let v = (el.value||'').trim();
   const old = o[key];
   if (col.num){
-    if (v===''){ v = 0; }
+    const approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
+    if (v.trim()===''){ v = 0; }
     else {
       const n = parseStudioNum(v);
       if (n===null){ el.value = fmtCellNum(col, old); flash('Not a number — reverted'); return; }
       v = col.mult ? n/col.mult : n;
     }
-    el.value = fmtCellNum(col, v);
+    o._approx = Object.assign({}, o._approx);
+    if (approx && v) o._approx[key] = 1; else delete o._approx[key];
+    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)) PERSIST.orgField(o, '_approx', o._approx);
+    el.value = (approx && v ?'~':'') + fmtCellNum(col, v);
   }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   if (JSON.stringify(v)===JSON.stringify(old)) return;
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
+  if (key==='countries') autoLatLng(o);
   if (key==='lat'||key==='lng'||key==='countries'||key==='tier'||key==='visibility'){ o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
   flash(o.name+' updated');
@@ -2833,7 +2958,7 @@ window.playAccomplish = function(fromZero){
 function renderHistoryPanel(panel, d){
   if (state.scope==='me'){
     const gifts = [...MEMBER.donations].reverse();
-    const opts = ORGS.filter(o=>isShown(o)).sort((a,b)=>a.name.localeCompare(b.name))
+    const opts = ORGS.filter(o=>showcased(o)).sort((a,b)=>a.name.localeCompare(b.name))
       .map(o=>`<option value="${esc(o.name)}"></option>`).join('');
     panel.innerHTML = `
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg,rgba(255,255,255,.04));border:1px solid var(--divider,var(--hairline));border-radius:11px;padding:11px 13px;margin:4px 0 12px">
@@ -3000,7 +3125,7 @@ function drawAnnual(box, d){
 /* ---------- top picks: fading pager ---------- */
 let tpTimer = null, tpIdx = 0;
 function renderMarquee(){
-  const tops = ORGS.filter(o=>o.tier==='top' && isShown(o));
+  const tops = ORGS.filter(o=>o.tier==='top' && showcased(o));
   const host = $('#marqueeInner')?.closest('.marquee') || $('#tpHost');
   if (!host) return;
   // Top picks bar parked for now — hide its card so From the field moves up.
@@ -3084,7 +3209,7 @@ function updHero(u){
    from orgs shown on the site — top-pick orgs first, newest quarter first */
 function liveUpdatesList(){
   const rank = u => { const o = updOrgOf(u); return o && o.tier==='top' ? 0 : 1; };
-  return (window.ORG_UPDATES||[]).filter(u=>{ const o = updOrgOf(u); return o && isShown(o) && updIsLive(u); })
+  return (window.ORG_UPDATES||[]).filter(u=>{ const o = updOrgOf(u); return o && showcased(o) && updIsLive(u); })
     .sort((a,b)=> rank(a)-rank(b) || (a.quarter<b.quarter?1:a.quarter>b.quarter?-1:0) || String(a.id).localeCompare(String(b.id)));
 }
 let updPage = 0, updTimer = null, updPages = [];
@@ -3478,7 +3603,15 @@ let COUNTRIES = null;   // fetched at runtime when online
 })();
 function landRings(){ return COUNTRIES || Object.values(BASE_POLYS); }
 
-state.globe = { mode:'globe', tier:'', mine:false, cause:'', region:'World' };
+state.globe = { mode:'globe', tier:'top', mine:false, cause:'', region:'World' };
+/* cause buckets: the standard categories plus 'Other' for less common or
+   custom cause areas that would never surface in the named buckets */
+const CAUSE_SET = new Set(CAUSES);
+window.matchesCause = function(o, c){
+  if (!c) return true;
+  if (c==='Other') return !(o.causes||[]).some(x=>CAUSE_SET.has(x));
+  return (o.causes||[]).includes(c);
+};
 const MAP_REGIONS = {
   'World':        [-170, 84, 190, -58],
   'Africa':       [-20, 38, 55, -36],
@@ -3496,13 +3629,73 @@ function pinMatches(o){
   if (f.mine){
     const mine = new Set([...MEMBER.donations, ...MEMBER.planned].map(g=>g.org));
     if (!mine.has(o.id)) return false;
-    return isShown(o) && Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0&&+o.lng===0);
+    return showcased(o) && matchesCause(o, f.cause) && orgPinLLs(o).length > 0;
   }
-  if (f.cause && !o.causes.includes(f.cause)) return false;
-  return o.tier!=='represented' && isShown(o)
-    && Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0&&+o.lng===0);
+  return o.tier!=='represented' && showcased(o) && matchesCause(o, f.cause) && orgPinLLs(o).length > 0;
 }
-function buildPins(){ globeState.pins = ORGS.filter(pinMatches).map(o=>({o})); }
+/* country → approximate centroid [lat, lng] — drives auto pins per country of operation */
+window.COUNTRY_LL = {
+ 'Bangladesh':[23.7,90.4],'Barbados':[13.2,-59.5],'Belgium':[50.6,4.5],'Belize':[17.2,-88.5],
+ 'Botswana':[-22.2,24.7],'Brazil':[-10.8,-52.9],'Burkina Faso':[12.3,-1.7],'Burundi':[-3.4,29.9],
+ 'Cambodia':[12.6,104.9],'Chad':[15.4,18.7],'China':[35.0,103.8],'Colombia':[4.1,-73.1],
+ "Cote d'Ivoire":[7.6,-5.5],'Ivory Coast':[7.6,-5.5],'DR Congo':[-2.9,23.6],'DRC':[-2.9,23.6],
+ 'Denmark':[56.0,9.5],'Dominica':[15.4,-61.4],'Ecuador':[-1.4,-78.4],'Ethiopia':[8.6,39.6],
+ 'European Union':[50.6,4.5],'Gambia':[13.4,-15.4],'Georgia':[42.0,43.5],'Germany':[51.1,10.4],
+ 'Ghana':[7.9,-1.2],'Guatemala':[15.7,-90.4],'Guinea':[10.4,-11.0],'Haiti':[18.9,-72.7],
+ 'India':[22.9,79.6],'Indonesia':[-2.2,117.4],'Israel':[31.4,35.0],'Japan':[36.5,138.0],
+ 'Kenya':[0.5,37.9],'Kyrgyzstan':[41.5,74.5],'Lesotho':[-29.6,28.2],'Liberia':[6.4,-9.3],
+ 'Madagascar':[-19.4,46.7],'Malawi':[-13.2,34.3],'Mali':[17.4,-4.0],'Mexico':[23.9,-102.5],
+ 'Morocco':[31.9,-6.9],'Mozambique':[-17.3,35.5],'Myanmar':[21.2,96.5],'Nepal':[28.2,84.0],
+ 'Netherlands':[52.2,5.6],'New Zealand':[-41.8,172.8],'Niger':[17.4,9.4],'Nigeria':[9.6,8.1],
+ 'Pakistan':[29.9,69.4],'Papua New Guinea':[-6.5,145.2],'Peru':[-9.2,-74.4],'Philippines':[12.9,122.9],
+ 'Poland':[52.1,19.4],'Rwanda':[-2.0,29.9],'Senegal':[14.4,-14.5],'Seychelles':[-4.7,55.5],
+ 'Sierra Leone':[8.5,-11.8],'South Africa':[-29.0,25.1],'South Korea':[36.4,127.9],'South Sudan':[7.3,30.2],
+ 'Sudan':[15.5,30.2],'Tanzania':[-6.3,34.8],'Togo':[8.5,1.0],'Uganda':[1.3,32.4],
+ 'United Kingdom':[53.0,-1.9],'United States':[39.8,-98.6],'USA':[39.8,-98.6],'Vietnam':[16.6,106.3],
+ 'Zambia':[-13.5,27.8],'Zimbabwe':[-19.0,29.9],'Ecuador ':[-1.4,-78.4],
+};
+/* every place an org serves gets its own pin: the staff-set primary lat/lng plus
+   one per country of operation (deduped when they land in the same place) */
+function orgPinLLs(o){
+  const out = [], seen = new Set();
+  const push = (lat,lng)=>{ const k = lat.toFixed(1)+','+lng.toFixed(1); if (!seen.has(k)){ seen.add(k); out.push({lat,lng}); } };
+  if (Number.isFinite(+o.lat) && Number.isFinite(+o.lng) && !(+o.lat===0&&+o.lng===0)) push(+o.lat,+o.lng);
+  (o.countries||[]).forEach(c=>{ const ll = COUNTRY_LL[c]; if (ll) push(ll[0],ll[1]); });
+  return out;
+}
+function buildPins(){
+  const raw = [];
+  ORGS.filter(pinMatches).forEach(o=>orgPinLLs(o).forEach(ll=>raw.push({o, lat:ll.lat, lng:ll.lng})));
+  finishBuildPins(raw); }
+/* pins slow-fade in when they arrive and out when a filter drops them */
+function finishBuildPins(raw){
+  // breathing room: pins that land on (nearly) the same spot fan out in a small
+  // deterministic spiral so each stays individually visible and hoverable
+  const groups = {};
+  raw.forEach(p=>{ const k = Math.round(p.lat/1.5)+','+Math.round(p.lng/1.5); (groups[k] = groups[k]||[]).push(p); });
+  Object.values(groups).forEach(g=>{
+    if (g.length < 2) return;
+    g.sort((a,b)=>a.o.id-b.o.id);
+    g.forEach((p,i)=>{
+      const a = i*2.399963, r = 1.5*Math.sqrt(i+0.5);
+      p.lat += r*Math.cos(a);
+      p.lng += r*Math.sin(a)/Math.max(.35, Math.cos(p.lat*Math.PI/180));
+    });
+  });
+  const now = (typeof performance!=='undefined'?performance.now():0);
+  const prev = new Map((globeState.pins||[]).map(p=>[p.key, p]));
+  raw.forEach(p=>{
+    p.key = p.o.id+'@'+p.lat.toFixed(2)+','+p.lng.toFixed(2);
+    const kept = prev.get(p.key);
+    p.born = kept ? kept.born : now;
+    prev.delete(p.key);
+  });
+  globeState.dying = [
+    ...(globeState.dying||[]).filter(d=>now-d.died < 900),
+    ...[...prev.values()].map(p=>({...p, died:now})),
+  ];
+  globeState.pins = raw;
+}
 
 function injectGlobeControls(){
   if ($('#gFilters')) return;
@@ -3510,15 +3703,16 @@ function injectGlobeControls(){
   card.querySelector('.kicker')?.remove();
   const h3 = card.querySelector('h3'); if (h3) h3.textContent = 'Map of Partners';
   card.querySelector('h3').insertAdjacentHTML('afterend', `<div class="gfilters" id="gFilters">
-    <button class="chip on" data-gt="">All</button>
-    <button class="chip" data-gt="top">Top picks</button>
+    <button class="chip" data-gt="">All</button>
+    <button class="chip on" data-gt="top">Top picks</button>
     <button class="chip" data-gt="recommended">Recommended</button>
     <button class="chip" data-gm="mine">My orgs</button>
-    <select id="gCause"><option value="">All causes</option>${CAUSES.map(c=>`<option>${c}</option>`).join('')}</select>
+    <select id="gCause"><option value="">All causes</option>${CAUSES.map(c=>`<option>${c}</option>`).join('')}<option>Other</option></select>
+    <span class="chip" id="gAuto" title="Cause categories shift automatically every few seconds — pick a cause or region to stop" style="cursor:pointer">⟳ auto</span>
     <!-- flat map view parked for now — keep the machinery, hide the toggle -->
     <div class="gmode" style="display:none"><button class="on" data-mode="globe">Globe</button><button data-mode="map">Map</button></div>
   </div>
-  <div class="gfilters" id="gRegions" style="display:none">${Object.keys(MAP_REGIONS).map(r=>`<button class="chip ${r==='World'?'on':''}" data-reg="${r}">${r}</button>`).join('')}</div>`);
+  <div class="gfilters" id="gRegions">${Object.keys(MAP_REGIONS).map(r=>`<button class="chip ${r==='World'?'on':''}" data-reg="${r}">${r}</button>`).join('')}</div>`);
   const bar = $('#gFilters');
   bar.addEventListener('click', e=>{
     const t = e.target.closest('[data-gt]'), m = e.target.closest('[data-gm]'), md = e.target.closest('[data-mode]');
@@ -3536,10 +3730,51 @@ function injectGlobeControls(){
     const b = e.target.closest('[data-reg]'); if (!b) return;
     state.globe.region = b.dataset.reg;
     $('#gRegions').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on', x===b));
-    window.zoomMapTo && zoomMapTo(b.dataset.reg);
+    stopCauseAuto('region');
+    if (state.globe.mode==='globe'){ window.globeZoomTo && globeZoomTo(b.dataset.reg); }
+    else window.zoomMapTo && zoomMapTo(b.dataset.reg);
   });
+  $('#gCause').addEventListener('change', ()=>stopCauseAuto('cause'), {once:false});
+  $('#gAuto').addEventListener('click', ()=>{ causeAuto ? stopCauseAuto('chip') : startCauseAuto(); });
   card.querySelector('.globe-foot')?.remove();
 }
+
+/* ---- auto-rotating cause carousel: shifts every few seconds until a manual pick ---- */
+let causeAuto = true, causeTimer = null, causeIdx = -1;
+function causeCycleList(){
+  // 'All causes' stays available in the dropdown, but the auto-cycle never lands on it
+  return [...CAUSES, 'Other'].filter(c => ORGS.some(o => o.tier!=='represented' && showcased(o) &&
+    (!state.globe.tier || o.tier===state.globe.tier) && matchesCause(o, c) && orgPinLLs(o).length));
+}
+/* the carousel starts already on a cause — never on the full pin cloud */
+function seedCauseIfAuto(){
+  if (!causeAuto || state.globe.cause) return;
+  const l = causeCycleList(); if (!l.length) return;
+  causeIdx = 0; state.globe.cause = l[0];
+  const sel = document.getElementById('gCause'); if (sel) sel.value = l[0];
+  buildPins();
+}
+function syncAutoChip(){
+  const chip = $('#gAuto'); if (chip){ chip.classList.toggle('on', causeAuto); chip.textContent = causeAuto ? '⟳ auto' : '⟳ auto off'; }
+}
+function startCauseAuto(){
+  causeAuto = true; syncAutoChip();
+  seedCauseIfAuto();
+  clearInterval(causeTimer);
+  causeTimer = setInterval(()=>{
+    if (!causeAuto) return;
+    const cv = document.getElementById('globe');
+    if (!cv || !cv.closest('.view.active')) return;          // dashboard not on screen
+    if (cv.matches(':hover')) return;                        // don't yank pins mid-hover
+    const list = causeCycleList(); if (list.length<2) return;
+    causeIdx = (causeIdx+1) % list.length;
+    state.globe.cause = list[causeIdx];
+    const sel = $('#gCause'); if (sel) sel.value = state.globe.cause;
+    buildPins();
+  }, 6000);
+}
+function stopCauseAuto(){ causeAuto = false; clearInterval(causeTimer); causeTimer = null; syncAutoChip(); buildPins(); }
+startCauseAuto();
 
 /* per-org logo bitmaps for pin heads (same fallback chain as orgLogo) */
 const PIN_IMG = {};
@@ -3607,19 +3842,48 @@ function initGlobe(){
   globeState.tilt = 24;            // rest well above the equator
   globeState.rot = -10;
   buildPins();
+  seedCauseIfAuto();
   const cv = $('#globe'), ctx = cv.getContext('2d');
   const tipEl = $('#globeTip');
-  let W,H,R,CX,CY,dpr;
+  let W,H,R,baseR,CX,CY,dpr;
   const flat = { s:0, cx:15, topLat:84 };  // current view (animated on region change)
   function resize(){
     const box = cv.parentElement.getBoundingClientRect();
     dpr = window.devicePixelRatio||1;
     W = box.width; H = box.height;
     cv.width = W*dpr; cv.height = H*dpr;
-    CX = W/2; CY = H/2 + 4; R = Math.max(40, Math.min(W,H)/2 - 30);
+    CX = W/2; CY = H/2 + 4; baseR = Math.max(40, Math.min(W,H)/2 - 30);
+    // default view: partially zoomed so the sphere nearly spans the card's width
+    globeState.zoomBase = Math.max(1, (W/2 - 26)/baseR);
+    if (!globeState.zoomInit){ globeState.zoomInit = true; globeState.zoom = globeState.zoomT = globeState.zoomBase; }
+    R = baseR * (globeState.zoom||1);
     flat.s = 0;
   }
   resize(); addEventListener('resize', resize);
+  /* zoom changes only move the TARGET — the frame loop glides toward it slowly */
+  function setZoom(z){ globeState.zoomT = Math.max(globeState.zoomBase*0.85, Math.min(5, z)); }
+  window.globeSetZoom = setZoom;
+  /* region chip → swing the globe to that region and zoom to fit it */
+  window.globeZoomTo = function(name){
+    const [l, t, r2, btm] = MAP_REGIONS[name] || MAP_REGIONS.World;
+    const cx = (l+r2)/2, cyLat = (t+btm)/2;
+    const span = Math.max(r2-l, (t-btm)*1.6);
+    const zb = globeState.zoomBase || 1;
+    setZoom(name==='World' ? zb : Math.max(zb*1.1, Math.min(5, 300/span)));
+    // zooming into a region parks the idle spin; World brings it back
+    globeState.spinPaused = name!=='World';
+    const from = { rot: globeState.rot, tilt: globeState.tilt };
+    let dRot = (((-cx - from.rot) % 360) + 540) % 360 - 180;   // shortest way round
+    const tTilt = name==='World' ? 24 : Math.max(-50, Math.min(55, cyLat));
+    const t0 = performance.now(), dur = 1500, seq = (globeState.twSeq = (globeState.twSeq||0)+1);
+    (function tw(now){
+      if (globeState.twSeq !== seq || globeState.dragging) return;   // superseded or user grabbed it
+      const p = Math.min(1, (now-t0)/dur), e = 1-Math.pow(1-p,3);
+      globeState.rot = from.rot + dRot*e;
+      globeState.tilt = from.tilt + (tTilt-from.tilt)*e;
+      if (p<1) requestAnimationFrame(tw);
+    })(t0);
+  };
   const D2R = Math.PI/180;
 
   function project3(la, ln){
@@ -3662,6 +3926,35 @@ function initGlobe(){
   const proj = (la,ln)=> state.globe.mode==='globe' ? projGlobe(la,ln) : projFlat(la,ln);
 
   /* ---- interactions ---- */
+  cv.addEventListener('wheel', e=>{
+    e.preventDefault();
+    setZoom((globeState.zoomT||globeState.zoom) * (e.deltaY < 0 ? 1.07 : 1/1.07));
+  }, {passive:false});
+  cv.addEventListener('dblclick', e=>{
+    const rect = cv.getBoundingClientRect();
+    const mx = e.clientX-rect.left, my = e.clientY-rect.top;
+    globeState.spinPaused = true;                    // hold still while leaning in
+    const from = { rot: globeState.rot, tilt: globeState.tilt };
+    const dRot = -(mx-CX)/R * 52;
+    const dTilt = Math.max(-55, Math.min(60, from.tilt + (my-CY)/R * 40)) - from.tilt;
+    const t0 = performance.now(), dur = 1200, seq = (globeState.twSeq = (globeState.twSeq||0)+1);
+    (function tw(now){
+      if (globeState.twSeq !== seq || globeState.dragging) return;
+      const p = Math.min(1, (now-t0)/dur), e2 = 1-Math.pow(1-p,3);
+      globeState.rot = from.rot + dRot*e2;
+      globeState.tilt = from.tilt + dTilt*e2;
+      if (p<1) requestAnimationFrame(tw);
+    })(t0);
+    setZoom((globeState.zoomT||globeState.zoom) * 1.5);
+  });
+  if (!document.getElementById('gzIn')){
+    cv.parentElement.style.position = cv.parentElement.style.position || 'relative';
+    cv.parentElement.insertAdjacentHTML('beforeend', `<div class="gzoom">
+      <button id="gzIn" title="Zoom in (scroll or double-click works too)">+</button>
+      <button id="gzOut" title="Zoom out">−</button></div>`);
+    document.getElementById('gzIn').addEventListener('click', ()=>setZoom((globeState.zoomT||globeState.zoom)*1.3));
+    document.getElementById('gzOut').addEventListener('click', ()=>setZoom((globeState.zoomT||globeState.zoom)/1.3));
+  }
   cv.addEventListener('pointerdown', e=>{ globeState.dragging=true; globeState.lastX=e.clientX; globeState.lastY=e.clientY; cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId); });
   addEventListener('pointerup', ()=>{ globeState.dragging=false; cv.classList.remove('dragging'); });
 
@@ -3671,15 +3964,15 @@ function initGlobe(){
     if (globeState.dragging){
       const dx = e.clientX-globeState.lastX, dy = e.clientY-globeState.lastY;
       if (state.globe.mode==='globe'){
-        globeState.rot += dx*0.35;
-        globeState.tilt = Math.max(-55, Math.min(60, globeState.tilt + dy*0.18));
+        globeState.rot += dx*0.35/Math.sqrt(globeState.zoom||1);
+        globeState.tilt = Math.max(-55, Math.min(60, globeState.tilt + dy*0.18/Math.sqrt(globeState.zoom||1)));
       }
       globeState.lastX=e.clientX; globeState.lastY=e.clientY;
       return;
     }
     let best=null, bd=15*15;
     for (const p of globeState.pins){
-      const pr = proj(+p.o.lat,+p.o.lng);
+      const pr = proj(p.lat, p.lng);
       if (state.globe.mode==='globe' && pr.z<0.06) continue;
       const dd = (pr.x-mx)**2 + (pr.y-my-(-6))**2;   // pins anchor above point
       if (dd<bd){bd=dd;best={...p, px:pr.x, py:pr.y};}
@@ -3770,7 +4063,17 @@ function initGlobe(){
   }
   function frame(){
     if (W<60 || H<60){ resize(); requestAnimationFrame(frame); return; }
-    if (state.globe.mode==='globe' && !globeState.dragging && !globeState.hover && !tipEl.matches(':hover'))
+    // glide toward the zoom target — slow and smooth, never a jump
+    const zt = globeState.zoomT || globeState.zoom || 1;
+    globeState.zoom = globeState.zoom + (zt - globeState.zoom)*0.03;
+    R = baseR * globeState.zoom;
+    // the idle spin CEASES whenever the view is zoomed in (double-click, region,
+    // or any other zoom) and only returns once fully zoomed back out or World is
+    // selected — enforced every frame so it can never sneak back in between
+    const zb = globeState.zoomBase || 1;
+    if (globeState.zoom > zb*1.12 || zt > zb*1.12) globeState.spinPaused = true;
+    else if (globeState.zoom <= zb*1.05 && zt <= zb*1.05) globeState.spinPaused = false;
+    if (state.globe.mode==='globe' && !globeState.dragging && !globeState.spinPaused && !globeState.hover && !tipEl.matches(':hover'))
       globeState.rot += globeState.vel;
     if (globeState.intro<1) globeState.intro = Math.min(1, globeState.intro+0.02);
     const I = 1-Math.pow(1-globeState.intro,3);
@@ -3780,17 +4083,27 @@ function initGlobe(){
     if (state.globe.mode==='globe') drawGlobeMode(I); else drawMapMode();
     // pins (sorted by y so southern pins draw over northern)
     const t = performance.now()/1000;
+    const nowMs = performance.now();
     const drawn = [];
     for (const p of globeState.pins){
-      const pr = proj(+p.o.lat,+p.o.lng);
+      const pr = proj(p.lat, p.lng);
       if (state.globe.mode==='globe' && pr.z<0.06) continue;
-      drawn.push({p, pr});
+      const a = Math.min(1, (nowMs - (p.born||0)) / 900);      // slow fade in
+      drawn.push({p, pr, a});
+    }
+    for (const p of (globeState.dying||[])){
+      const a = Math.max(0, 1 - (nowMs - p.died) / 900);       // slow fade out
+      if (a <= 0) continue;
+      const pr = proj(p.lat, p.lng);
+      if (state.globe.mode==='globe' && pr.z<0.06) continue;
+      drawn.push({p, pr, a});
     }
     drawn.sort((a,b)=>a.pr.y-b.pr.y);
-    for (const {p, pr} of drawn){
+    for (const {p, pr, a} of drawn){
+      ctx.globalAlpha = I * a;
       const isTop = p.o.tier==='top';
       const isH = globeState.hover?.o===p.o;
-      const zs = state.globe.mode==='globe' ? (0.72+0.28*pr.z) : Math.min(1.5, 0.62+flat.s*0.16);
+      const zs = (state.globe.mode==='globe' ? (0.72+0.28*pr.z) : Math.min(1.5, 0.62+flat.s*0.16)) * Math.min(1.45, 0.85 + 0.15*(globeState.zoom||1));
       const s = (isTop?1.16:0.95) * zs * (isH?1.3:1);
       if (isTop){
         const pulse = (Math.sin(t*2 + p.o.id)+1)/2;
@@ -3814,6 +4127,7 @@ const TIER_PHRASE = {
   top: 'Top pick — we believe this is one of the best organizations you can fund: strong evidence that it cost-effectively creates significant outcomes.',
   recommended: 'Recommended — a strong organization with credible evidence that it creates significant outcomes.',
   represented: 'Represented — a credible organization we track; we are not yet confident it outperforms the average organization at creating outcomes.',
+  flagged: 'Flagged — tracked for reference only. Not showcased to members due to alignment, performance, or other concerns.',
 };
 function badgeHTML(o, small){
   return `<span class="badge ${o.tier}" ${small?'style="font-size:9px"':''} data-tierphrase="${o.tier}">${TIER_LABEL[o.tier]}</span>`;
@@ -3917,6 +4231,12 @@ window.pickImage = function(orgId, field){
     ${canUpload?`<div style="font-size:12px;color:var(--ink-3);margin:4px 0 6px">or upload a file (stored in your media library)</div>
     <input type="file" id="piFile" accept="image/*" style="font-size:12.5px">`:
     `<div class="muted" style="font-size:11.5px">File upload is available on the live site when signed in; here, paste a URL.</div>`}
+    ${field==='interventionImage'?`<label style="font-size:12px;color:var(--ink-3);display:block;margin-top:12px">Vertical crop alignment — which part of the photo stays visible</label>
+    <select id="piAlign" style="margin:5px 0 4px;border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;background:#fff">
+      <option value="top" ${o.interventionAlign==='top'?'selected':''}>Top of the image</option>
+      <option value="center" ${!o.interventionAlign||o.interventionAlign==='center'?'selected':''}>Center (default)</option>
+      <option value="bottom" ${o.interventionAlign==='bottom'?'selected':''}>Bottom of the image</option>
+    </select>`:''}
     <div id="piPrev" style="margin:12px 0;min-height:10px">${o[field]?`<img src="${esc(o[field])}" style="max-height:90px;border-radius:9px;border:1px solid var(--divider,var(--hairline))" onerror="this.remove()">`:''}</div>
     <div style="display:flex;justify-content:space-between;margin-top:8px">
       <button class="btn" style="color:var(--crit)" id="piClear">Remove image</button>
@@ -3925,6 +4245,7 @@ window.pickImage = function(orgId, field){
   veil.classList.add('show');
   const finish = (url)=>{
     o[field] = url || '';
+    const al = box.querySelector('#piAlign'); if (al) o.interventionAlign = al.value;
     window.PERSIST && PERSIST.org(o);
     closeModal(); flash(url?'Image saved':'Image removed');
     if (location.hash.includes('/org/')) renderOrg(o.id);
@@ -4003,7 +4324,7 @@ function trackRecentOrg(o){
 function renderOrg(id){
   const o = byId(id);
   const root = $('#orgRoot');
-  if (!o || (!isShown(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
+  if (!o || (!showcased(o) && window.APP && !APP.staff)){ root.innerHTML = '<div class="card fade-up"><h3>Organization not available</h3></div>'; return; }
   state.orgTab = 'overview';   // every brief opens on Overview
   trackRecentOrg(o);
   const insightsEligible = o.tier!=='represented';
@@ -4018,7 +4339,7 @@ function renderOrg(id){
     <div style="flex:1;min-width:300px">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         ${badgeHTML(o)}
-        ${!isShown(o)?'<span class="pill" style="border-color:var(--warn);color:var(--ink)">Hidden from members</span>':''}
+        ${!isShown(o)?'<span class="pill" style="border-color:var(--warn);color:var(--ink)">Hidden from members</span>':o.tier==='flagged'?'<span class="pill" style="border-color:#B4544A;color:#B4544A">Flagged — tracked, not showcased</span>':''}
         <span class="cause-chips">${o.causes.map(c=>`<span class="cause-chip"><span class="dot" style="background:${CAUSE_COLOR[c]}"></span>${c}</span>`).join('')}</span>
       </div>
       <div style="display:flex;gap:14px;align-items:center;margin-top:6px">${orgLogo(o, 44, true)}<h1 style="margin:0">${esc(o.name)}</h1></div>
@@ -4042,7 +4363,7 @@ function renderOrg(id){
           ${(window.SITE_THEME.causeHex[o.causes[0]]||'#91A5C6')}">
           <span class="hm-sketch">${sketchFor(o, 120).replace(/var\(--sketch-ink\)/g,'rgba(255,255,255,.85)')}</span>
         </div>
-        <img class="hm-img" alt="" loading="lazy"
+        <img class="hm-img" alt="" loading="lazy" style="object-position:center ${o.interventionAlign||'center'}"
           src="${esc((o.interventionImage&&/^https?:/.test(o.interventionImage)) ? o.interventionImage
             : (domainOf(o) ? 'https://image.thum.io/get/width/900/crop/620/noanimate/https://'+domainOf(o) : ''))}"
           onerror="this.remove()">
@@ -4052,7 +4373,7 @@ function renderOrg(id){
     <div class="brief-side">
       <span><span class="muted">HQ</span> &nbsp;${esc(o.hq||'—')}</span>
       <span><span class="muted">Founded</span> &nbsp;${o.founded||'—'}</span>
-      <span><span class="muted">Team</span> &nbsp;≈ ${o.teamSize||'—'} staff</span>
+      <span><span class="muted">Team</span> &nbsp;${(o._approx||{}).teamSize&&window.fmtApproxRange?fmtApproxRange(o.teamSize):'≈ '+(o.teamSize||'—')} staff</span>
       ${(o.stage||o.orgType)?`<span><span class="muted">Stage</span> &nbsp;${esc([o.stage,o.orgType].filter(Boolean).join(' · '))}</span>`:''}
       <div class="side-links" title="${o.tier==='represented'?'Full document access opens once an organization is recommended':''}">
         <button class="pill ${o.tier==='represented'?'locked':''}" onclick="${o.dataRoomLink&&/^https?:/.test(o.dataRoomLink)?`window.open('${esc(o.dataRoomLink)}','_blank')`:`flash('Data room access requested — our team will follow up')`}">Data room${o.dataRoomLink?' ↗':''}</button>
@@ -4141,10 +4462,10 @@ function orgOverviewHTML(o){
       <div class="muted" style="font-size:12px">Pre-intervention state and maximum post-intervention state</div>
       ${gWrap(o,'sufferRange',`<div class="scale-track">
         <div class="range-band" style="left:${(o.sufferMin-1)/9*100}%;width:${(o.flourishMax-o.sufferMin)/9*100}%"></div>
-        <div class="range-pt min" style="left:${(o.sufferMin-1)/9*100}%">${o.sufferMin}</div>
-        <div class="range-pt max" style="left:${(o.flourishMax-1)/9*100}%">${o.flourishMax}</div></div>
-      <div class="scale-ends"><span>Acute suffering</span><span>Full flourishing</span></div>
-      <div class="delta-note">Δ ${o.flourishMax-o.sufferMin} steps — beneficiaries typically move from state ${o.sufferMin} before the intervention to state ${o.flourishMax} after</div>`,90)}
+        <div class="range-pt min" style="left:${(o.sufferMin-1)/9*100}%" title="${esc((window.STATE_WORDS||{})[o.sufferMin]||'')}"></div>
+        <div class="range-pt max" style="left:${(o.flourishMax-1)/9*100}%" title="${esc((window.STATE_WORDS||{})[o.flourishMax]||'')}"></div></div>
+      <div class="scale-ends"><span>Acute suffering</span><span>Stable</span><span>Flourishing</span></div>
+      <div class="delta-note">Beneficiaries typically move from <b>${esc((window.STATE_WORDS||{})[o.sufferMin]||'—')}</b> before the intervention to <b>${esc((window.STATE_WORDS||{})[o.flourishMax]||'—')}</b> after</div>`,90)}
     </div>
   </div>`;
 }
@@ -5072,7 +5393,7 @@ function phMatchScore(o){
   return Math.min(99, 78 + (o.tier==='top'?14:6) + jitter - 4);
 }
 function phDeck(){
-  return ORGS.filter(o=>isShown(o) && (o.tier==='top'||o.tier==='recommended') && !inShortlist(o.id))
+  return ORGS.filter(o=>showcased(o) && (o.tier==='top'||o.tier==='recommended') && !inShortlist(o.id))
     .sort((a,b)=>((a.id*2654435761)%977)-((b.id*2654435761)%977));
 }
 window.mountPhinder = function(host){
@@ -5230,7 +5551,7 @@ const sb = {
     this.session = j; this.save(); return j;
   },
   async updatePassword(pw){
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify({password:pw})});
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify({password:pw, data:{pw_set:true}})});
     if (r.status===401 && await this.refresh()) return this.updatePassword(pw);
     const t = await r.text(); let j = {}; try{ j = t?JSON.parse(t):{}; }catch(e){}
     if (!r.ok) throw new Error(j.msg || j.message || ('Error '+r.status));
@@ -5309,28 +5630,41 @@ window.createInvitedAccount = async function(email, fullName){
 };
 
 /* Any signed-in user: set their own password (replaces the starter one). */
-window.openPasswordModal = function(){
+window.openPasswordModal = function(required){
   if (!window.APP || !APP.ready) return;
   const veil = $('#modalVeil'), box = $('#modalBox');
   box.style.width = 'min(400px,94vw)'; box.style.maxHeight = ''; box.style.overflow = '';
-  box.innerHTML = `<div class="kicker">Your account</div><h3>Set a new password</h3>
-    <div class="muted" style="font-size:12.5px;margin-bottom:14px">Replaces your current password (including the starter password from your invitation).</div>
+  box.innerHTML = `<div class="kicker">Your account</div><h3>${required?'Create your password':'Set a new password'}</h3>
+    <div class="muted" style="font-size:12.5px;margin-bottom:14px">${required
+      ? 'Welcome! Choose a password of your own to secure your account — it replaces the starter password or email link you signed in with. You can change it anytime by clicking your avatar.'
+      : 'Replaces your current password (including the starter password from your invitation).'}</div>
     <label style="font-size:12px;color:var(--ink-3)">New password (8+ characters)</label>
     <input id="pw1" type="password" autocomplete="new-password" style="width:100%;margin:5px 0 12px">
     <label style="font-size:12px;color:var(--ink-3)">Repeat it</label>
     <input id="pw2" type="password" autocomplete="new-password" style="width:100%;margin:5px 0 16px">
     <div style="display:flex;justify-content:flex-end;gap:10px">
-      <button class="btn" onclick="closeModal()">Cancel</button>
+      ${required?'':'<button class="btn" onclick="closeModal()">Cancel</button>'}
       <button class="btn primary" id="pwGo">Save password</button></div>`;
   veil.classList.add('show');
+  if (required) veil.dataset.required = '1'; else delete veil.dataset.required;
   $('#pwGo').addEventListener('click', async ()=>{
     const a = $('#pw1').value, b = $('#pw2').value;
     if (a.length < 8) return flash('Use at least 8 characters');
     if (a !== b) return flash('The two entries don’t match');
-    try{ await sb.updatePassword(a); closeModal(); flash('Password updated — use it next time you sign in'); }
+    try{ await sb.updatePassword(a); delete veil.dataset.required; closeModal(); flash('Password saved — use it next time you sign in'); }
     catch(e){ flash('Could not update: '+e.message); }
   });
 };
+/* first sign-in via email link or starter password → the account has no
+   self-chosen password yet, so ask for one right away (required) */
+async function ensureOwnPassword(){
+  try{
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {headers: sb.headers()});
+    if (!r.ok) return;
+    const u = await r.json();
+    if (!(u.user_metadata && u.user_metadata.pw_set)) setTimeout(()=>openPasswordModal(true), 400);
+  }catch(e){}
+}
 
 function setData(d){
   ORGS.length = 0; d.orgs.forEach(o=>o&&ORGS.push(o));
@@ -5820,6 +6154,7 @@ async function bootAfterAuth(){
   if (!location.hash || location.hash.includes('access_token')) location.hash = '#/dashboard';
   route();
   // the full-screen impact overlay is reserved for Demo mode entry (setDemo)
+  ensureOwnPassword();
 }
 async function bootApp(){
   injectGate();

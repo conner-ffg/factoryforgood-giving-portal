@@ -236,6 +236,14 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return { before, stored: byId(+tr.dataset.id).budgetM };
   });
   check('$ field shows full dollars, stores millions', /,/.test(multRes.before) && multRes.stored === 12.5);
+  check('~ input marks the value approximate and shows a range', await page.evaluate(() => {
+    const tr = document.querySelector('#edBody tr');
+    const o = byId(+tr.dataset.id);
+    const td = tr.querySelector('td[data-k="teamSize"]');
+    td.textContent = '~50'; commitCell(td);
+    return (o._approx||{}).teamSize === 1 && td.textContent === '~50' &&
+           fmtApproxRange(50) === '35+' && fmtApproxRange(1000000, true) === '$750K+';
+  }));
   check('brief + vertical-edit buttons on every row', await page.evaluate(() =>
     !!document.querySelector('#edBody .row-ic[title*="brief"]') &&
     !!document.querySelector('#edBody .row-ic[title*="vertical"]')));
@@ -248,6 +256,21 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('updates column is the first studio column', await page.evaluate(() =>
     document.querySelector('#edTable thead th').classList.contains('upd-c') &&
     !!document.querySelector('#edBody tr td.upd-c .upd-ic')));
+  check('Tier is the first column after Display Name (flagged selectable)', await page.evaluate(() => {
+    const ths = [...document.querySelectorAll('#edTable thead th')].map(th => th.dataset.th);
+    const iName = ths.indexOf('name');
+    const sel = document.querySelector('#edBody td[data-k="tier"] select');
+    return ths[iName+1] === 'tier' && !!sel && [...sel.options].some(o => o.value === 'flagged');
+  }));
+  check('Display Name column frozen after the Show column, opaque header', await page.evaluate(() => {
+    const td = document.querySelector('#edBody td.name-c'), th = document.querySelector('#edTable th.name-c');
+    const bg = getComputedStyle(th).backgroundColor;
+    return getComputedStyle(td).left === '192px' && getComputedStyle(td).position === 'sticky' &&
+           !/rgba\(.*,\s*0?\.\d+\)/.test(bg);
+  }));
+  check('header carries the full-length FFG logo (text fallback if blocked)', await page.evaluate(() =>
+    !!document.querySelector('.brand img[alt="Factory for Good"]') ||
+    getComputedStyle(document.querySelector('.brand .mark')).display !== 'none'));
   check('live update badge on Fortify Health row', await page.evaluate(() => {
     const tr = [...document.querySelectorAll('#edBody tr')].find(t => byId(+t.dataset.id).name === 'Fortify Health');
     return !!tr && tr.querySelector('.upd-ic').classList.contains('on') && tr.querySelector('.upd-n').textContent === '1';
@@ -309,6 +332,64 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   }));
   check('dynamic mesh gradient on for the dashboard', await page.evaluate(() =>
     document.body.classList.contains('mesh-on')));
+  check('cause carousel auto-runs with top picks default + Other bucket', await page.evaluate(() =>
+    causeAuto === true && state.globe.tier === 'top' &&
+    [...document.querySelectorAll('#gCause option')].some(op => op.textContent === 'Other') &&
+    document.querySelectorAll('#gRegions .chip').length > 3));
+  check('globe zoom: buttons, glide target, region tween, state', await page.evaluate(() => {
+    const ok = !!document.getElementById('gzIn') && !!document.getElementById('gzOut') && typeof globeZoomTo === 'function';
+    globeSetZoom(2.2); const z2 = Math.abs(globeState.zoomT - 2.2) < 0.01;   // target moves; zoom glides
+    globeSetZoom(globeState.zoomBase);
+    return ok && z2;
+  }));
+  check('globe starts partially zoomed toward the card edges', await page.evaluate(() =>
+    globeState.zoomBase > 1.05 && typeof globeState.zoomT === 'number'));
+  check('carousel never sits on All causes', await page.evaluate(() =>
+    state.globe.cause !== '' && [...document.querySelector('#gCause').options].some(o => o.value === '')));
+  check('region zoom pauses the idle spin; World resumes it', await page.evaluate(() => {
+    globeZoomTo('Africa');
+    const paused = globeState.spinPaused === true;
+    globeZoomTo('World');
+    return paused && globeState.spinPaused === false;
+  }));
+  check('pins carry fade timestamps for soft enter/exit', await page.evaluate(() => {
+    buildPins();
+    const hasBorn = globeState.pins.every(p => typeof p.born === 'number');
+    const before = globeState.pins.length;
+    const savedCause = state.globe.cause;
+    state.globe.cause = 'Mental Health'; buildPins();
+    const dyingSome = (globeState.dying||[]).length > 0 || globeState.pins.length === before;
+    state.globe.cause = savedCause; buildPins();
+    return hasBorn && dyingSome;
+  }));
+  check('cause filter shows only matching orgs', await page.evaluate(() => {
+    stopCauseAuto(); state.globe.tier = ''; state.globe.cause = 'Animal Welfare'; buildPins();
+    const strict = globeState.pins.every(p => p.o.causes.includes('Animal Welfare'));
+    state.globe.cause = ''; buildPins();
+    return strict;
+  }));
+  check('orgs pin every country they serve', await page.evaluate(() => {
+    buildPins();
+    const multi = ORGS.find(o => o.tier !== 'represented' && isShown(o) && (o.countries||[]).filter(c => COUNTRY_LL[c]).length >= 2);
+    return !!multi && globeState.pins.filter(p => p.o.id === multi.id).length >= 2;
+  }));
+  check('stacked pins get breathing room (no exact overlaps)', await page.evaluate(() => {
+    const seen = new Set();
+    for (const p of globeState.pins){
+      const k = p.lat.toFixed(3) + ',' + p.lng.toFixed(3);
+      if (seen.has(k)) return false;
+      seen.add(k);
+    }
+    return globeState.pins.length > 0;
+  }));
+  check('flagged orgs tracked but never showcased', await page.evaluate(() => {
+    const o = ORGS.find(x => x.tier === 'recommended' && isShown(x) && (x.countries||[]).length);
+    o.tier = 'flagged'; buildPins();
+    const noPin = !globeState.pins.some(p => p.o.id === o.id);
+    const noLib = !showcased(o);
+    o.tier = 'recommended'; buildPins();
+    return noPin && noLib && TIER_LABEL.flagged === 'Flagged';
+  }));
   await page.evaluate(() => go('#/org/' + ORGS.find(o => o.name === 'Lead Exposure Elimination Project').id));
   await page.waitForTimeout(1200);
   check('entering an org with updates fades in the summary list', await page.evaluate(() =>
@@ -321,6 +402,13 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     go('#/dashboard'); await new Promise(r => setTimeout(r, 150));
     go('#/org/' + id); await new Promise(r => setTimeout(r, 800));
     return !document.querySelector('#modalVeil').classList.contains('show');
+  }));
+  check('suffering scale speaks in words, not numbers', await page.evaluate(() => {
+    const note = document.querySelector('.delta-note');
+    const ends = document.querySelector('.scale-ends');
+    return note && !/state \d/.test(note.textContent) && /[A-Za-z]/.test(note.textContent) &&
+           ends && ends.textContent.includes('Stable') &&
+           STATE_WORDS[5] === 'Stable';
   }));
   check('View updates pill sits beside the Deeper insights tab', await page.evaluate(() =>
     [...document.querySelectorAll('.panel-tabs .pill')].some(p => p.textContent.includes('View updates')) &&
@@ -349,25 +437,60 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return +rows[0].dataset.id === ids[2] && rows[0].classList.contains('wf-req') &&
            +rows[1].dataset.id === ids[1] && rows[1].classList.contains('wf-sub');
   }, wfIds));
-  check('review queue badge + panel list the org', await page.evaluate(ids => {
-    drTab = 'reviews'; renderNotesPanel();
+  check('review queue badge + standalone drawer list the org', await page.evaluate(ids => {
+    rvTab = 'req'; renderReviewPanel();
     return document.querySelector('#edRevCnt').textContent === '(1)' &&
-           document.querySelector('#notesBody').textContent.includes(byId(ids[2]).name);
+           document.querySelector('#reviewBody').textContent.includes(byId(ids[2]).name) &&
+           !!document.querySelector('#rvTabs [data-rvtab="sub"]');
   }, wfIds));
-  await page.evaluate(ids => wfAction(ids[2], 'done'), wfIds);
+  check('requester cannot perform their own review', await page.evaluate(ids => {
+    wfAction(ids[2], 'done');   // Sam requested this review — Sam may not perform it
+    return !byId(ids[2]).workflow.done && !!byId(ids[2]).workflow.req;
+  }, wfIds));
+  check('first review requires an open review request', await page.evaluate(() => {
+    const o = ORGS.find(x => !x.workflow);
+    wfAction(o.id, 'done');
+    return !(o.workflow && o.workflow.done);
+  }));
+  await page.evaluate(ids => {
+    const me = APP.profile.full_name;
+    APP.profile.full_name = 'Tess Staff';     // a second reviewer performs it
+    wfAction(ids[2], 'done');
+    APP.profile.full_name = me;
+  }, wfIds);
   await page.waitForTimeout(700);
   check('marking reviewed clears the queue and logs who/when', await page.evaluate(ids => {
     const o = byId(ids[2]);
-    return !!o.workflow.done && !o.workflow.req && WFLOG[0].kind === 'review' &&
-           document.querySelector('#edRevCnt').textContent === '';
+    return !!o.workflow.done && o.workflow.done.by === 'Tess Staff' && !o.workflow.req &&
+           WFLOG[0].kind === 'review' && document.querySelector('#edRevCnt').textContent === '';
   }, wfIds));
   check('workflow events persisted to the API', await page.evaluate(async () =>
     (await sb.rest('org_workflow_events?select=*')).length === 3));
   check('team activity totals count per person', await page.evaluate(() => {
-    drTab = 'reviews'; renderNotesPanel();
-    const t = document.querySelector('#notesBody').textContent;
-    return t.includes('SS') && t.includes('Sam Staff');
+    rvTab = 'done'; renderReviewPanel();
+    const t = document.querySelector('#reviewBody').textContent;
+    return t.includes('SS') && t.includes('Sam Staff') && t.includes('TS') && t.includes('Recently reviewed');
   }));
+  check('history grouped by day, then person, then stage', await page.evaluate(() => {
+    const b = document.querySelector('#reviewBody');
+    return !!b.querySelector('.rvh-day') && !!b.querySelector('.rvh-person') && !!b.querySelector('.rvh-line');
+  }));
+  check('a review without an open request logs the date but not the tally', await page.evaluate(ids => {
+    const before = WFLOG.filter(e => e.kind === 'review').length;
+    wfAction(ids[2], 'done');   // ids[2] was already reviewed — no open request now
+    const o = byId(ids[2]);
+    return WFLOG[0].kind === 'review0' &&
+           WFLOG.filter(e => e.kind === 'review').length === before &&
+           Object.keys(o.workflow.doneBy || {}).length >= 1;
+  }, wfIds));
+  await page.waitForTimeout(600);
+  check('unreviewed-only filter hides reviewed orgs', await page.evaluate(ids => {
+    const sel = document.querySelector('#edRev');
+    sel.value = 'un'; edState.rev = 'un'; renderEdRows();
+    const gone = ![...document.querySelectorAll('#edBody tr')].some(tr => +tr.dataset.id === ids[2]);
+    sel.value = ''; edState.rev = ''; renderEdRows();
+    return !!sel && gone;
+  }, wfIds));
   check('@FFG Team is a mention option', await page.evaluate(() =>
     teamMembers()[0] === 'FFG Team' && extractMentions('heads up @FFG Team please read').includes('FFG Team')));
   // retract vs fulfil counting + late callouts
@@ -378,7 +501,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const o = byId(id);
     for (let i = 0; i < 20; i++){   // the delete may trail the retract by a round-trip
       const api = await sb.rest('org_workflow_events?select=*');
-      if (api.length === 3) return !(o.workflow||{}).sub && WFLOG.filter(e => e.orgId === id).length === 0;
+      if (api.length === 4) return !(o.workflow||{}).sub && WFLOG.filter(e => e.orgId === id).length === 0;
       await new Promise(r => setTimeout(r, 300));
     }
     return false;
@@ -391,9 +514,9 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return !o.workflow.sub && !!o.workflow.subDone && !!o.workflow.req &&
            api.filter(e => e.org_id === id).length === 2;
   }, wf2[1]));
-  check('reviewed hover keeps the review-request trail', await page.evaluate(ids => {
+  check('reviewed hover shows the trail + most recent review', await page.evaluate(ids => {
     const t = wfTipHTML(byId(ids[2]));
-    return t.includes('Review requested') && t.includes('Reviewed');
+    return t.includes('Review requested') && t.includes('Most recent review');
   }, wfIds));
   await page.evaluate(id => {
     const o = byId(id);
@@ -405,10 +528,16 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const first = document.querySelector('#edBody tr');
     return +first.dataset.id === id && first.classList.contains('wf-late');
   }, wf2[2]));
-  check('Late section + submission queue in the Reviews panel', await page.evaluate(() => {
-    drTab = 'reviews'; renderNotesPanel();
-    const t = document.querySelector('#notesBody').textContent;
-    return t.includes('Late — waiting 6+') && t.includes('Submission requests');
+  check('Late box on the review-requests tab of the drawer', await page.evaluate(() => {
+    rvTab = 'req'; renderReviewPanel();
+    const t = document.querySelector('#reviewBody').textContent;
+    return t.includes('Late — waiting 6+') && t.includes('Review queue');
+  }));
+  check('drawer opens standalone from the Reviews button', await page.evaluate(() => {
+    document.querySelector('#edReviews').click();
+    const ok = document.querySelector('#reviewDrawer').classList.contains('show') &&
+               !document.querySelector('#notesDrawer').classList.contains('show');
+    closeDrawers(); return ok;
   }));
   // comment + note persist
   const cell = await page.$('#edBody tr:nth-child(2) td[data-k="hq"]');
@@ -495,6 +624,11 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'FFGwelcome2026!'); await page.click('#gatePwGo');
   await page.waitForTimeout(1800);
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(400);
+  check('first login forces creating an own password', await page.evaluate(() =>
+    document.querySelector('#modalVeil').classList.contains('show') &&
+    !!document.querySelector('#pw1') &&
+    document.querySelector('#modalVeil').dataset.required === '1' &&
+    !document.querySelector('#modalBox').textContent.includes('Cancel')));
   check('invited guest signs in with the starter password', await page.evaluate(() =>
     document.querySelector('#gate').style.display === 'none'));
   // set their own password via the avatar modal, sign out, sign back in with it
