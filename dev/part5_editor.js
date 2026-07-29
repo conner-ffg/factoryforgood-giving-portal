@@ -21,6 +21,7 @@ const FIELDS = [
  {k:'id', l:'Record ID', cat:'Identity & Basic Info', ro:1, desc:'Internal system identifier. Do not change once assigned.'},
  {k:'name', l:'Display Name', pub:1, cat:'Identity & Basic Info', cls:'name-c', core:1, desc:'Shorter public-facing name, if different from the legal name.'},
  {k:'tier', l:'Tier', pub:1, cat:'Identity & Basic Info', sel:['top','recommended','represented','flagged'], core:1, desc:'Meridian conviction tier: top pick, recommended, represented, or flagged (tracked internally, never showcased to members).'},
+ {k:'website', l:'Website Link', pub:1, cat:'Identity & Basic Info', core:1, desc:'Org\'s website. The ↗ opens it in a new tab.'},
  {k:'legalName', l:'Legal Organization Name', cat:'Identity & Basic Info', desc:'Full registered legal name.'},
  {k:'logoUrl', l:'Logo Image', pub:1, core:1, cat:'Identity & Basic Info', img:1, desc:'Link to the org\'s logo file. Click the camera to paste a URL or upload a file.'},
  {k:'ein', l:'EIN', cat:'Identity & Basic Info', desc:'US tax ID (XX-XXXXXXX). Primary identifier for domestic orgs.'},
@@ -113,7 +114,6 @@ const FIELDS = [
  {k:'goalM', l:'Current Goal ($)', pub:1, cat:'Funding Status & Gap', num:1, unit:'$', mult:1e6, core:1, desc:'Current fundraise goal shown on the brief.'},
  {k:'timePeriod', l:'Time Period Covered', pub:1, core:1, cat:'Funding Status & Gap', desc:'Time window the budget and funding gap figures apply to.'},
  // Links, Materials & Metadata
- {k:'website', l:'Website Link', pub:1, cat:'Links & Metadata', core:1, desc:'Org\'s website.'},
  {k:'dataRoomLink', l:'Data Room Link', pub:1, core:1, cat:'Links & Metadata', desc:'Link to the org\'s due diligence data room.'},
  {k:'costCalcLink', l:'Link to Cost per Calculation', cat:'Links & Metadata', desc:'Link to the underlying cost-per-outcome workbook or calculation.'},
  {k:'assessmentLink', l:'Assessment Link', cat:'Links & Metadata', desc:'Link to the full internal assessment document.'},
@@ -380,6 +380,31 @@ function openNotePop(td, orgId, k, x, y){
   wireComposer(pop.querySelector('#noteTxt'), '#noteSave');
   pop.querySelector('#noteTxt').focus();
 }
+window.toggleThreadReply = function(kid){
+  const box = $('#rp-'+kid); if (!box) return;
+  const on = box.style.display==='none';
+  box.style.display = on ? 'block' : 'none';
+  if (on){ const ta = $('#rpt-'+kid); wireComposer(ta, '#rpb-'+kid); ta.focus(); }
+};
+window.sendThreadReply = function(key, kid){
+  const ta = $('#rpt-'+kid); if (!ta) return;
+  const t = ta.value.trim(); if (!t){ flash('Write the reply first'); return; }
+  const seed = NOTES.find(n=>!n.resolved && (n.donorId ? 'd:'+n.donorId : 'o:'+n.orgId+':'+n.k) === key);
+  if (!seed) return;
+  const nn = {id:noteSeq++, orgId:seed.orgId??null, donorId:seed.donorId||null, donorName:seed.donorName,
+    k:seed.k, text:t, author:wfMe(), resolved:false, mentions:extractMentions(t)};
+  NOTES.push(nn); window.PERSIST && PERSIST.comment(nn);
+  updateNoteCnt(); renderNotesPanel();
+  const td = seed.orgId ? document.querySelector(`#edBody tr[data-id="${seed.orgId}"] td[data-k="${seed.k}"]`) : null;
+  if (td) td.classList.add('has-note');
+  flash('Reply added to the thread');
+};
+window.resolveThread = function(key){
+  NOTES.filter(n=>!n.resolved && (n.donorId ? 'd:'+n.donorId : 'o:'+n.orgId+':'+n.k) === key)
+    .forEach(n=>{ n.resolved = true; window.PERSIST && PERSIST.resolveComment(n); });
+  updateNoteCnt(); renderNotesPanel(); renderEdRows();
+  flash('Thread resolved');
+};
 function resolveNote(id){
   const n = NOTES.find(x=>x.id===id); if(!n) return;
   n.resolved = true; updateNoteCnt(); renderNotesPanel();
@@ -395,27 +420,46 @@ function renderNotesPanel(){
   $$('#drTabs button').forEach(b=>b.classList.toggle('active', b.dataset.drtab===drTab));
   if (drTab==='comments'){
     const who = window._cmWho || '';
-    const shown = who ? open.filter(n=>(n.mentions||[]).includes(who)) : open;
+    // comments on the same cell (or the same donor profile) form ONE thread —
+    // replies join it, and the person filter matches if ANY message tags them
+    const threads = [];
+    const byKey = {};
+    open.forEach(n=>{
+      const key = n.donorId ? 'd:'+n.donorId : 'o:'+n.orgId+':'+n.k;
+      let t = byKey[key];
+      if (!t){ t = byKey[key] = {key, msgs:[], first:n}; threads.push(t); }
+      t.msgs.push(n);
+    });
+    const shown = who ? threads.filter(t=>t.msgs.some(n=>(n.mentions||[]).includes(who))) : threads;
     const filterBar = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
       <span class="muted" style="font-size:11px">Tagged:</span>
       <select style="background:var(--surface);border:1px solid var(--divider,var(--hairline));border-radius:8px;padding:5px 9px;font-size:12px;font-family:inherit;color:var(--ink)"
         onchange="window._cmWho=this.value;renderNotesPanel()">
         <option value="">All team members</option>
         ${teamMembers().map(n=>`<option value="${esc(n)}" ${who===n?'selected':''}>@${esc(n)}</option>`).join('')}
-      </select>${who?`<span class="muted" style="font-size:11px">${shown.length} of ${open.length}</span>`:''}</div>`;
-    $('#notesBody').innerHTML = filterBar + (shown.length ? shown.map(n=>{
+      </select>${who?`<span class="muted" style="font-size:11px">${shown.length} of ${threads.length} threads</span>`:''}</div>`;
+    $('#notesBody').innerHTML = filterBar + (shown.length ? shown.map(t=>{
+      const n = t.first;
       const col = FIELDS.find(f=>f.k===n.k);
       const donorName = n.donorId ? (n.donorName || (window.donorList&&donorList().find(d=>d.id===n.donorId)?.fullName) || 'Member profile') : null;
       const title = donorName
         ? `${esc(donorName)} · <span style="color:var(--gold-2)">Donor studio</span>`
         : `${esc(byId(n.orgId)?.name||'?')} · <span style="color:var(--gold-2)">${esc(col?.l||n.k)}</span>`;
       const jump = donorName ? `closeDrawers();go('#/donors')` : `jumpToCell(${n.orgId},'${n.k}')`;
+      const kid = t.key.replace(/[^a-zA-Z0-9_-]/g,'_');
       return `<div class="note-item" onclick="${jump}">
-        <div class="f">${title}</div>
-        <div class="txt">${mentionHTML(n.text)}</div>
-        <div class="m"><span>${esc(n.author)}</span><span class="res" onclick="event.stopPropagation();resolveNote(${n.id})">✓ Resolve</span></div>
+        <div class="f">${title}${t.msgs.length>1?` <span class="pill" style="margin-left:6px;font-size:10px">${t.msgs.length} comments</span>`:''}</div>
+        ${t.msgs.map((m2,i)=>`<div class="txt" ${i?'style="border-top:1px dashed var(--hairline);margin-top:6px;padding-top:6px"':''}>${mentionHTML(m2.text)}
+          <div class="muted" style="font-size:10.5px;margin-top:1px">${esc(m2.author)}</div></div>`).join('')}
+        <div class="m" onclick="event.stopPropagation()">
+          <span class="res" onclick="toggleThreadReply('${kid}')">↩ Reply</span>
+          <span class="res" onclick="resolveThread('${esc(t.key)}')">✓ Resolve thread</span></div>
+        <div id="rp-${kid}" style="display:none;margin-top:7px" onclick="event.stopPropagation()">
+          <textarea id="rpt-${kid}" rows="2" placeholder="Reply — @ to tag a teammate, ⌘/Ctrl+Enter to send" style="width:100%;border:1px solid var(--divider,#DEDBD6);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px;background:#fff;resize:vertical"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:5px"><button class="btn" style="padding:4px 12px;font-size:12px" id="rpb-${kid}" onclick="sendThreadReply('${esc(t.key)}','${kid}')">Reply</button></div>
+        </div>
       </div>`;}).join('')
-      : `<div class="muted" style="padding:26px 4px;font-size:13px">${who?'No open comments tag @'+esc(who)+'.':'No open comments. Right-click any cell (or use 💬 in the Donor studio) to add one.'}</div>`);
+      : `<div class="muted" style="padding:26px 4px;font-size:13px">${who?'No comment threads tag @'+esc(who)+'.':'No open comments. Right-click any cell (or use 💬 in the Donor studio) to add one.'}</div>`);
     } else {
     $('#notesBody').innerHTML = noteKeys.length ? noteKeys.map(key=>{
       const [orgId, k] = [ +key.split(':')[0], key.split(':').slice(1).join(':') ];
@@ -706,6 +750,11 @@ function renderEdRows(){
     return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
     if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
+    if (c.k==='website'){
+      const url = String(o.website||'').trim();
+      const href = url ? (/^https?:/i.test(url) ? url : 'https://'+url) : '';
+      return `<td class="${noted}" data-k="website" title="${esc(c.desc||'')}">${href?`<a class="row-ic" style="margin-right:6px;text-decoration:none" href="${esc(href)}" target="_blank" rel="noopener" title="Visit website ↗" onclick="event.stopPropagation()">↗</a>`:''}<span contenteditable="true" spellcheck="false" data-inline="1">${esc(url)}</span></td>`;
+    }
     if (c.fx) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(c.fx(o))}</td>`;
     if (c.ro) return `<td class="${noted}" data-k="${c.k}" style="color:var(--ink-3)">${esc(o[c.k])}</td>`;
     if (c.sel){

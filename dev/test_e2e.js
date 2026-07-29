@@ -263,11 +263,22 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('updates column is the first studio column', await page.evaluate(() =>
     document.querySelector('#edTable thead th').classList.contains('upd-c') &&
     !!document.querySelector('#edBody tr td.upd-c .upd-ic')));
-  check('Tier is the first column after Display Name (flagged selectable)', await page.evaluate(() => {
+  check('Tier then Website follow Display Name (flagged selectable)', await page.evaluate(() => {
     const ths = [...document.querySelectorAll('#edTable thead th')].map(th => th.dataset.th);
     const iName = ths.indexOf('name');
     const sel = document.querySelector('#edBody td[data-k="tier"] select');
-    return ths[iName+1] === 'tier' && !!sel && [...sel.options].some(o => o.value === 'flagged');
+    return ths[iName+1] === 'tier' && ths[iName+2] === 'website' &&
+           !!sel && [...sel.options].some(o => o.value === 'flagged');
+  }));
+  check('website cells carry a visit ↗ hyperlink', await page.evaluate(() => {
+    const a = document.querySelector('#edBody td[data-k="website"] a[target="_blank"]');
+    return !!a && /^https?:/.test(a.href) && !!document.querySelector('#edBody td[data-k="website"] [contenteditable]');
+  }));
+  check('no studio header cell is transparent', await page.evaluate(() => {
+    return [...document.querySelectorAll('#edTable thead th')].every(th => {
+      const bg = getComputedStyle(th).backgroundColor;
+      return !/rgba\(.*,\s*0?\.\d+\)$/.test(bg) && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)';
+    });
   }));
   check('Display Name column frozen after the Show column, opaque header', await page.evaluate(() => {
     const td = document.querySelector('#edBody td.name-c'), th = document.querySelector('#edTable th.name-c');
@@ -564,6 +575,23 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('comment persisted', await page.evaluate(async () => (await sb.rest('org_comments?select=*')).length) === 1);
   check('@mention captured on the comment', await page.evaluate(() =>
     NOTES[0].mentions && NOTES[0].mentions.includes('Sam Staff')));
+  check('replies join the thread; person filter matches any tagged message', await page.evaluate(async () => {
+    drTab = 'comments'; renderNotesPanel();
+    const seed = NOTES.find(n => !n.resolved && n.orgId && n.text.includes('check this'));
+    const key = 'o:' + seed.orgId + ':' + seed.k;
+    const kid = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+    toggleThreadReply(kid);
+    document.querySelector('#rpt-' + kid).value = 'agreed — looping in @FFG Team';
+    sendThreadReply(key, kid);
+    await new Promise(r => setTimeout(r, 700));
+    const item = [...document.querySelectorAll('#notesBody .note-item')].find(el => el.textContent.includes('check this'));
+    const joined = !!item && item.textContent.includes('agreed — looping in') && item.textContent.includes('2 comments');
+    window._cmWho = 'FFG Team'; renderNotesPanel();     // tagged only in the reply
+    const filtered = [...document.querySelectorAll('#notesBody .note-item')].some(el => el.textContent.includes('check this'));
+    window._cmWho = ''; renderNotesPanel();
+    const persisted = (await sb.rest('org_comments?select=*')).filter(c => c.body.includes('agreed')).length === 1;
+    return joined && filtered && persisted;
+  }));
   check('comments drawer filters by tagged teammate', await page.evaluate(() => {
     drTab = 'comments'; window._cmWho = 'Sam Staff'; renderNotesPanel();
     const n = document.querySelectorAll('#notesBody .note-item').length;
@@ -581,7 +609,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('donor comment saved with tag + donor link', await page.evaluate(async () => {
     const rows = await sb.rest('org_comments?select=*');
     const d = rows.find(r => r.donor_id);
-    return rows.length === 2 && !!d && (d.mentions || '').includes('Sam Staff');
+    return rows.length === 3 && !!d && (d.mentions || '').includes('Sam Staff');
   }));
   // @typeahead (Tab completes) + Ctrl/Cmd+Enter submits
   const acCell = await page.$('#edBody tr:nth-child(6) td[data-k="hq"]');
@@ -627,7 +655,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('no intro overlay on a general sign-in or refresh', await page.evaluate(() =>
     !document.querySelector('#impactOverlay')));
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
-  check('comments restored after fresh login', await page.evaluate(() => NOTES.length) === 3);
+  check('comments restored after fresh login (incl. thread reply)', await page.evaluate(() => NOTES.length) === 4);
   check('mentions + donor link survive reload', await page.evaluate(() =>
     NOTES.some(n => (n.mentions || []).includes('Sam Staff')) && NOTES.some(n => n.donorId)));
   check('cell notes restored', await page.evaluate(() => Object.keys(CELLNOTES).length) === 1);
