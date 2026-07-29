@@ -575,6 +575,39 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('comment persisted', await page.evaluate(async () => (await sb.rest('org_comments?select=*')).length) === 1);
   check('@mention captured on the comment', await page.evaluate(() =>
     NOTES[0].mentions && NOTES[0].mentions.includes('Sam Staff')));
+  check('tag bell + for-you chip count outstanding tagged threads', await page.evaluate(() => {
+    updateTagBell();
+    const bell = document.querySelector('#tagBell');
+    const chip = document.querySelector('#edNotes .tagchip');
+    // Sam is tagged on the 'check this @Sam' thread → at least 1
+    return !!bell && bell.style.display !== 'none' &&
+           +document.querySelector('#tagBellCnt').textContent >= 1 &&
+           !!chip && chip.textContent.includes('for you');
+  }));
+  check('bell opens the drawer pre-filtered to the signed-in teammate', await page.evaluate(() => {
+    openMyTagged();
+    const ok = document.querySelector('#notesDrawer').classList.contains('show') &&
+               window._cmWho === 'Sam Staff' &&
+               document.querySelector('#notesBody').textContent.includes('check this');
+    window._cmWho = ''; closeDrawers(); return ok;
+  }));
+  check('drawer items render as distinct cards with message bubbles', await page.evaluate(() => {
+    drTab = 'comments'; renderNotesPanel();
+    const item = document.querySelector('#notesBody .note-item');
+    return !!item && getComputedStyle(item).borderTopWidth !== '0px' && !!item.querySelector('.cmsg');
+  }));
+  check('jumping from the drawer opens the comment popover at the cell', await page.evaluate(async () => {
+    const seed = NOTES.find(n => !n.resolved && n.orgId && n.text.includes('check this'));
+    const pop = document.querySelector('#notePop');
+    for (let attempt = 0; attempt < 2; attempt++){
+      jumpToCell(seed.orgId, seed.k, 1);
+      await new Promise(r => setTimeout(r, 1600));
+      if (pop.style.display === 'block' && pop.textContent.includes('check this')){
+        pop.style.display = 'none'; return true;
+      }
+    }
+    return false;
+  }));
   check('replies join the thread; person filter matches any tagged message', await page.evaluate(async () => {
     drTab = 'comments'; renderNotesPanel();
     const seed = NOTES.find(n => !n.resolved && n.orgId && n.text.includes('check this'));
@@ -629,7 +662,8 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('Ctrl+Enter submits the comment', await page.evaluate(() =>
     document.querySelector('#notePop').style.display === 'none' &&
     NOTES.some(n => n.text.includes('please double-check') && (n.mentions || []).includes('Sam Staff'))));
-  await cell.click({ button: 'right' }); await page.waitForTimeout(250);
+  const cellB = await page.$('#edBody tr:nth-child(2) td[data-k="hq"]');   // re-query: rows re-rendered since
+  await cellB.click({ button: 'right' }); await page.waitForTimeout(250);
   await page.click('#cmNote'); await page.waitForTimeout(250);
   await page.fill('#cnTxt', 'note body'); await page.click('#cnSave'); await page.waitForTimeout(600);
   check('cell note persisted', await page.evaluate(async () => (await sb.rest('org_cell_notes?select=*')).length) === 1);

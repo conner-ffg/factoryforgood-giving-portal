@@ -307,7 +307,46 @@ let noteSeq = 1;
 const noteFor = (orgId,k) => NOTES.find(n=>n.orgId===orgId && n.k===k && !n.resolved);
 const cellNoteKey = (orgId,k) => orgId+':'+k;
 let drTab = 'comments';
+/* open comment threads where the signed-in teammate is tagged (directly or via @FFG Team) */
+function myTaggedThreads(){
+  const me = wfMe();
+  const byKey = {};
+  NOTES.filter(n=>!n.resolved).forEach(n=>{
+    const key = n.donorId ? 'd:'+n.donorId : 'o:'+n.orgId+':'+n.k;
+    (byKey[key] = byKey[key]||[]).push(n);
+  });
+  return Object.values(byKey).filter(msgs=>msgs.some(n=>(n.mentions||[]).some(m=>m===me||m==='FFG Team')));
+}
+window.openMyTagged = function(){
+  window._cmWho = wfMe();
+  if (!location.hash.startsWith('#/editor')) go('#/editor');
+  drTab = 'comments'; renderNotesPanel();
+  $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show');
+};
+function updateTagBell(){
+  const t = myTaggedThreads().length;
+  const right = document.querySelector('.top-right');
+  let bell = $('#tagBell');
+  if (!bell && right){
+    right.insertAdjacentHTML('afterbegin',
+      `<button id="tagBell" class="cartbtn" style="display:none" title="Open comment threads where you are tagged — click to see them" onclick="openMyTagged()">🔔 <span class="cnt" id="tagBellCnt" style="display:inline-block">0</span></button>`);
+    bell = $('#tagBell');
+  }
+  if (bell){
+    bell.style.display = (window.APP && APP.staff && t) ? '' : 'none';
+    const c = $('#tagBellCnt'); if (c) c.textContent = t;
+  }
+  const btn = $('#edNotes');
+  if (btn){
+    let chip = btn.querySelector('.tagchip');
+    if (t){ if (!chip){ btn.insertAdjacentHTML('beforeend', '<span class="tagchip"></span>'); chip = btn.querySelector('.tagchip'); }
+      chip.textContent = t + ' for you'; }
+    else chip?.remove();
+  }
+}
+window.updateTagBell = updateTagBell;
 function updateNoteCnt(){
+  updateTagBell();
   const c = NOTES.filter(x=>!x.resolved).length;
   const n = Object.keys(CELLNOTES).length;
   const rq = ORGS.filter(o=>o.workflow && o.workflow.req).length;
@@ -445,12 +484,12 @@ function renderNotesPanel(){
       const title = donorName
         ? `${esc(donorName)} · <span style="color:var(--gold-2)">Donor studio</span>`
         : `${esc(byId(n.orgId)?.name||'?')} · <span style="color:var(--gold-2)">${esc(col?.l||n.k)}</span>`;
-      const jump = donorName ? `closeDrawers();go('#/donors')` : `jumpToCell(${n.orgId},'${n.k}')`;
+      const jump = donorName ? `closeDrawers();go('#/donors')` : `jumpToCell(${n.orgId},'${n.k}',1)`;
       const kid = t.key.replace(/[^a-zA-Z0-9_-]/g,'_');
       return `<div class="note-item" onclick="${jump}">
         <div class="f">${title}${t.msgs.length>1?` <span class="pill" style="margin-left:6px;font-size:10px">${t.msgs.length} comments</span>`:''}</div>
-        ${t.msgs.map((m2,i)=>`<div class="txt" ${i?'style="border-top:1px dashed var(--hairline);margin-top:6px;padding-top:6px"':''}>${mentionHTML(m2.text)}
-          <div class="muted" style="font-size:10.5px;margin-top:1px">${esc(m2.author)}</div></div>`).join('')}
+        ${t.msgs.map(m2=>`<div class="cmsg">${mentionHTML(m2.text)}
+          <div class="cmsg-by">${esc(m2.author)}</div></div>`).join('')}
         <div class="m" onclick="event.stopPropagation()">
           <span class="res" onclick="toggleThreadReply('${kid}')">↩ Reply</span>
           <span class="res" onclick="resolveThread('${esc(t.key)}')">✓ Resolve thread</span></div>
@@ -464,7 +503,7 @@ function renderNotesPanel(){
     $('#notesBody').innerHTML = noteKeys.length ? noteKeys.map(key=>{
       const [orgId, k] = [ +key.split(':')[0], key.split(':').slice(1).join(':') ];
       const o = byId(orgId), col = FIELDS.find(f=>f.k===k);
-      return `<div class="note-item" onclick="jumpToCell(${orgId},'${k}')">
+      return `<div class="note-item is-note" onclick="jumpToCell(${orgId},'${k}')">
         <div class="f">${esc(o?.name||'?')} · <span style="color:#9fb4d8">${esc(col?.l||k)}</span> <span class="muted" style="font-size:10px">NOTE</span></div>
         <div class="txt">${esc(CELLNOTES[key])}</div>
         <div class="m"><span class="muted">hover the cell to read in place</span><span class="res" style="color:var(--crit)" onclick="event.stopPropagation();delete CELLNOTES['${key}'];updateNoteCnt();renderNotesPanel();renderEdRows();flash('Note deleted')">✕ Delete</span></div>
@@ -574,7 +613,7 @@ function renderReviewPanel(){
   $('#reviewBody').innerHTML = html;
 }
 
-function jumpToCell(orgId, k){
+function jumpToCell(orgId, k, openComment){
   closeDrawers();
   if (!location.hash.startsWith('#/editor')){ go('#/editor'); }
   const col = FIELDS.find(f=>f.k===k);
@@ -586,6 +625,10 @@ function jumpToCell(orgId, k){
     const td = document.querySelector(`#edBody tr[data-id="${orgId}"] td[data-k="${k}"]`);
     if (td){ td.scrollIntoView({block:'center', inline:'center', behavior:'smooth'});
       td.classList.remove('cell-hi'); void td.offsetWidth; td.classList.add('cell-hi'); }
+    if (td && openComment) setTimeout(()=>{
+      const r = td.getBoundingClientRect();
+      openNotePop(td, orgId, k, Math.max(16, r.left + 12), Math.min(innerHeight-260, r.bottom + 8));
+    }, 550);
   });
 }
 $('#edNotes').addEventListener('click', ()=>{ drTab='comments'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
@@ -786,6 +829,18 @@ function renderEdRows(){
       });
     }
   });
+  // sticky Display Name (and other inline-span cells): clicking any part of the
+  // cell edits IT — never the column scrolled beneath it
+  body.onclick = (e)=>{
+    if (e.target.closest('[contenteditable], a, select, input, button, .row-ic, .vswitch, [onclick]')) return;
+    const td = e.target.closest('td'); if (!td) return;
+    const sp = td.querySelector('span[data-inline]'); if (!sp) return;
+    sp.focus();
+    try{
+      const r = document.createRange(); r.selectNodeContents(sp); r.collapse(false);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    }catch(err){}
+  };
   body.querySelectorAll('input[data-vis]').forEach(cb=>cb.addEventListener('change', ()=>{
     const o = byId(cb.dataset.vis); if (!o) return;
     o.visibility = cb.checked ? 'shown' : 'hidden';

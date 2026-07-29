@@ -271,7 +271,7 @@ h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:.005em}
 table.editor{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:2900px}
 table.editor th{position:sticky;top:0;z-index:5;background:var(--surface-3);color:var(--ink-2);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--divider);font-size:11.5px;white-space:nowrap}
 table.editor td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--ink-2);white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-table.editor td.name-c,table.editor th.name-c{position:sticky;left:192px;z-index:4;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
+table.editor td.name-c,table.editor th.name-c{position:sticky;left:192px;z-index:5;background:#fff;color:var(--ink);max-width:230px;border-right:1px solid var(--divider)}
 table.editor th.name-c{z-index:7;background:var(--surface-3)}
 table.editor td[contenteditable=true]{outline:none;cursor:text}
 table.editor td[contenteditable=true]:focus{background:rgba(41,140,192,.07);box-shadow:inset 0 0 0 1px var(--cerulean);color:var(--ink)}
@@ -299,9 +299,9 @@ table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(-
 .calc-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13px;color:var(--ink-2)}
 .calc-row b{color:var(--ink);font-weight:500}
 .modal input[type=number]{background:#fff;border:1px solid var(--divider);color:var(--ink);border-radius:9px;padding:9px 13px;font-size:14px;width:100%;font-family:inherit;outline:none;margin:10px 0 4px}
-table.editor td.upd-c, table.editor th.upd-c{position:sticky;left:0;z-index:4;background:#fff;width:42px;min-width:42px;max-width:42px;text-align:center;padding:7px 4px}
+table.editor td.upd-c, table.editor th.upd-c{position:sticky;left:0;z-index:5;background:#fff;width:42px;min-width:42px;max-width:42px;text-align:center;padding:7px 4px}
 table.editor th.upd-c{z-index:7;background:var(--surface-3)}
-table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:42px;z-index:4;background:#fff;width:150px;min-width:150px;max-width:150px;text-align:center;padding:7px 6px}
+table.editor td.vis-c, table.editor th.vis-c{position:sticky;left:42px;z-index:5;background:#fff;width:150px;min-width:150px;max-width:150px;text-align:center;padding:7px 6px}
 table.editor th.vis-c{z-index:7;background:var(--surface-3)}
 .upd-ic{position:relative;font-size:11px}
 .upd-ic.on{background:#F4E9D2;border-color:#C4A47C;color:#7A5F2C}
@@ -337,7 +337,14 @@ td.has-cellnote::before{content:'';position:absolute;top:0;left:0;border-style:s
 .note-pop{position:fixed;z-index:95;width:300px;background:#fff;border:1px solid var(--divider);border-radius:12px;padding:15px 17px;box-shadow:var(--shadow)}
 .note-pop textarea{width:100%;min-height:64px;background:var(--bg);border:1px solid var(--divider);border-radius:9px;color:var(--ink);padding:9px 11px;font-family:inherit;font-size:13px;outline:none;resize:vertical}
 .note-pop .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
-.note-item{padding:12px 0;border-bottom:1px solid var(--hairline);cursor:pointer}
+/* comments & notes read as distinct cards, not one run-on stream */
+.note-item{padding:12px 14px;border:1px solid var(--divider);border-left:4px solid #C4A47C;border-radius:12px;background:#fff;margin-bottom:12px;cursor:pointer;transition:border-color .15s}
+.note-item:hover{border-color:var(--ink-3);border-left-color:#C4A47C}
+.note-item.is-note{border-left-color:#92C1DC}
+.cmsg{border:1px solid var(--hairline-2);border-radius:9px;background:#FAF8F4;padding:7px 10px;margin-top:7px;font-size:13px;color:var(--ink)}
+.cmsg-by{font-size:10.5px;color:var(--ink-3);margin-top:3px}
+.tagchip{background:#B4544A;color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 7px;margin-left:6px;vertical-align:1px}
+#tagBell .cnt{background:#B4544A;color:#fff}
 .note-item:hover .f{color:var(--ink)}
 .note-item .f{font-size:12px;color:var(--ink-2)}
 .note-item .txt{font-size:13px;color:var(--ink);margin-top:4px}
@@ -1795,7 +1802,46 @@ let noteSeq = 1;
 const noteFor = (orgId,k) => NOTES.find(n=>n.orgId===orgId && n.k===k && !n.resolved);
 const cellNoteKey = (orgId,k) => orgId+':'+k;
 let drTab = 'comments';
+/* open comment threads where the signed-in teammate is tagged (directly or via @FFG Team) */
+function myTaggedThreads(){
+  const me = wfMe();
+  const byKey = {};
+  NOTES.filter(n=>!n.resolved).forEach(n=>{
+    const key = n.donorId ? 'd:'+n.donorId : 'o:'+n.orgId+':'+n.k;
+    (byKey[key] = byKey[key]||[]).push(n);
+  });
+  return Object.values(byKey).filter(msgs=>msgs.some(n=>(n.mentions||[]).some(m=>m===me||m==='FFG Team')));
+}
+window.openMyTagged = function(){
+  window._cmWho = wfMe();
+  if (!location.hash.startsWith('#/editor')) go('#/editor');
+  drTab = 'comments'; renderNotesPanel();
+  $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show');
+};
+function updateTagBell(){
+  const t = myTaggedThreads().length;
+  const right = document.querySelector('.top-right');
+  let bell = $('#tagBell');
+  if (!bell && right){
+    right.insertAdjacentHTML('afterbegin',
+      `<button id="tagBell" class="cartbtn" style="display:none" title="Open comment threads where you are tagged — click to see them" onclick="openMyTagged()">🔔 <span class="cnt" id="tagBellCnt" style="display:inline-block">0</span></button>`);
+    bell = $('#tagBell');
+  }
+  if (bell){
+    bell.style.display = (window.APP && APP.staff && t) ? '' : 'none';
+    const c = $('#tagBellCnt'); if (c) c.textContent = t;
+  }
+  const btn = $('#edNotes');
+  if (btn){
+    let chip = btn.querySelector('.tagchip');
+    if (t){ if (!chip){ btn.insertAdjacentHTML('beforeend', '<span class="tagchip"></span>'); chip = btn.querySelector('.tagchip'); }
+      chip.textContent = t + ' for you'; }
+    else chip?.remove();
+  }
+}
+window.updateTagBell = updateTagBell;
 function updateNoteCnt(){
+  updateTagBell();
   const c = NOTES.filter(x=>!x.resolved).length;
   const n = Object.keys(CELLNOTES).length;
   const rq = ORGS.filter(o=>o.workflow && o.workflow.req).length;
@@ -1934,12 +1980,12 @@ function renderNotesPanel(){
       const title = donorName
         ? `${esc(donorName)} · <span style="color:var(--gold-2)">Donor studio</span>`
         : `${esc(byId(n.orgId)?.name||'?')} · <span style="color:var(--gold-2)">${esc(col?.l||n.k)}</span>`;
-      const jump = donorName ? `closeDrawers();go('#/donors')` : `jumpToCell(${n.orgId},'${n.k}')`;
+      const jump = donorName ? `closeDrawers();go('#/donors')` : `jumpToCell(${n.orgId},'${n.k}',1)`;
       const kid = t.key.replace(/[^a-zA-Z0-9_-]/g,'_');
       return `<div class="note-item" onclick="${jump}">
         <div class="f">${title}${t.msgs.length>1?` <span class="pill" style="margin-left:6px;font-size:10px">${t.msgs.length} comments</span>`:''}</div>
-        ${t.msgs.map((m2,i)=>`<div class="txt" ${i?'style="border-top:1px dashed var(--hairline);margin-top:6px;padding-top:6px"':''}>${mentionHTML(m2.text)}
-          <div class="muted" style="font-size:10.5px;margin-top:1px">${esc(m2.author)}</div></div>`).join('')}
+        ${t.msgs.map(m2=>`<div class="cmsg">${mentionHTML(m2.text)}
+          <div class="cmsg-by">${esc(m2.author)}</div></div>`).join('')}
         <div class="m" onclick="event.stopPropagation()">
           <span class="res" onclick="toggleThreadReply('${kid}')">↩ Reply</span>
           <span class="res" onclick="resolveThread('${esc(t.key)}')">✓ Resolve thread</span></div>
@@ -1953,7 +1999,7 @@ function renderNotesPanel(){
     $('#notesBody').innerHTML = noteKeys.length ? noteKeys.map(key=>{
       const [orgId, k] = [ +key.split(':')[0], key.split(':').slice(1).join(':') ];
       const o = byId(orgId), col = FIELDS.find(f=>f.k===k);
-      return `<div class="note-item" onclick="jumpToCell(${orgId},'${k}')">
+      return `<div class="note-item is-note" onclick="jumpToCell(${orgId},'${k}')">
         <div class="f">${esc(o?.name||'?')} · <span style="color:#9fb4d8">${esc(col?.l||k)}</span> <span class="muted" style="font-size:10px">NOTE</span></div>
         <div class="txt">${esc(CELLNOTES[key])}</div>
         <div class="m"><span class="muted">hover the cell to read in place</span><span class="res" style="color:var(--crit)" onclick="event.stopPropagation();delete CELLNOTES['${key}'];window.PERSIST&&PERSIST.note(${orgId},'${k}',null);updateNoteCnt();renderNotesPanel();renderEdRows();flash('Note deleted')">✕ Delete</span></div>
@@ -2063,7 +2109,7 @@ function renderReviewPanel(){
   $('#reviewBody').innerHTML = html;
 }
 
-function jumpToCell(orgId, k){
+function jumpToCell(orgId, k, openComment){
   closeDrawers();
   if (!location.hash.startsWith('#/editor')){ go('#/editor'); }
   const col = FIELDS.find(f=>f.k===k);
@@ -2075,6 +2121,10 @@ function jumpToCell(orgId, k){
     const td = document.querySelector(`#edBody tr[data-id="${orgId}"] td[data-k="${k}"]`);
     if (td){ td.scrollIntoView({block:'center', inline:'center', behavior:'smooth'});
       td.classList.remove('cell-hi'); void td.offsetWidth; td.classList.add('cell-hi'); }
+    if (td && openComment) setTimeout(()=>{
+      const r = td.getBoundingClientRect();
+      openNotePop(td, orgId, k, Math.max(16, r.left + 12), Math.min(innerHeight-260, r.bottom + 8));
+    }, 550);
   });
 }
 $('#edNotes').addEventListener('click', ()=>{ drTab='comments'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
@@ -2275,6 +2325,18 @@ function renderEdRows(){
       });
     }
   });
+  // sticky Display Name (and other inline-span cells): clicking any part of the
+  // cell edits IT — never the column scrolled beneath it
+  body.onclick = (e)=>{
+    if (e.target.closest('[contenteditable], a, select, input, button, .row-ic, .vswitch, [onclick]')) return;
+    const td = e.target.closest('td'); if (!td) return;
+    const sp = td.querySelector('span[data-inline]'); if (!sp) return;
+    sp.focus();
+    try{
+      const r = document.createRange(); r.selectNodeContents(sp); r.collapse(false);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    }catch(err){}
+  };
   body.querySelectorAll('input[data-vis]').forEach(cb=>cb.addEventListener('change', ()=>{
     const o = byId(cb.dataset.vis); if (!o) return;
     o.visibility = cb.checked ? 'shown' : 'hidden';
