@@ -75,6 +75,13 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(600);
   check('second member sees none of the first member\'s gifts', await page.evaluate(() =>
     scopeData('me').total === 0 && MEMBER.donations.length === 0));
+  check('own-password users are never forced to create another', await page.evaluate(async () => {
+    // member2 has no pw_set flag but signed in with a unique password —
+    // no forced modal, and the flag is stamped silently
+    const noForce = !document.querySelector('#modalVeil').dataset.required;
+    const u = await (await fetch(SUPABASE_URL + '/auth/v1/user', { headers: sb.headers() })).json();
+    return noForce && u.user_metadata.pw_set === true;
+  }));
   // log their own gift, then check the shared circle pools exactly both members
   await page.evaluate(async () => {
     await sb.rest('donations', { method: 'POST', body: { org_id: 4, amount: 50000, gift_date: '2026-03-01', status: 'logged', user_id: APP.userId } });

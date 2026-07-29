@@ -14,7 +14,7 @@ for o in json.load(open(os.path.join(os.path.dirname(__file__), 'demo-data.json'
 USERS = {
     'staff@factoryforgood.com': {'id': 'u-staff', 'email': 'staff@factoryforgood.com', 'role': 'staff', 'full_name': 'Sam Staff', 'pw_set': True},
     'member@example.com': {'id': 'u-member', 'email': 'member@example.com', 'role': 'member', 'full_name': 'Mia Member', 'pw_set': True},
-    'member2@example.com': {'id': 'u-member2', 'email': 'member2@example.com', 'role': 'member', 'full_name': 'Noah Chen', 'pw_set': True},
+    'member2@example.com': {'id': 'u-member2', 'email': 'member2@example.com', 'role': 'member', 'full_name': 'Noah Chen', 'pw_set': False},
 }
 TOKENS = {}  # token -> user
 DONATIONS, COMMENTS, NOTES, SHORTLIST = [], [], {}, []

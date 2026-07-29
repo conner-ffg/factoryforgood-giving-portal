@@ -5585,6 +5585,7 @@ const sb = {
     if (!m) return false;
     const p = new URLSearchParams(location.hash.replace(/^#/,''));
     this.session = {access_token:p.get('access_token'), refresh_token:p.get('refresh_token'), token_type:'bearer'};
+    window._FFG_LOGIN = 'magic';   // arrived via an email link — no password proven
     this.save();
     history.replaceState(null,'',location.pathname+'#/dashboard');
     return true;
@@ -5655,14 +5656,25 @@ window.openPasswordModal = function(required){
     catch(e){ flash('Could not update: '+e.message); }
   });
 };
-/* first sign-in via email link or starter password → the account has no
-   self-chosen password yet, so ask for one right away (required) */
+/* Require creating an own password ONLY for accounts that have never chosen
+   one: sign-ins via the starter password or an email link. Anyone who signs in
+   with their own unique password is silently marked as set — existing users
+   are never nagged, and restored sessions (page refresh) never prompt. */
 async function ensureOwnPassword(){
   try{
     const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {headers: sb.headers()});
     if (!r.ok) return;
     const u = await r.json();
-    if (!(u.user_metadata && u.user_metadata.pw_set)) setTimeout(()=>openPasswordModal(true), 400);
+    if (u.user_metadata && u.user_metadata.pw_set) return;          // already has their own
+    const how = window._FFG_LOGIN;
+    if (how === 'password'){
+      // proved a unique password at the gate — record it, no prompt
+      fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:sb.headers(),
+        body:JSON.stringify({data:{pw_set:true}})}).catch(()=>{});
+      return;
+    }
+    if (how === 'starter' || how === 'magic') setTimeout(()=>openPasswordModal(true), 400);
+    // restored session (no fresh login this page-load): leave them alone
   }catch(e){}
 }
 
@@ -5721,7 +5733,10 @@ function injectGate(){
   $('#gatePwToggle').addEventListener('click', ()=>{ const b=$('#gatePwBox'); b.style.display = b.style.display==='none'?'block':'none'; });
   $('#gatePwGo').addEventListener('click', async ()=>{
     try{
-      await sb.signInPassword($('#gateEmail').value.trim(), $('#gatePw').value);
+      const pw = $('#gatePw').value;
+      await sb.signInPassword($('#gateEmail').value.trim(), pw);
+      // signing in with a unique (non-starter) password proves they already have one
+      window._FFG_LOGIN = (pw === FFG_STARTER_PW) ? 'starter' : 'password';
       await bootAfterAuth();
     }catch(e){ msg(e.message, true); }
   });
