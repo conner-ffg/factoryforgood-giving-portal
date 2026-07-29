@@ -590,6 +590,32 @@ const CAUSE_COLOR = THEME.causeColor;
 const TIER_LABEL = {top:'Top pick', recommended:'Recommended', represented:'Represented', flagged:'Flagged'};
 const TIER_RANK = {top:0, recommended:1, represented:2, flagged:9};
 const isShown = o => o.visibility!=='hidden';   // hidden orgs live only in Data Studio
+
+/* Keep password managers and email autofill OUT of non-credential fields.
+   The sign-in gate shares the document with the whole app, so browsers guess
+   that unmarked text inputs (Filter rows…, search boxes, gift amounts) belong
+   to a login form. Every input except the real credential fields is stamped
+   with autocomplete=off plus the opt-out attributes the major managers honor. */
+(function(){
+  const CRED = /^(gateEmail|gatePw|pw1|pw2)$/;
+  function shield(root){
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('input, textarea').forEach(el=>{
+      if (el.type==='password' || el.type==='email' || CRED.test(el.id||'')) return;
+      if (el.dataset.pmShield) return;
+      el.dataset.pmShield = '1';
+      el.setAttribute('autocomplete','off');
+      el.setAttribute('data-1p-ignore','');       // 1Password
+      el.setAttribute('data-lpignore','true');    // LastPass
+      el.setAttribute('data-bwignore','true');    // Bitwarden
+      el.setAttribute('data-form-type','other');  // Dashlane
+    });
+  }
+  shield(document);
+  new MutationObserver(muts=>{
+    for (const m of muts) for (const n of m.addedNodes) if (n.nodeType===1) shield(n);
+  }).observe(document.body || document.documentElement, {childList:true, subtree:true});
+})();
 /* member-facing surfaces: flagged orgs are tracked in the studio but never showcased */
 const showcased = o => isShown(o) && o.tier!=='flagged';
 window.showcased = showcased;
@@ -1155,7 +1181,18 @@ $('#drawerVeil').addEventListener('click', closeDrawers);
     renderLibGrid();
   });
 })();
+/* the region list is built from the LOADED orgs — at first paint the live build
+   has no data yet, so the dropdown must refresh whenever the library renders */
+function refreshLibRegions(){
+  const sel = $('#libRegion'); if (!sel) return;
+  const cur = state.lib.region || '';
+  const regions = [...new Set(ORGS.filter(showcased).map(o=>o.region).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All regions</option>' +
+    regions.map(r=>`<option ${r===cur?'selected':''}>${r}</option>`).join('');
+  if (cur && !regions.includes(cur)) state.lib.region = '';
+}
 function renderLibrary(){
+  refreshLibRegions();
   const vis = ORGS.filter(showcased);
   const t = vis.filter(o=>o.tier==='top').length,
         r = vis.filter(o=>o.tier==='recommended').length,

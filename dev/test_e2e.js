@@ -389,6 +389,16 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     }
     return globeState.pins.length > 0;
   }));
+  check('library region dropdown filters geographies', await page.evaluate(() => {
+    go('#/orgs'); renderLibrary();
+    const sel = document.querySelector('#libRegion');
+    if (sel.options.length < 3) return false;                 // populated from live data
+    const region = [...sel.options].find(o => o.value)?.value;
+    state.lib.region = region; renderLibGrid();
+    const strict = libFiltered().every(o => o.region === region) && libFiltered().length > 0;
+    state.lib.region = ''; sel.value = ''; renderLibGrid(); go('#/dashboard');
+    return strict;
+  }));
   check('flagged orgs tracked but never showcased', await page.evaluate(() => {
     const o = ORGS.find(x => x.tier === 'recommended' && isShown(x) && (x.countries||[]).length);
     o.tier = 'flagged'; buildPins();
