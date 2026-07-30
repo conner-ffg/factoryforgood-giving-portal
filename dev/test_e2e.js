@@ -313,6 +313,39 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return document.querySelectorAll('.sv-col').length === 3 &&
            t.includes('Pre-production') && t.includes('Post-production') && t.includes('Gate:');
   }));
+  check('itinerary: org + travel days land on the calendar with trip tag', await page.evaluate(async () => {
+    const trip = VISITS.trips[0];
+    svCalMode = 'plan'; svTripSel = trip.id; svCalMonth = '2026-11'; renderVisits();
+    svMarkDay('2026-11-03');                       // → travel day
+    svMarkDay('2026-11-04'); svMarkDay('2026-11-04');  // → travel → first org
+    await new Promise(r => setTimeout(r, 700));
+    const html = document.querySelector('.sv-cal').innerHTML;
+    const tagOk = html.includes('trip-tag') && html.includes(trip.name);
+    const travelOk = html.includes('✈ travel');
+    const orgOk = !!document.querySelector('.sv-cal .day-chip[title*="visiting"]');
+    const persisted = (await sb.rest('site_visit_items?select=*')).some(r => r.kind === 'trip' && r.data.days && r.data.days['2026-11-03']);
+    svCalMode = 'avail'; renderVisits();
+    return tagOk && travelOk && orgOk && persisted;
+  }));
+  check('availability shows initials; mine boxed bold; DP initials too', await page.evaluate(async () => {
+    svCalMonth = '2026-11'; svCalMode = 'avail';
+    svMarkAs = 'Ava Lens'; svMarkDay('2026-11-05'); svMarkAs = '';
+    await new Promise(r => setTimeout(r, 400));
+    renderVisits();
+    const mine = document.querySelector('.sv-cal .ini.me');
+    const all = [...document.querySelectorAll('.sv-cal .ini')].map(x => x.textContent);
+    return !!mine && mine.textContent === 'SS' && all.includes('AL');
+  }));
+  check('flow tasks check off per org and auto-complete', await page.evaluate(async () => {
+    const trip = VISITS.trips[0];
+    const task = VISITS.tasks.find(k => k.trip === trip.id && !k.done);
+    const orgs = ORGS.filter(o => o.siteVisit && o.siteVisit.trip === trip.id);
+    orgs.forEach(o => svToggleTaskOrg(task.id, o.id));
+    await new Promise(r => setTimeout(r, 600));
+    const auto = task.done === true && orgs.every(o => task.doneOrgs[o.id]);
+    const chips = document.querySelectorAll('.sv-torgs .oc').length > 0;
+    return auto && chips && orgs.length >= 1;
+  }));
   await page.evaluate(async () => { go('#/editor'); await new Promise(r => setTimeout(r, 400)); });
   check('website cells carry a visit ↗ hyperlink', await page.evaluate(() => {
     const a = document.querySelector('#edBody td[data-k="website"] a[target="_blank"]');

@@ -5741,14 +5741,24 @@ window.mountPhinder = function(host){
 .sv-task .rm{cursor:pointer;color:var(--crit);font-size:11px}
 .sv-cal{width:100%;border-collapse:collapse;table-layout:fixed}
 .sv-cal th{font-size:10.5px;color:var(--ink-3);padding:3px 0;font-weight:500}
-.sv-cal td{border:1px solid var(--hairline);height:52px;vertical-align:top;padding:3px 4px;font-size:10.5px;cursor:pointer;border-radius:4px}
+.sv-cal td{border:1px solid var(--hairline);height:66px;vertical-align:top;padding:2px 3px;font-size:10.5px;cursor:pointer;border-radius:4px;overflow:hidden}
 .sv-cal td:hover{background:rgba(146,193,220,.12)}
 .sv-cal td.off{background:var(--surface-3);cursor:default}
-.sv-cal td.trip{background:rgba(145,165,198,.16)}
-.sv-cal .dts{display:flex;gap:2px;flex-wrap:wrap;margin-top:2px}
-.sv-cal .dt{width:8px;height:8px;border-radius:50%;border:1px solid rgba(20,20,19,.25)}
-.sv-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;margin-top:8px;align-items:center}
-.sv-legend .dt{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px;border:1px solid rgba(20,20,19,.25)}
+.sv-cal td.trip{background:rgba(145,165,198,.14)}
+.sv-cal .dts{display:flex;gap:2px;flex-wrap:wrap;margin-top:1px}
+.sv-cal .ini{display:inline-block;font-size:8.5px;font-weight:600;line-height:1;padding:1.5px 3px;border-radius:4px;border:1px solid;background:#fff}
+.sv-cal .ini.no{opacity:.55;text-decoration:line-through;background:var(--surface-3)}
+.sv-cal .ini.me{font-weight:800;box-shadow:0 0 0 1.5px var(--ink);border-color:var(--ink)!important}
+.sv-cal .trip-tag{display:block;font-size:8.5px;font-weight:700;color:#fff;border-radius:4px;padding:1.5px 4px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-cal .day-chip{display:block;font-size:8.5px;font-weight:600;border-radius:4px;padding:1.5px 4px;margin-top:1px;border:1px solid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fff}
+.sv-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;margin-top:8px;align-items:center}
+.sv-legend .ini{display:inline-block;font-size:9px;font-weight:700;padding:1.5px 4px;border-radius:4px;border:1px solid;background:#fff;margin-right:3px;vertical-align:-1px}
+.sv-mode{display:flex;gap:5px}
+.sv-mode button{font-size:11px;padding:3px 10px;border:1px solid var(--divider);border-radius:999px;background:#fff;cursor:pointer}
+.sv-mode button.on{background:var(--ink);color:#F7F5F1;border-color:var(--ink)}
+.sv-torgs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.sv-torgs .oc{font-size:9.5px;border:1px solid var(--divider);border-radius:999px;padding:1px 7px;cursor:pointer;background:#fff}
+.sv-torgs .oc.on{background:#DFE9DC;border-color:#7FA87F;color:#2C4E2C;text-decoration:line-through}
 .sv-gate{font-size:11.5px;padding:7px 10px;border-radius:8px;margin-top:8px;border:1px dashed var(--divider);color:var(--ink-2)}
 .sv-gate.warn{border-color:#B4544A;color:#B4544A}
 `; document.head.appendChild(el); })();
@@ -5759,7 +5769,7 @@ window.mountPhinder = function(host){
    VISITS.avail: {id,dbId,person,date,state}    state: 'yes' | 'no'
    VISITS.tasks: {id,dbId,trip,phase,text,done,who}   phase: pre|prod|post   */
 window.VISITS = { trips:[], dps:[], avail:[], tasks:[], loaded:false };
-let svSeq = 1, svTripSel = null, svCalMonth = null, svMarkAs = '';
+let svSeq = 1, svTripSel = null, svCalMonth = null, svMarkAs = '', svCalMode = 'avail';
 
 const SV_DEFAULT_TASKS = {
   pre: ['Org approval & scheduling confirmed','Visa / entry requirements checked','Flights booked','Lodging booked',
@@ -5779,6 +5789,8 @@ function svPeople(){
   return out;
 }
 function svColor(person){ return SV_COLORS[Math.max(0, svPeople().indexOf(person)) % SV_COLORS.length]; }
+function svTripColor(t){ return SV_COLORS[Math.max(0, VISITS.trips.indexOf(t)) % SV_COLORS.length]; }
+window.svSetCalMode = function(m){ svCalMode = m; renderVisits(); };
 function svCandidates(){ return ORGS.filter(o=>o.siteVisit); }
 function svByCountry(){
   const groups = {};
@@ -5870,6 +5882,10 @@ window.svSelTrip = function(tid){ svTripSel = tid; renderVisits(); };
 window.svToggleTask = function(kid){
   const k = VISITS.tasks.find(x=>String(x.id)===String(kid)); if (!k) return;
   k.done = !k.done;
+  const t = VISITS.trips.find(x=>x.id===k.trip);
+  const orgs = t ? svCandidates().filter(o=>o.siteVisit.trip===t.id) : [];
+  k.doneOrgs = {};
+  if (k.done) orgs.forEach(o=>k.doneOrgs[o.id] = true);
   window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('task', k);
   renderVisits();
 };
@@ -5913,6 +5929,7 @@ window.svCalNav = function(step){
   renderVisits();
 };
 window.svMarkDay = function(date){
+  if (svCalMode === 'plan'){ svPlanDay(date); return; }
   const person = svMarkAs || wfMe();
   const found = VISITS.avail.find(a=>a.person===person && a.date===date);
   if (!found){
@@ -5929,6 +5946,36 @@ window.svMarkDay = function(date){
   renderVisits();
 };
 window.svSetMarkAs = function(v){ svMarkAs = v; renderVisits(); };
+/* itinerary planning: click a day to cycle travel day → each trip org → clear */
+function svPlanDay(date){
+  const t = VISITS.trips.find(x=>x.id===svTripSel);
+  if (!t){ flash('Select (or create) a trip first — click its card'); return; }
+  t.days = t.days || {};
+  const orgs = svCandidates().filter(o=>o.siteVisit.trip===t.id);
+  const cur = t.days[date];
+  if (!cur){ t.days[date] = {type:'travel'}; }
+  else if (cur.type === 'travel'){
+    if (orgs.length) t.days[date] = {type:'org', org:orgs[0].id};
+    else delete t.days[date];
+  } else {
+    const i = orgs.findIndex(o=>o.id===cur.org);
+    if (i >= 0 && i < orgs.length-1) t.days[date] = {type:'org', org:orgs[i+1].id};
+    else delete t.days[date];
+  }
+  window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('trip', t);
+  renderVisits();
+}
+/* per-org check-off on flow tasks: a task is done when every trip org is */
+window.svToggleTaskOrg = function(kid, orgId){
+  const k = VISITS.tasks.find(x=>String(x.id)===String(kid)); if (!k) return;
+  k.doneOrgs = {...k.doneOrgs};
+  if (k.doneOrgs[orgId]) delete k.doneOrgs[orgId]; else k.doneOrgs[orgId] = true;
+  const t = VISITS.trips.find(x=>x.id===k.trip);
+  const orgs = t ? svCandidates().filter(o=>o.siteVisit.trip===t.id) : [];
+  k.done = orgs.length > 0 && orgs.every(o=>k.doneOrgs[o.id]);
+  window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('task', k);
+  renderVisits();
+};
 
 /* ---------- render ---------- */
 function svPhaseCounts(tid){
@@ -6002,12 +6049,17 @@ window.renderVisits = function(){
       <div class="sv-flow">${phases.map(([ph,label,color])=>`
         <div class="sv-col" style="border-top:3px solid ${color}">
           <div class="ph"><span>${label}</span><span>${pc[ph].done}/${pc[ph].total}</span></div>
-          ${VISITS.tasks.filter(k=>k.trip===sel.id && k.phase===ph).map(k=>`
+          ${VISITS.tasks.filter(k=>k.trip===sel.id && k.phase===ph).map(k=>{
+            const tripOrgs = cands.filter(o=>o.siteVisit.trip===sel.id);
+            return `
             <div class="sv-task ${k.done?'done':''}">
               <input type="checkbox" ${k.done?'checked':''} onchange="svToggleTask('${k.id}')">
-              <span class="tx">${esc(k.text)}</span>
+              <span class="tx">${esc(k.text)}
+                ${tripOrgs.length?`<span class="sv-torgs">${tripOrgs.map(o=>`
+                  <span class="oc ${(k.doneOrgs||{})[o.id]?'on':''}" title="Check ${esc(o.name)} off for this task" onclick="svToggleTaskOrg('${k.id}',${o.id})">${esc(o.name.split(' ')[0])}</span>`).join('')}</span>`:''}
+              </span>
               <span class="rm" onclick="svDelTask('${k.id}')">✕</span>
-            </div>`).join('')}
+            </div>`;}).join('')}
           <div style="display:flex;gap:5px;margin-top:6px">
             <input id="svNewTask-${ph}" type="text" placeholder="add a task…" style="flex:1;border:1px solid var(--divider);border-radius:7px;padding:4px 7px;font:inherit;font-size:11.5px;background:#fff"
               onkeydown="if(event.key==='Enter')svAddTask('${sel.id}','${ph}')">
@@ -6028,7 +6080,8 @@ window.renderVisits = function(){
   const startDow = (first.getDay()+6)%7;                 // monday first
   const daysIn = new Date(cy, cm, 0).getDate();
   const monthName = first.toLocaleString('en-US',{month:'long', year:'numeric'});
-  const tripSpans = trips.filter(t=>t.start&&t.end).map(t=>({s:t.start, e:t.end}));
+  const tripSpans = trips.filter(t=>t.start&&t.end);
+  const planTrip = trips.find(t=>t.id===svTripSel) || null;
   let cells = ''; let day = 1 - startDow;
   for (let w=0; w<6 && day<=daysIn; w++){
     cells += '<tr>';
@@ -6036,10 +6089,28 @@ window.renderVisits = function(){
       if (day<1 || day>daysIn){ cells += '<td class="off"></td>'; continue; }
       const date = svMonth()+'-'+String(day).padStart(2,'0');
       const marks = VISITS.avail.filter(a=>a.date===date);
-      const inTrip = tripSpans.some(sp=>date>=sp.s && date<=sp.e);
-      cells += `<td class="${inTrip?'trip':''}" onclick="svMarkDay('${date}')" title="Click to mark ${esc(svMarkAs||me)}: available → unavailable → clear">
-        <div>${day}</div>
-        <div class="dts">${marks.map(a=>`<span class="dt" title="${esc(a.person)} — ${a.state==='yes'?'available':'unavailable'}" style="background:${a.state==='yes'?svColor(a.person):'#fff'};border-color:${svColor(a.person)}"></span>`).join('')}</div>
+      const covering = tripSpans.filter(t=>date>=t.start && date<=t.end);
+      // the trip name + location tag shows on the first covered day (or 1st of month)
+      const tags = covering.filter(t=>date===t.start || day===1).map(t=>
+        `<span class="trip-tag" style="background:${svTripColor(t)}" title="${esc(t.name)}${t.country?' — '+esc(t.country):''} · ${esc(t.start)} → ${esc(t.end)}">✈ ${esc(t.name)}${t.country?' · '+esc(t.country):''}</span>`).join('');
+      // itinerary chips: org days and travel days from every trip's day plan
+      const dayChips = trips.map(t=>{
+        const d2 = (t.days||{})[date]; if (!d2) return '';
+        const col = svTripColor(t);
+        if (d2.type==='travel') return `<span class="day-chip" style="border-color:${col};color:${col}" title="${esc(t.name)} — travel day">✈ travel</span>`;
+        const o = byId(d2.org);
+        return o ? `<span class="day-chip" style="border-color:${col};color:var(--ink)" title="${esc(t.name)} — visiting ${esc(o.name)}">${esc(o.name.length>14?o.name.slice(0,13)+'…':o.name)}</span>` : '';
+      }).join('');
+      const inTrip = covering.length>0;
+      const tip = svCalMode==='plan'
+        ? (planTrip ? `Plan ${esc(planTrip.name)}: click to cycle travel day → each org → clear` : 'Select a trip card first')
+        : `Click to mark ${esc(svMarkAs||me)}: available → unavailable → clear`;
+      cells += `<td class="${inTrip?'trip':''}" onclick="svMarkDay('${date}')" title="${tip}">
+        <div style="display:flex;justify-content:space-between"><span>${day}</span></div>
+        ${tags}${dayChips}
+        <div class="dts">${marks.map(a=>{
+          const isMe = a.person===me;
+          return `<span class="ini ${a.state==='yes'?'':'no'} ${isMe?'me':''}" title="${esc(a.person)} — ${a.state==='yes'?'available':'unavailable'}" style="border-color:${svColor(a.person)};color:${svColor(a.person)==='#EFCB67'?'#7a6516':'inherit'};${a.state==='yes'?'background:'+svColor(a.person)+'33;':''}">${esc(initialsOf(a.person))}</span>`;}).join('')}</div>
       </td>`;
     }
     cells += '</tr>';
@@ -6071,15 +6142,21 @@ window.renderVisits = function(){
               <button class="btn" style="padding:2px 10px" onclick="svCalNav(-1)">‹</button>
               <b style="font-size:13px">${esc(monthName)}</b>
               <button class="btn" style="padding:2px 10px" onclick="svCalNav(1)">›</button></span>
-            <span style="font-size:11.5px;display:flex;gap:5px;align-items:center">Marking as
+            <span class="sv-mode">
+              <button class="${svCalMode==='avail'?'on':''}" onclick="svSetCalMode('avail')">Availability</button>
+              <button class="${svCalMode==='plan'?'on':''}" onclick="svSetCalMode('plan')" title="Click days to assign travel and org visits for the selected trip">Trip itinerary</button></span>
+            ${svCalMode==='avail'?`<span style="font-size:11.5px;display:flex;gap:5px;align-items:center">Marking as
               <select onchange="svSetMarkAs(this.value)" style="border:1px solid var(--divider);border-radius:7px;padding:3px 6px;font:inherit;font-size:11.5px;background:#fff">
                 ${markOptions.map(p=>`<option value="${esc(p===me?'':p)}" ${svMarkAs===(p===me?'':p)?'selected':''}>${esc(p)}${p===me?' (you)':''}</option>`).join('')}
-              </select></span>
+              </select></span>`
+            :`<span style="font-size:11.5px" class="muted">Planning: <b>${planTrip?esc(planTrip.name):'select a trip card'}</b> · click a day to cycle ✈ travel → each org → clear</span>`}
           </div>
           <table class="sv-cal"><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>${cells}</table>
           <div class="sv-legend">
-            ${svPeople().filter(p=>VISITS.avail.some(a=>a.person===p||a.person===p.replace(' (DP)','')) || p===me).slice(0,8).map(p=>`<span><span class="dt" style="background:${svColor(p)}"></span>${esc(p)}</span>`).join('')}
-            <span class="muted">filled dot = available · hollow = unavailable · shaded day = trip scheduled</span>
+            ${svPeople().filter(p=>VISITS.avail.some(a=>a.person===p||a.person===p.replace(' (DP)','')) || p===me).slice(0,8).map(p=>{
+              const raw = p.replace(' (DP)','');
+              return `<span><span class="ini ${raw===me?'me':''}" style="border-color:${svColor(p)}">${esc(initialsOf(raw))}</span>${esc(p)}${raw===me?' (you)':''}</span>`;}).join('')}
+            <span class="muted">initials = availability (struck = unavailable, boxed bold = you) · colored tag = trip · chips = org / travel days</span>
           </div>
         </div>
         <div class="sv-box">
