@@ -596,17 +596,52 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const item = document.querySelector('#notesBody .note-item');
     return !!item && getComputedStyle(item).borderTopWidth !== '0px' && !!item.querySelector('.cmsg');
   }));
-  check('jumping from the drawer opens the comment popover at the cell', await page.evaluate(async () => {
+  check('drawer jump unfilters the studio to reach the row', await page.evaluate(() => {
+    const seed = NOTES.find(n => !n.resolved && n.orgId && n.text.includes('check this'));
+    edState.rev = 'zz-no-match'; edState.q = 'zzzz';   // hide everything
+    renderEdRows();
+    jumpToCell(seed.orgId, seed.k);
+    const row = document.querySelector(`#edBody tr[data-id="${seed.orgId}"]`);
+    return !!row && edState.rev === '' && edState.q === '';
+  }));
+  check('jumping from the drawer opens the popover fully on screen', await page.evaluate(async () => {
     const seed = NOTES.find(n => !n.resolved && n.orgId && n.text.includes('check this'));
     const pop = document.querySelector('#notePop');
     for (let attempt = 0; attempt < 2; attempt++){
       jumpToCell(seed.orgId, seed.k, 1);
       await new Promise(r => setTimeout(r, 1600));
       if (pop.style.display === 'block' && pop.textContent.includes('check this')){
-        pop.style.display = 'none'; return true;
+        const r = pop.getBoundingClientRect();
+        const onScreen = r.bottom <= innerHeight && r.top >= 0 && r.right <= innerWidth;
+        pop.style.display = 'none'; return onScreen;
       }
     }
     return false;
+  }));
+  check('expanded cells never overlay the frozen columns', await page.evaluate(() => {
+    const td = document.querySelector('#edBody td[contenteditable]');
+    td.classList.add('expanded');
+    const zExp = +getComputedStyle(td).zIndex || 0;
+    const zFrozen = +getComputedStyle(document.querySelector('#edBody td.name-c')).zIndex || 0;
+    td.classList.remove('expanded');
+    return zExp < zFrozen && zFrozen >= 5;
+  }));
+  check('Display Name stays frozen even while being edited', await page.evaluate(() => {
+    const td = document.querySelector('#edBody td.name-c');
+    td.classList.add('expanded');
+    const cs = getComputedStyle(td);
+    const ok = cs.position === 'sticky' && cs.left === '192px' && +cs.zIndex >= 6;
+    td.classList.remove('expanded');
+    return ok;
+  }));
+  check('Clear filters button resets search, tier, and review filters', await page.evaluate(() => {
+    edState.q = 'zzzz'; document.querySelector('#edSearch').value = 'zzzz';
+    edState.rev = 'un'; document.querySelector('#edRev').value = 'un';
+    renderEdRows();
+    const filtered = document.querySelectorAll('#edBody tr').length;
+    document.querySelector('#edClear').click();
+    return filtered < 10 && document.querySelectorAll('#edBody tr').length > 100 &&
+           edState.q === '' && edState.rev === '';
   }));
   check('replies join the thread; person filter matches any tagged message', await page.evaluate(async () => {
     drTab = 'comments'; renderNotesPanel();

@@ -61,6 +61,7 @@ body.mesh-on::after{opacity:1}
   100%{transform:translate3d(-2.6%,-1.4%,0) scale(1.09) rotate(1.1deg)}
 }
 @media (prefers-reduced-motion:reduce){body::after{animation:none}}
+
 ::selection{background:rgba(41,140,192,.22)}
 a{color:var(--ink);text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--divider)}
 a:hover{text-decoration-color:var(--ink)}
@@ -281,8 +282,11 @@ table.editor th.name-c.pub-c{background:#EADFC7}
 table.editor td.pub{background:rgba(196,164,124,.055)}
 table.editor td.name-c.pub{background:#fff}
 /* click-to-expand: a focused cell grows to show its FULL contents while editing */
-table.editor td.expanded{white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;max-width:480px!important;min-width:300px;background:#fff!important;box-shadow:0 10px 30px rgba(20,20,19,.22), inset 0 0 0 2px #C4A47C!important;position:relative;z-index:9;color:var(--ink);vertical-align:top;line-height:1.55}
+table.editor td.expanded{white-space:pre-wrap!important;overflow:visible!important;text-overflow:clip!important;max-width:480px!important;min-width:300px;background:#fff!important;box-shadow:0 10px 30px rgba(20,20,19,.22), inset 0 0 0 2px #C4A47C!important;position:relative;z-index:4;color:var(--ink);vertical-align:top;line-height:1.55}
 table.editor td.expanded [contenteditable]{white-space:pre-wrap;display:block}
+/* the frozen Display Name cell must NEVER leave its frozen position: expansion
+   keeps sticky placement and its fixed width (long names wrap vertically) */
+table.editor td.name-c.expanded{position:sticky!important;left:192px!important;z-index:6!important;max-width:230px!important;min-width:0!important;background:#fff!important}
 table.editor td select{background:#fff;color:var(--ink-2);border:1px solid var(--divider);border-radius:6px;padding:3px 6px;font-size:12px;font-family:inherit}
 .ed-note{font-size:12px;color:var(--ink-3)}
 .saved-flash{position:fixed;bottom:26px;right:26px;background:var(--ink);color:#F7F5F1;padding:11px 20px;border-radius:10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:all .3s;z-index:99}
@@ -1893,9 +1897,10 @@ function openNotePop(td, orgId, k, x, y){
   const existing = NOTES.filter(n=>n.orgId===orgId && n.k===k && !n.resolved);
   const o = byId(orgId), col = FIELDS.find(f=>f.k===k);
   pop.innerHTML = `<div class="kicker">${esc(o?.name||'')} · ${esc(col?.l||k)}</div>
+    ${existing.length?`<div style="max-height:230px;overflow:auto;overscroll-behavior:contain;margin-bottom:2px">
     ${existing.map(n=>`<div style="font-size:12.5px;color:var(--ink-2);padding:7px 0;border-bottom:1px solid var(--hairline)">${mentionHTML(n.text)}
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:3px"><span>${esc(n.author)}</span>
-      <span class="res" style="color:var(--good);cursor:pointer" onclick="resolveNote(${n.id})">✓ Resolve</span></div></div>`).join('')}
+      <span class="res" style="color:var(--good);cursor:pointer" onclick="resolveNote(${n.id})">✓ Resolve</span></div></div>`).join('')}</div>`:''}
     <textarea id="noteTxt" placeholder="Leave a comment for the team… use @ to tag a teammate"></textarea>
     ${mentionChipsHTML('#noteTxt')}
     <div class="acts"><button class="btn" onclick="$('#notePop').style.display='none'">Cancel</button>
@@ -1903,6 +1908,13 @@ function openNotePop(td, orgId, k, x, y){
   pop.style.display='block';
   pop.style.left = Math.min(innerWidth-320, x)+'px';
   pop.style.top = Math.min(innerHeight-240, y)+'px';
+  // keep the whole popover on screen — long threads scroll inside instead of
+  // pushing the composer off the bottom
+  requestAnimationFrame(()=>{
+    const r = pop.getBoundingClientRect();
+    if (r.bottom > innerHeight - 12) pop.style.top = Math.max(12, innerHeight - r.height - 16)+'px';
+    if (r.right > innerWidth - 12) pop.style.left = Math.max(12, innerWidth - r.width - 16)+'px';
+  });
   pop.querySelector('#noteSave').addEventListener('click', ()=>{
     const t = pop.querySelector('#noteTxt').value.trim();
     if (t){
@@ -2115,16 +2127,32 @@ function jumpToCell(orgId, k, openComment){
   const col = FIELDS.find(f=>f.k===k);
   if (edState.group!=='All fields' && !activeCols().some(c=>c.k===k)){
     edState.group = col?.cat || 'All fields'; $('#edGroup').value = edState.group; renderEditor(); }
-  edState.q=''; edState.tier=''; $('#edSearch').value=''; $('#edTier').value='';
+  edState.q=''; edState.tier=''; edState.rev='';
+  $('#edSearch').value=''; $('#edTier').value='';
+  const revSel = $('#edRev'); if (revSel) revSel.value='';
   renderEdRows();
   requestAnimationFrame(()=>{
     const td = document.querySelector(`#edBody tr[data-id="${orgId}"] td[data-k="${k}"]`);
-    if (td){ td.scrollIntoView({block:'center', inline:'center', behavior:'smooth'});
+    if (td){ td.scrollIntoView({block:'center', inline:'center', behavior: openComment ? 'auto' : 'smooth'});
       td.classList.remove('cell-hi'); void td.offsetWidth; td.classList.add('cell-hi'); }
     if (td && openComment) setTimeout(()=>{
-      const r = td.getBoundingClientRect();
-      openNotePop(td, orgId, k, Math.max(16, r.left + 12), Math.min(innerHeight-260, r.bottom + 8));
-    }, 550);
+      const sel = `#edBody tr[data-id="${orgId}"] td[data-k="${k}"]`;
+      const td2 = document.querySelector(sel) || td;
+      const r0 = td2.getBoundingClientRect();
+      openNotePop(td2, orgId, k, Math.max(16, Math.min(innerWidth-330, r0.left + 10)), Math.max(70, r0.bottom + 6));
+      // glue the popover to the cell while late image loads settle the layout,
+      // flipping above the cell whenever there's no room below
+      const glue = setInterval(()=>{
+        const tdx = document.querySelector(sel), popEl = $('#notePop');
+        if (!tdx || popEl.style.display !== 'block'){ clearInterval(glue); return; }
+        const r = tdx.getBoundingClientRect(), h = popEl.offsetHeight || 240;
+        let top = r.bottom + 6;
+        if (top + h > innerHeight - 12) top = Math.max(12, r.top - h - 6);
+        popEl.style.left = Math.max(16, Math.min(innerWidth - 330, r.left + 10)) + 'px';
+        popEl.style.top = Math.max(60, top) + 'px';
+      }, 150);
+      setTimeout(()=>clearInterval(glue), 1700);
+    }, 150);
   });
 }
 $('#edNotes').addEventListener('click', ()=>{ drTab='comments'; renderNotesPanel(); $('#notesDrawer').classList.add('show'); $('#drawerVeil').classList.add('show'); });
@@ -2226,6 +2254,12 @@ $('#edTier').insertAdjacentHTML('afterend', `<select id="edRev" title="Focus on 
   <option value="un">Unreviewed only</option>
   <option value="done">Reviewed only</option></select>`);
 $('#edRev').addEventListener('change', e=>{ edState.rev = e.target.value; renderEdRows(); });
+$('#edRev').insertAdjacentHTML('afterend', `<button class="btn" id="edClear" title="Reset the search, tier, and review-status filters">✕ Clear filters</button>`);
+$('#edClear').addEventListener('click', ()=>{
+  edState.q=''; edState.tier=''; edState.rev='';
+  $('#edSearch').value=''; $('#edTier').value=''; $('#edRev').value='';
+  renderEdRows(); flash('Filters cleared — showing every organization');
+});
 (function(){ const g = $('#edGroup');
   ED_CATS.forEach(c=>g.insertAdjacentHTML('beforeend',`<option ${c==='Core'?'selected':''}>${c}</option>`));
   g.addEventListener('change', ()=>{ edState.group = g.value; renderEditor(); });
@@ -2309,10 +2343,14 @@ function renderEdRows(){
   }).join('')}</tr>`;}).join('');
   const body = $('#edBody');
   body.querySelectorAll('td[contenteditable], td [contenteditable]').forEach(td=>{
-    td.addEventListener('blur', ()=>{ commitCell(td); td.closest('td').classList.remove('expanded'); });
+    // commit immediately on blur, but collapse the expansion a beat later so the
+    // table never reflows in the middle of a click on another cell/icon
+    td.addEventListener('blur', ()=>{ commitCell(td); const cell = td.closest('td'); setTimeout(()=>cell.classList.remove('expanded'), 280); });
     td.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){e.preventDefault(); td.blur();} });
-    // clicking into a cell expands it so the FULL contents are visible and editable
-    td.addEventListener('focus', ()=>td.closest('td').classList.add('expanded'));
+    // expanding also waits until the click gesture has fully finished
+    td.addEventListener('focus', ()=>setTimeout(()=>{
+      if (document.activeElement===td || td.contains(document.activeElement)) td.closest('td').classList.add('expanded');
+    }, 200));
     // numeric columns refuse non-numeric characters at the keystroke level
     const colDef = FIELDS.find(f=>f.k===td.closest('td').dataset.k);
     if (colDef && colDef.num){
@@ -3883,7 +3921,7 @@ function injectGlobeControls(){
     else window.zoomMapTo && zoomMapTo(b.dataset.reg);
   });
   $('#gCause').addEventListener('change', ()=>stopCauseAuto('cause'), {once:false});
-  $('#gAuto').addEventListener('click', ()=>{ causeAuto ? stopCauseAuto('chip') : startCauseAuto(); });
+  $('#gAuto')?.addEventListener('click', ()=>{ causeAuto ? stopCauseAuto('chip') : startCauseAuto(); });
   card.querySelector('.globe-foot')?.remove();
 }
 
