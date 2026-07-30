@@ -31,6 +31,12 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   }));
   await page.evaluate(() => go('#/donors')); await page.waitForTimeout(500);
   check('donors route bounces member to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
+  check('Site visits hidden for member', await page.evaluate(() => {
+    const b = document.querySelector('#mainNav [data-route="#/visits"]');
+    return b && b.style.display === 'none';
+  }));
+  await page.evaluate(() => go('#/visits')); await page.waitForTimeout(500);
+  check('visits route bounces member to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
   check('member sees their circle pill', await page.evaluate(() =>
     !!document.querySelector('#scopeToggle [data-circle="test-circle"]')));
   // log a real gift
@@ -270,6 +276,44 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return ths[iName+1] === 'tier' && ths[iName+2] === 'website' &&
            !!sel && [...sel.options].some(o => o.value === 'flagged');
   }));
+  check('✈ marks an org for a site visit and persists it', await page.evaluate(async () => {
+    const o = ORGS.find(x => x.name === 'Fortify Health');
+    toggleSiteVisit(o.id);
+    await new Promise(r => setTimeout(r, 600));
+    const api = await sb.rest('orgs?select=id,data');
+    const row = api.find(r => r.id === o.id);
+    return !!o.siteVisit && o.siteVisit.status === 'candidate' &&
+           row.data.siteVisit && row.data.siteVisit.status === 'candidate' &&
+           !!document.querySelector('#edBody td.upd-c .sv-ic.on');
+  }));
+  check('Site visits planner: country groups, trip, tasks, availability', await page.evaluate(async () => {
+    go('#/visits'); visitsRoute();
+    const grouped = document.querySelector('#svRoot').textContent.includes('Fortify Health');
+    svAddTrip();
+    const trip = VISITS.trips[0];
+    svTripField(trip.id, 'name', 'India Q4'); svTripField(trip.id, 'start', '2026-11-02'); svTripField(trip.id, 'end', '2026-11-12');
+    const seeded = VISITS.tasks.filter(k => k.trip === trip.id);
+    svToggleTask(seeded[0].id);
+    document.querySelector('#svDpName').value = 'Ava Lens';
+    document.querySelector('#svDpContact').value = 'ava@film.co';
+    svAddDp();
+    svMarkDay('2026-11-03');
+    await new Promise(r => setTimeout(r, 900));
+    const api = await sb.rest('site_visit_items?select=*');
+    const kinds = api.map(r => r.kind);
+    const orgSel = [...document.querySelectorAll('.sv-org select')][1];
+    if (orgSel) { orgSel.value = trip.id; orgSel.dispatchEvent(new Event('change')); }
+    return grouped && seeded.length >= 15 && VISITS.tasks.find(k => k.id === seeded[0].id).done === true &&
+           kinds.includes('trip') && kinds.includes('task') && kinds.includes('dp') && kinds.includes('avail') &&
+           document.querySelector('#svRoot').textContent.includes('Ava Lens');
+  }));
+  check('trip flow board shows pre/production/post with the gate', await page.evaluate(() => {
+    renderVisits();
+    const t = document.querySelector('#svRoot').textContent;
+    return document.querySelectorAll('.sv-col').length === 3 &&
+           t.includes('Pre-production') && t.includes('Post-production') && t.includes('Gate:');
+  }));
+  await page.evaluate(async () => { go('#/editor'); await new Promise(r => setTimeout(r, 400)); });
   check('website cells carry a visit ↗ hyperlink', await page.evaluate(() => {
     const a = document.querySelector('#edBody td[data-k="website"] a[target="_blank"]');
     return !!a && /^https?:/.test(a.href) && !!document.querySelector('#edBody td[data-k="website"] [contenteditable]');
@@ -283,7 +327,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('Display Name column frozen after the Show column, opaque header', await page.evaluate(() => {
     const td = document.querySelector('#edBody td.name-c'), th = document.querySelector('#edTable th.name-c');
     const bg = getComputedStyle(th).backgroundColor;
-    return getComputedStyle(td).left === '192px' && getComputedStyle(td).position === 'sticky' &&
+    return getComputedStyle(td).left === '224px' && getComputedStyle(td).position === 'sticky' &&
            !/rgba\(.*,\s*0?\.\d+\)/.test(bg);
   }));
   check('header carries the full-length FFG logo (text fallback if blocked)', await page.evaluate(() =>
@@ -630,7 +674,7 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const td = document.querySelector('#edBody td.name-c');
     td.classList.add('expanded');
     const cs = getComputedStyle(td);
-    const ok = cs.position === 'sticky' && cs.left === '192px' && +cs.zIndex >= 6;
+    const ok = cs.position === 'sticky' && cs.left === '224px' && +cs.zIndex >= 6;
     td.classList.remove('expanded');
     return ok;
   }));

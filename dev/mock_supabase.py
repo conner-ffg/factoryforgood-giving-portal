@@ -25,6 +25,7 @@ DONOR_NOTES = {}
 INVITES = []
 NOTIFS = []
 WF_EVENTS = []
+SITE_VISIT_ITEMS = []
 # From the field quarterly updates (org 1 = Fortify Health, 3 = LEEP, 2 = Suvita)
 ORG_UPDATES = [
     {'id': 9001, 'org_id': 1, 'quarter': '2026-Q2', 'title': 'Twelve new mills join the fortification network',
@@ -182,6 +183,10 @@ class H(BaseHTTPRequestHandler):
             ev = {'id': next(seq), 'org_id': b.get('org_id'), 'kind': b.get('kind'),
                   'author_name': b.get('author_name'), 'created_at': '2026-07-28T12:00:00Z'}
             WF_EVENTS.append(ev); return self._send(201, [ev])
+        if p.path == '/rest/v1/site_visit_items':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            row = {'id': 7000 + next(seq), 'kind': b.get('kind'), 'data': b.get('data') or {}}
+            SITE_VISIT_ITEMS.append(row); return self._send(201, [row])
         if p.path == '/rest/v1/org_updates':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             row = {'id': 9000 + next(seq), 'org_id': b.get('org_id'), 'quarter': b.get('quarter'),
@@ -241,6 +246,9 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, list(reversed(WF_EVENTS)))
         if p.path == '/rest/v1/org_updates':
             return self._send(200, sorted(ORG_UPDATES, key=lambda r: r['quarter'], reverse=True))
+        if p.path == '/rest/v1/site_visit_items':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            return self._send(200, sorted(SITE_VISIT_ITEMS, key=lambda r: r['id']))
         if p.path == '/rest/v1/invites':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             return self._send(200, INVITES)
@@ -308,6 +316,12 @@ class H(BaseHTTPRequestHandler):
             for r in ORG_UPDATES:
                 if r['id'] == rid: r.update(b); return self._send(200, [r])
             return self._send(404, {'message': 'not found'})
+        if p.path == '/rest/v1/site_visit_items':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            rid = int(f['id'])
+            for r in SITE_VISIT_ITEMS:
+                if r['id'] == rid: r.update({k2: v2 for k2, v2 in b.items() if k2 in ('kind', 'data')}); return self._send(200, [r])
+            return self._send(404, {'message': 'not found'})
         return self._send(404, {'message': 'mock: no route'})
 
     def do_DELETE(self):
@@ -336,6 +350,11 @@ class H(BaseHTTPRequestHandler):
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             rid = int(f['id'])
             ORG_UPDATES[:] = [r for r in ORG_UPDATES if r['id'] != rid]
+            return self._send(204)
+        if p.path == '/rest/v1/site_visit_items':
+            if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            rid = int(f['id'])
+            SITE_VISIT_ITEMS[:] = [r for r in SITE_VISIT_ITEMS if r['id'] != rid]
             return self._send(204)
         if p.path == '/rest/v1/shortlist':
             owner = f.get('user_id')

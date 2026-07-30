@@ -256,3 +256,15 @@ end $seed_org_updates$;
 alter table public.org_workflow_events drop constraint if exists org_workflow_events_kind_check;
 alter table public.org_workflow_events add constraint org_workflow_events_kind_check
   check (kind in ('submission','request','review','review0'));
+
+-- ---- Site visits planner (staff-only) --------------------------
+create table if not exists public.site_visit_items (
+  id bigint generated always as identity primary key,
+  kind text not null check (kind in ('trip','dp','avail','task')),
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.site_visit_items enable row level security;
+drop policy if exists site_visit_staff on public.site_visit_items;
+create policy site_visit_staff on public.site_visit_items for all
+  using (public.is_staff()) with check (public.is_staff());
