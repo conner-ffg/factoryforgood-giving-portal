@@ -2,23 +2,35 @@
 /* ================================================================
    SITE VISITS — travel planner for org site visits & content production.
    Staff-only. Candidates are flagged from the Data studio (✈ icon);
-   this tab groups them by country, builds trips, coordinates
-   multi-party availability, and runs the pre/production/post flow.
+   this tab groups them by region → country, builds trips (expandable
+   rows carrying their full pre/production/post flow), coordinates
+   multi-party availability, and keeps shared calendar notes.
    ================================================================ */
 
 (function(){ const el = document.createElement('style'); el.textContent = `
 #view-visits .sv-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,0.95fr);gap:18px;align-items:start}
 .sv-box{border:1.5px solid var(--divider);border-radius:12px;padding:14px 16px;margin-bottom:16px;background:var(--surface)}
 .sv-box .rv-title{font-weight:700;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--hairline)}
-.sv-country{margin-bottom:12px}
+.sv-region{margin-bottom:14px}
+.sv-region > .rn{font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.sv-country{margin:0 0 10px 6px}
 .sv-country > .cn{font-weight:700;font-size:12.5px;margin-bottom:5px;display:flex;align-items:center;gap:8px}
 .sv-org{display:flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid var(--hairline);border-radius:9px;margin-bottom:5px;font-size:12.5px;background:#fff;flex-wrap:wrap}
 .sv-org b{flex:1;min-width:120px;cursor:pointer}
 .sv-org select{border:1px solid var(--divider);border-radius:7px;padding:3px 6px;font:inherit;font-size:11.5px;background:#fff}
-.sv-trip{border:1.5px solid var(--divider);border-left:4px solid #91A5C6;border-radius:12px;padding:12px 14px;margin-bottom:12px;background:#fff}
-.sv-trip.sel{border-color:#91A5C6;box-shadow:0 4px 14px rgba(145,165,198,.25)}
-.sv-trip .tt{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.sv-trip input[type=date], .sv-trip input[type=text], .sv-trip select{border:1px solid var(--divider);border-radius:7px;padding:4px 7px;font:inherit;font-size:12px;background:#fff}
+.sv-tripwrap{margin-bottom:9px}
+.sv-trow{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1.5px solid var(--divider);border-radius:10px;background:#fff;cursor:pointer;font-size:12.5px;flex-wrap:wrap}
+.sv-trow:hover{background:rgba(146,193,220,.09)}
+.sv-trow.open{border-radius:10px 10px 0 0;border-bottom-color:var(--hairline)}
+.sv-trow .chev{font-size:10px;color:var(--ink-3);width:11px}
+.sv-trow .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.sv-trow .tdates{margin-left:auto;font-size:11.5px;color:var(--ink-2)}
+.sv-tbody{border:1.5px solid var(--divider);border-top:none;border-radius:0 0 10px 10px;padding:11px 13px;background:var(--surface)}
+.sv-tbody input[type=date], .sv-tbody input[type=text], .sv-tbody select{border:1px solid var(--divider);border-radius:7px;padding:4px 7px;font:inherit;font-size:12px;background:#fff}
+.sv-torg{display:flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid var(--hairline);border-radius:9px;margin-bottom:5px;font-size:12px;background:#fff;flex-wrap:wrap}
+.sv-torg b{cursor:pointer}
+.sv-daychip{font-size:10px;border:1px solid var(--divider);border-radius:999px;padding:1px 7px;background:#fff;display:inline-flex;gap:4px;align-items:center}
+.sv-daychip .rm{cursor:pointer;color:var(--crit);font-weight:700}
 .sv-phasebar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:8px 0 3px;border:1px solid var(--hairline)}
 .sv-phasebar i{display:block;height:100%}
 .sv-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:10px}
@@ -32,16 +44,21 @@
 .sv-task .rm{cursor:pointer;color:var(--crit);font-size:11px}
 .sv-cal{width:100%;border-collapse:collapse;table-layout:fixed}
 .sv-cal th{font-size:10.5px;color:var(--ink-3);padding:3px 0;font-weight:500}
-.sv-cal td{border:1px solid var(--hairline);height:66px;vertical-align:top;padding:2px 3px;font-size:10.5px;cursor:pointer;border-radius:4px;overflow:hidden}
+.sv-cal td{border:1px solid var(--hairline);height:64px;vertical-align:top;padding:2px 3px;font-size:10.5px;cursor:pointer;border-radius:4px;overflow:hidden}
 .sv-cal td:hover{background:rgba(146,193,220,.12)}
 .sv-cal td.off{background:var(--surface-3);cursor:default}
 .sv-cal td.trip{background:rgba(145,165,198,.14)}
-.sv-cal .dts{display:flex;gap:2px;flex-wrap:wrap;margin-top:1px}
+.sv-cal td.noted{background:rgba(239,203,103,.15)}
+.sv-cal td.trip.noted{background:linear-gradient(135deg,rgba(145,165,198,.14),rgba(239,203,103,.18))}
+.sv-cal .dnum{display:flex;align-items:flex-start;justify-content:space-between;gap:2px}
+.sv-cal .dnum .dn{font-weight:600}
+.sv-cal .dts{display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end}
 .sv-cal .ini{display:inline-block;font-size:8.5px;font-weight:600;line-height:1;padding:1.5px 3px;border-radius:4px;border:1px solid;background:#fff}
 .sv-cal .ini.no{opacity:.55;text-decoration:line-through;background:var(--surface-3)}
 .sv-cal .ini.me{font-weight:800;box-shadow:0 0 0 1.5px var(--ink);border-color:var(--ink)!important}
 .sv-cal .trip-tag{display:block;font-size:8.5px;font-weight:700;color:#fff;border-radius:4px;padding:1.5px 4px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sv-cal .day-chip{display:block;font-size:8.5px;font-weight:600;border-radius:4px;padding:1.5px 4px;margin-top:1px;border:1px solid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fff}
+.sv-cal .note-chip{display:block;font-size:8.5px;font-weight:600;background:#EFCB67;color:#4a3f14;border-radius:4px;padding:1.5px 4px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .sv-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;margin-top:8px;align-items:center}
 .sv-legend .ini{display:inline-block;font-size:9px;font-weight:700;padding:1.5px 4px;border-radius:4px;border:1px solid;background:#fff;margin-right:3px;vertical-align:-1px}
 .sv-mode{display:flex;gap:5px}
@@ -52,15 +69,22 @@
 .sv-torgs .oc.on{background:#DFE9DC;border-color:#7FA87F;color:#2C4E2C;text-decoration:line-through}
 .sv-gate{font-size:11.5px;padding:7px 10px;border-radius:8px;margin-top:8px;border:1px dashed var(--divider);color:var(--ink-2)}
 .sv-gate.warn{border-color:#B4544A;color:#B4544A}
+#svNoteModal{display:none;position:fixed;inset:0;background:rgba(30,28,24,.45);z-index:300;align-items:center;justify-content:center}
+.sv-notebox{background:#fff;border-radius:14px;padding:16px 18px;width:min(440px,92vw);box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.sv-notebox label{font-size:11.5px;color:var(--ink-2);display:flex;gap:5px;align-items:center}
+.sv-notebox input[type=date]{border:1px solid var(--divider);border-radius:7px;padding:4px 7px;font:inherit;font-size:12px;background:#fff}
+.sv-notebox textarea{width:100%;min-height:84px;border:1px solid var(--divider);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;margin-top:9px;resize:vertical;background:#fff;box-sizing:border-box}
 `; document.head.appendChild(el); })();
 
 /* ---------- state + persistence shape ----------
-   VISITS.trips: {id,dbId,name,country,start,end,dp,notes}
+   VISITS.trips: {id,dbId,name,country,start,end,dp,notes,days:{date:{type:'travel'|'org',org}}}
    VISITS.dps:   {id,dbId,name,contact,notes}
    VISITS.avail: {id,dbId,person,date,state}    state: 'yes' | 'no'
-   VISITS.tasks: {id,dbId,trip,phase,text,done,who}   phase: pre|prod|post   */
-window.VISITS = { trips:[], dps:[], avail:[], tasks:[], loaded:false };
-let svSeq = 1, svTripSel = null, svCalMonth = null, svMarkAs = '', svCalMode = 'avail';
+   VISITS.tasks: {id,dbId,trip,phase,text,done,who,doneOrgs}   phase: pre|prod|post
+   VISITS.notes: {id,dbId,start,end,text}       shared calendar notes          */
+window.VISITS = { trips:[], dps:[], avail:[], tasks:[], notes:[], loaded:false };
+let svSeq = 1, svTripSel = null, svCalMonth = null, svMarkAs = '', svCalMode = 'avail', svNoteEdit = null;
+const svOpenTrips = {};
 
 const SV_DEFAULT_TASKS = {
   pre: ['Org approval & scheduling confirmed','Visa / entry requirements checked','Flights booked','Lodging booked',
@@ -74,6 +98,13 @@ const SV_DEFAULT_TASKS = {
 const SV_STATUS = ['candidate','outreach','confirmed','scheduled','visited'];
 const SV_COLORS = ['#91A5C6','#C4A47C','#7FAD96','#CB9A8B','#EFCB67','#92C1DC','#E1938D','#9ED1BB'];
 
+/* ids stay unique even against items persisted by earlier sessions */
+function svId(prefix){
+  const all = [...VISITS.trips, ...VISITS.dps, ...VISITS.avail, ...VISITS.tasks, ...VISITS.notes];
+  let id = prefix + (svSeq++);
+  while (all.some(x=>String(x.id)===id)) id = prefix + (svSeq++);
+  return id;
+}
 function svPeople(){
   const out = teamMembers().filter(n=>n!=='FFG Team');
   VISITS.dps.forEach(d=>{ if (!out.includes(d.name)) out.push(d.name+' (DP)'); });
@@ -83,13 +114,20 @@ function svColor(person){ return SV_COLORS[Math.max(0, svPeople().indexOf(person
 function svTripColor(t){ return SV_COLORS[Math.max(0, VISITS.trips.indexOf(t)) % SV_COLORS.length]; }
 window.svSetCalMode = function(m){ svCalMode = m; renderVisits(); };
 function svCandidates(){ return ORGS.filter(o=>o.siteVisit); }
-function svByCountry(){
-  const groups = {};
+/* region → country → orgs, big groups first */
+function svByRegion(){
+  const regions = {};
   svCandidates().forEach(o=>{
+    const r = o.region || (typeof regionOf==='function' ? regionOf(o) : 'Global') || 'Global';
     const c = (o.countries||[]).filter(x=>x!=='Global')[0] || 'Unassigned';
-    (groups[c] = groups[c]||[]).push(o);
+    (regions[r] = regions[r]||{});
+    (regions[r][c] = regions[r][c]||[]).push(o);
   });
-  return Object.entries(groups).sort((a,b)=> b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  return Object.entries(regions).map(([r, byC])=>{
+    const countries = Object.entries(byC).sort((a,b)=> b[1].length - a[1].length || a[0].localeCompare(b[0]));
+    const n = countries.reduce((s,[,arr])=>s+arr.length, 0);
+    return [r, countries, n];
+  }).sort((a,b)=> b[2]-a[2] || a[0].localeCompare(b[0]));
 }
 
 /* ---------- studio marker ---------- */
@@ -138,18 +176,18 @@ setTimeout(()=>{ if (location.hash.startsWith('#/visits')) visitsRoute(); }, 0);
 
 /* ---------- trips ---------- */
 window.svAddTrip = function(){
-  const t = {id:'t'+(svSeq++), name:'New trip', country:'', start:'', end:'', dp:'', notes:''};
+  const t = {id:svId('t'), name:'New trip', country:'', start:'', end:'', dp:'', notes:'', days:{}};
   VISITS.trips.push(t);
   SV_DEFAULT_TASKS.pre.forEach(x=>VISITS.tasks.push(svNewTask(t.id,'pre',x)));
   SV_DEFAULT_TASKS.prod.forEach(x=>VISITS.tasks.push(svNewTask(t.id,'prod',x)));
   SV_DEFAULT_TASKS.post.forEach(x=>VISITS.tasks.push(svNewTask(t.id,'post',x)));
-  svTripSel = t.id;
+  svTripSel = t.id; svOpenTrips[t.id] = true;
   window.PERSIST && PERSIST.visit && PERSIST.visit('trip', t);
   VISITS.tasks.filter(k=>k.trip===t.id).forEach(k=>window.PERSIST && PERSIST.visit && PERSIST.visit('task', k));
   renderVisits();
-  flash('Trip created — set its dates, country, and DP, then assign orgs to it');
+  flash('Trip created — set its dates, place, and DP, then assign orgs and their visit days');
 };
-function svNewTask(trip, phase, text){ return {id:'k'+(svSeq++), trip, phase, text, done:false, who:''}; }
+function svNewTask(trip, phase, text){ return {id:svId('k'), trip, phase, text, done:false, who:''}; }
 window.svTripField = function(tid, key, val){
   const t = VISITS.trips.find(x=>x.id===tid); if (!t) return;
   t[key] = val;
@@ -165,9 +203,35 @@ window.svDelTrip = function(tid){
   ORGS.filter(o=>o.siteVisit && o.siteVisit.trip===tid).forEach(o=>setSiteVisitField(o.id,'trip',null));
   window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(t);
   if (svTripSel===tid) svTripSel = null;
+  delete svOpenTrips[tid];
   renderVisits();
 };
-window.svSelTrip = function(tid){ svTripSel = tid; renderVisits(); };
+window.svSelTrip = function(tid){ svTripSel = tid; svOpenTrips[tid] = true; renderVisits(); };
+window.svToggleTrip = function(tid){
+  if (svOpenTrips[tid]) delete svOpenTrips[tid];
+  else { svOpenTrips[tid] = true; svTripSel = tid; }
+  renderVisits();
+};
+
+/* ---------- org day assignment (from the trip row → flows to the calendar) ---------- */
+window.svAssignOrgDay = function(tid, orgId, dateOpt){
+  const t = VISITS.trips.find(x=>x.id===tid); if (!t) return;
+  const inp = $('#svDay-'+tid+'-'+orgId);
+  const date = dateOpt || (inp && inp.value) || '';
+  if (!date){ flash('Pick a date first'); return; }
+  t.days = t.days || {};
+  t.days[date] = {type:'org', org:orgId};
+  window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('trip', t);
+  renderVisits();
+  const o = byId(orgId);
+  flash((o?o.name:'Org')+' scheduled for '+date+' — it now shows on the calendar');
+};
+window.svUnassignDay = function(tid, date){
+  const t = VISITS.trips.find(x=>x.id===tid); if (!t || !t.days || !t.days[date]) return;
+  delete t.days[date];
+  window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('trip', t);
+  renderVisits();
+};
 
 /* ---------- tasks ---------- */
 window.svToggleTask = function(kid){
@@ -181,7 +245,7 @@ window.svToggleTask = function(kid){
   renderVisits();
 };
 window.svAddTask = function(tid, phase){
-  const inp = $('#svNewTask-'+phase); if (!inp) return;
+  const inp = $('#svNewTask-'+tid+'-'+phase) || $('#svNewTask-'+phase); if (!inp) return;
   const tx = inp.value.trim(); if (!tx){ flash('Type the task first'); return; }
   const k = svNewTask(tid, phase, tx);
   VISITS.tasks.push(k);
@@ -194,68 +258,6 @@ window.svDelTask = function(kid){
   window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(k);
   renderVisits();
 };
-
-/* ---------- DPs ---------- */
-window.svAddDp = function(){
-  const name = ($('#svDpName')?.value||'').trim();
-  if (!name){ flash('Enter the DP\'s name'); return; }
-  const d = {id:'d'+(svSeq++), name, contact:($('#svDpContact')?.value||'').trim(), notes:''};
-  VISITS.dps.push(d);
-  window.PERSIST && PERSIST.visit && PERSIST.visit('dp', d);
-  renderVisits();
-};
-window.svDelDp = function(did){
-  const d = VISITS.dps.find(x=>String(x.id)===String(did)); if (!d) return;
-  VISITS.dps = VISITS.dps.filter(x=>x!==d);
-  window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(d);
-  renderVisits();
-};
-
-/* ---------- availability calendar ---------- */
-function svMonth(){ if (!svCalMonth){ const d = new Date(); svCalMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); } return svCalMonth; }
-window.svCalNav = function(step){
-  let [y,m] = svMonth().split('-').map(Number);
-  m += step; if (m<1){ m=12; y--; } if (m>12){ m=1; y++; }
-  svCalMonth = y+'-'+String(m).padStart(2,'0');
-  renderVisits();
-};
-window.svMarkDay = function(date){
-  if (svCalMode === 'plan'){ svPlanDay(date); return; }
-  const person = svMarkAs || wfMe();
-  const found = VISITS.avail.find(a=>a.person===person && a.date===date);
-  if (!found){
-    const a = {id:'a'+(svSeq++), person, date, state:'yes'};
-    VISITS.avail.push(a);
-    window.PERSIST && PERSIST.visit && PERSIST.visit('avail', a);
-  } else if (found.state==='yes'){
-    found.state = 'no';
-    window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('avail', found);
-  } else {
-    VISITS.avail = VISITS.avail.filter(a=>a!==found);
-    window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(found);
-  }
-  renderVisits();
-};
-window.svSetMarkAs = function(v){ svMarkAs = v; renderVisits(); };
-/* itinerary planning: click a day to cycle travel day → each trip org → clear */
-function svPlanDay(date){
-  const t = VISITS.trips.find(x=>x.id===svTripSel);
-  if (!t){ flash('Select (or create) a trip first — click its card'); return; }
-  t.days = t.days || {};
-  const orgs = svCandidates().filter(o=>o.siteVisit.trip===t.id);
-  const cur = t.days[date];
-  if (!cur){ t.days[date] = {type:'travel'}; }
-  else if (cur.type === 'travel'){
-    if (orgs.length) t.days[date] = {type:'org', org:orgs[0].id};
-    else delete t.days[date];
-  } else {
-    const i = orgs.findIndex(o=>o.id===cur.org);
-    if (i >= 0 && i < orgs.length-1) t.days[date] = {type:'org', org:orgs[i+1].id};
-    else delete t.days[date];
-  }
-  window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('trip', t);
-  renderVisits();
-}
 /* per-org check-off on flow tasks: a task is done when every trip org is */
 window.svToggleTaskOrg = function(kid, orgId){
   const k = VISITS.tasks.find(x=>String(x.id)===String(kid)); if (!k) return;
@@ -268,6 +270,107 @@ window.svToggleTaskOrg = function(kid, orgId){
   renderVisits();
 };
 
+/* ---------- DPs ---------- */
+window.svAddDp = function(){
+  const name = ($('#svDpName')?.value||'').trim();
+  if (!name){ flash('Enter the DP\'s name'); return; }
+  const d = {id:svId('d'), name, contact:($('#svDpContact')?.value||'').trim(), notes:''};
+  VISITS.dps.push(d);
+  window.PERSIST && PERSIST.visit && PERSIST.visit('dp', d);
+  renderVisits();
+};
+window.svDelDp = function(did){
+  const d = VISITS.dps.find(x=>String(x.id)===String(did)); if (!d) return;
+  VISITS.dps = VISITS.dps.filter(x=>x!==d);
+  window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(d);
+  renderVisits();
+};
+
+/* ---------- calendar ---------- */
+function svMonth(){ if (!svCalMonth){ const d = new Date(); svCalMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); } return svCalMonth; }
+window.svCalNav = function(step){
+  let [y,m] = svMonth().split('-').map(Number);
+  m += step; if (m<1){ m=12; y--; } if (m>12){ m=1; y++; }
+  svCalMonth = y+'-'+String(m).padStart(2,'0');
+  renderVisits();
+};
+window.svMarkDay = function(date){
+  if (svCalMode === 'plan'){ svPlanDay(date); return; }
+  if (svCalMode === 'notes'){ svOpenNote(null, date); return; }
+  const person = svMarkAs || wfMe();
+  const found = VISITS.avail.find(a=>a.person===person && a.date===date);
+  if (!found){
+    const a = {id:svId('a'), person, date, state:'yes'};
+    VISITS.avail.push(a);
+    window.PERSIST && PERSIST.visit && PERSIST.visit('avail', a);
+  } else if (found.state==='yes'){
+    found.state = 'no';
+    window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('avail', found);
+  } else {
+    VISITS.avail = VISITS.avail.filter(a=>a!==found);
+    window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(found);
+  }
+  renderVisits();
+};
+window.svSetMarkAs = function(v){ svMarkAs = v; renderVisits(); };
+/* itinerary planning: click a day to toggle ✈ travel day for the selected trip.
+   Org visit days are assigned from the trip's row in the Trips section. */
+function svPlanDay(date){
+  const t = VISITS.trips.find(x=>x.id===svTripSel);
+  if (!t){ flash('Select a trip first — click its row in the Trips section'); return; }
+  t.days = t.days || {};
+  const cur = t.days[date];
+  if (!cur){ t.days[date] = {type:'travel'}; }
+  else if (cur.type === 'travel'){ delete t.days[date]; }
+  else { flash('That\'s an org visit day — change it from the trip\'s row in the Trips section'); return; }
+  window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('trip', t);
+  renderVisits();
+}
+
+/* ---------- calendar notes (shared team reference) ---------- */
+window.svOpenNote = function(id, date){
+  const n = id!=null ? VISITS.notes.find(x=>String(x.id)===String(id)) : null;
+  svNoteEdit = n ? n.id : null;
+  const m = $('#svNoteModal'); if (!m) return;
+  $('#svNoteStart').value = n ? (n.start||'') : (date||'');
+  $('#svNoteEnd').value = n ? (n.end||n.start||'') : (date||'');
+  $('#svNoteText').value = n ? (n.text||'') : '';
+  $('#svNoteDel').style.display = n ? '' : 'none';
+  m.style.display = 'flex';
+  setTimeout(()=>{ const t=$('#svNoteText'); t && t.focus(); }, 40);
+};
+window.svCloseNote = function(){ const m=$('#svNoteModal'); if (m) m.style.display='none'; svNoteEdit=null; };
+window.svSaveNote = function(){
+  let start = $('#svNoteStart')?.value || '';
+  let end = $('#svNoteEnd')?.value || start;
+  const text = ($('#svNoteText')?.value||'').trim();
+  if (!start){ flash('Pick a start date'); return; }
+  if (!text){ flash('Write the note first'); return; }
+  if (end && end < start){ const tmp = start; start = end; end = tmp; }
+  if (svNoteEdit!=null){
+    const n = VISITS.notes.find(x=>String(x.id)===String(svNoteEdit));
+    if (n){ n.start = start; n.end = end||start; n.text = text;
+      window.PERSIST && PERSIST.visitUpdate && PERSIST.visitUpdate('note', n); }
+  } else {
+    const n = {id:svId('n'), start, end:end||start, text};
+    VISITS.notes.push(n);
+    window.PERSIST && PERSIST.visit && PERSIST.visit('note', n);
+  }
+  svCloseNote();
+  renderVisits();
+  flash('Calendar note saved — the whole team sees it');
+};
+window.svDelNote = function(){
+  if (svNoteEdit==null) return;
+  const n = VISITS.notes.find(x=>String(x.id)===String(svNoteEdit));
+  if (n){
+    VISITS.notes = VISITS.notes.filter(x=>x!==n);
+    window.PERSIST && PERSIST.visitDelete && PERSIST.visitDelete(n);
+  }
+  svCloseNote();
+  renderVisits();
+};
+
 /* ---------- render ---------- */
 function svPhaseCounts(tid){
   const out = {};
@@ -277,46 +380,77 @@ function svPhaseCounts(tid){
   });
   return out;
 }
+/* full flow board for one trip (lives inside its expanded row) */
+function svFlowHTML(t){
+  const cands = svCandidates();
+  const pc = svPhaseCounts(t.id);
+  const preDone = pc.pre.total && pc.pre.done===pc.pre.total;
+  const daysToGo = t.start ? Math.ceil((new Date(t.start+'T00:00:00') - Date.now())/864e5) : null;
+  const phases = [['pre','Pre-production','#C4A47C'],['prod','Production','#91A5C6'],['post','Post-production','#7FAD96']];
+  const tripOrgs = cands.filter(o=>o.siteVisit.trip===t.id);
+  return `
+    <div class="sv-flow">${phases.map(([ph,label,color])=>`
+      <div class="sv-col" style="border-top:3px solid ${color}">
+        <div class="ph"><span>${label}</span><span>${pc[ph].done}/${pc[ph].total}</span></div>
+        ${VISITS.tasks.filter(k=>k.trip===t.id && k.phase===ph).map(k=>`
+          <div class="sv-task ${k.done?'done':''}">
+            <input type="checkbox" ${k.done?'checked':''} onchange="svToggleTask('${k.id}')">
+            <span class="tx">${esc(k.text)}
+              ${tripOrgs.length?`<span class="sv-torgs">${tripOrgs.map(o=>`
+                <span class="oc ${(k.doneOrgs||{})[o.id]?'on':''}" title="Check ${esc(o.name)} off for this task" onclick="svToggleTaskOrg('${k.id}',${o.id})">${esc(o.name.split(' ')[0])}</span>`).join('')}</span>`:''}
+            </span>
+            <span class="rm" onclick="svDelTask('${k.id}')">✕</span>
+          </div>`).join('')}
+        <div style="display:flex;gap:5px;margin-top:6px">
+          <input id="svNewTask-${t.id}-${ph}" type="text" placeholder="add a task…" style="flex:1;border:1px solid var(--divider);border-radius:7px;padding:4px 7px;font:inherit;font-size:11.5px;background:#fff"
+            onkeydown="if(event.key==='Enter')svAddTask('${t.id}','${ph}')">
+          <button class="btn" style="padding:3px 10px;font-size:11.5px" onclick="svAddTask('${t.id}','${ph}')">+</button>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="sv-gate ${!preDone && daysToGo!==null && daysToGo<14 ? 'warn':''}">
+      ⛩ Gate: every pre-production task must clear before departure${daysToGo!==null ? ` — ${daysToGo>=0?daysToGo+' days to go':'departed '+(-daysToGo)+' days ago'}` : ''}.
+      ${preDone?'✅ Pre-production complete — cleared for travel.':`${pc.pre.total-pc.pre.done} pre-production task${pc.pre.total-pc.pre.done===1?'':'s'} outstanding.`}
+      Production runs on the ground; post-production starts the day you land home.
+    </div>`;
+}
 window.renderVisits = function(){
   const root = $('#svRoot'); if (!root) return;
   const cands = svCandidates();
   const trips = VISITS.trips;
-  const sel = trips.find(t=>t.id===svTripSel) || trips[0] || null;
-  if (sel) svTripSel = sel.id;
+  if (svTripSel && !trips.find(t=>t.id===svTripSel)) svTripSel = null;
+  if (!svTripSel && trips.length) svTripSel = trips[0].id;
   const me = wfMe();
 
-  /* candidates grouped by country */
-  const groupsHTML = svByCountry().map(([country, orgs])=>`
-    <div class="sv-country">
-      <div class="cn">${esc(country)} <span class="pill" style="font-size:10px">${orgs.length} org${orgs.length===1?'':'s'}</span>
-        ${orgs.length>1?'<span class="muted" style="font-size:10.5px">— combinable into one trip</span>':''}</div>
-      ${orgs.map(o=>`<div class="sv-org">
-        <b onclick="go('#/org/${o.id}')" title="Open the brief">${esc(o.name)}</b>
-        <select onchange="setSiteVisitField(${o.id},'status',this.value)" title="Visit status">
-          ${SV_STATUS.map(s=>`<option ${o.siteVisit.status===s?'selected':''}>${s}</option>`).join('')}</select>
-        <select onchange="setSiteVisitField(${o.id},'trip',this.value)" title="Assign to a trip">
-          <option value="">no trip</option>
-          ${trips.map(t=>`<option value="${t.id}" ${o.siteVisit.trip===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
-        <span class="res" style="color:var(--crit)" onclick="toggleSiteVisit(${o.id})" title="Remove candidate">✕</span>
-      </div>`).join('')}
-    </div>`).join('');
-
-  /* trips list with phase progress + timeline */
+  /* trips — expandable rows, above the candidates */
   const tripsHTML = trips.map(t=>{
+    const open = !!svOpenTrips[t.id];
     const pc = svPhaseCounts(t.id);
     const orgsIn = cands.filter(o=>o.siteVisit.trip===t.id);
+    const col = svTripColor(t);
     const pct = ph => pc[ph].total ? Math.round(pc[ph].done/pc[ph].total*100) : 0;
-    return `<div class="sv-trip ${sel&&sel.id===t.id?'sel':''}" onclick="svSelTrip('${t.id}')">
-      <div class="tt">
-        <input type="text" value="${esc(t.name)}" onclick="event.stopPropagation()" onchange="svTripField('${t.id}','name',this.value)" style="font-weight:700;min-width:130px">
-        <input type="text" value="${esc(t.country||'')}" placeholder="country / region" onclick="event.stopPropagation()" onchange="svTripField('${t.id}','country',this.value)" style="width:120px">
-        <span style="display:flex;gap:5px;align-items:center;font-size:11.5px" onclick="event.stopPropagation()">
+    const dates = (t.start||t.end) ? `${esc(t.start||'…')} → ${esc(t.end||'…')}` : 'dates unset';
+    const orgDays = Object.entries(t.days||{}).filter(([,d])=>d.type==='org').sort((a,b)=>a[0]<b[0]?-1:1);
+    const travelDays = Object.keys(t.days||{}).filter(d=>t.days[d].type==='travel').sort();
+    const head = `<div class="sv-trow ${open?'open':''} ${svTripSel===t.id?'sel':''}" style="border-left:4px solid ${col}" onclick="svToggleTrip('${t.id}')">
+      <span class="chev">${open?'▾':'▸'}</span>
+      <b>${esc(t.name)}</b>
+      <span class="muted" style="font-size:11.5px">${esc(t.country||'no place set')}</span>
+      <span class="tdates">${dates}</span>
+      <span class="pill" style="font-size:10px">${orgsIn.length} org${orgsIn.length===1?'':'s'}</span>
+    </div>`;
+    if (!open) return `<div class="sv-tripwrap">${head}</div>`;
+    const body = `<div class="sv-tbody" style="border-left:4px solid ${col}">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <input type="text" value="${esc(t.name)}" onchange="svTripField('${t.id}','name',this.value)" style="font-weight:700;min-width:130px">
+        <input type="text" value="${esc(t.country||'')}" placeholder="place (country / region)" onchange="svTripField('${t.id}','country',this.value)" style="width:150px">
+        <span style="display:flex;gap:5px;align-items:center;font-size:11.5px">
           <input type="date" value="${esc(t.start||'')}" onchange="svTripField('${t.id}','start',this.value)"> →
           <input type="date" value="${esc(t.end||'')}" onchange="svTripField('${t.id}','end',this.value)"></span>
-        <select onclick="event.stopPropagation()" onchange="svTripField('${t.id}','dp',this.value)" title="Director of photography traveling on this trip">
+        <select onchange="svTripField('${t.id}','dp',this.value)" title="Director of photography traveling on this trip">
           <option value="">DP — unassigned</option>
           ${VISITS.dps.map(d=>`<option ${t.dp===d.name?'selected':''}>${esc(d.name)}</option>`).join('')}</select>
-        <span class="res" style="color:var(--crit)" onclick="event.stopPropagation();svDelTrip('${t.id}')">✕</span>
+        <span class="res" style="color:var(--crit);margin-left:auto;cursor:pointer" onclick="svDelTrip('${t.id}')" title="Delete trip">✕ delete</span>
       </div>
       <div class="sv-phasebar" title="Pre-production ${pct('pre')}% · Production ${pct('prod')}% · Post ${pct('post')}%">
         <i style="width:34%;background:linear-gradient(90deg,#C4A47C ${pct('pre')}%,rgba(196,164,124,.18) ${pct('pre')}%)"></i>
@@ -325,47 +459,47 @@ window.renderVisits = function(){
       </div>
       <div class="muted" style="font-size:10.5px;display:flex;justify-content:space-between">
         <span>pre ${pc.pre.done}/${pc.pre.total}</span><span>production ${pc.prod.done}/${pc.prod.total}</span><span>post ${pc.post.done}/${pc.post.total}</span></div>
-      <div style="font-size:11.5px;margin-top:6px">${orgsIn.length?orgsIn.map(o=>`<span class="pill" style="margin:0 4px 4px 0;display:inline-block">${esc(o.name)}</span>`).join(''):'<span class="muted">no orgs assigned yet — use the candidate list</span>'}</div>
-    </div>`;}).join('');
-
-  /* flow board for the selected trip */
-  let flowHTML = '<div class="muted" style="font-size:12.5px">Create a trip to start its pre → production → post flow.</div>';
-  if (sel){
-    const pc = svPhaseCounts(sel.id);
-    const preDone = pc.pre.total && pc.pre.done===pc.pre.total;
-    const daysToGo = sel.start ? Math.ceil((new Date(sel.start+'T00:00:00') - Date.now())/864e5) : null;
-    const phases = [['pre','Pre-production','#C4A47C'],['prod','Production','#91A5C6'],['post','Post-production','#7FAD96']];
-    flowHTML = `
-      <div class="muted" style="font-size:11.5px;margin-bottom:6px">Flow for <b>${esc(sel.name)}</b>${sel.start?` · departs ${esc(sel.start)}`:''}${sel.dp?` · DP: ${esc(sel.dp)}`:''}</div>
-      <div class="sv-flow">${phases.map(([ph,label,color])=>`
-        <div class="sv-col" style="border-top:3px solid ${color}">
-          <div class="ph"><span>${label}</span><span>${pc[ph].done}/${pc[ph].total}</span></div>
-          ${VISITS.tasks.filter(k=>k.trip===sel.id && k.phase===ph).map(k=>{
-            const tripOrgs = cands.filter(o=>o.siteVisit.trip===sel.id);
-            return `
-            <div class="sv-task ${k.done?'done':''}">
-              <input type="checkbox" ${k.done?'checked':''} onchange="svToggleTask('${k.id}')">
-              <span class="tx">${esc(k.text)}
-                ${tripOrgs.length?`<span class="sv-torgs">${tripOrgs.map(o=>`
-                  <span class="oc ${(k.doneOrgs||{})[o.id]?'on':''}" title="Check ${esc(o.name)} off for this task" onclick="svToggleTaskOrg('${k.id}',${o.id})">${esc(o.name.split(' ')[0])}</span>`).join('')}</span>`:''}
-              </span>
-              <span class="rm" onclick="svDelTask('${k.id}')">✕</span>
-            </div>`;}).join('')}
-          <div style="display:flex;gap:5px;margin-top:6px">
-            <input id="svNewTask-${ph}" type="text" placeholder="add a task…" style="flex:1;border:1px solid var(--divider);border-radius:7px;padding:4px 7px;font:inherit;font-size:11.5px;background:#fff"
-              onkeydown="if(event.key==='Enter')svAddTask('${sel.id}','${ph}')">
-            <button class="btn" style="padding:3px 10px;font-size:11.5px" onclick="svAddTask('${sel.id}','${ph}')">+</button>
-          </div>
-        </div>`).join('')}
+      <div style="margin-top:9px">
+        <div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px">Orgs on this trip · assign visit days</div>
+        ${orgsIn.length ? orgsIn.map(o=>{
+          const mine = orgDays.filter(([,d])=>d.org===o.id);
+          return `<div class="sv-torg">
+            <b onclick="go('#/org/${o.id}')" title="Open the brief">${esc(o.name)}</b>
+            ${mine.map(([dt])=>`<span class="sv-daychip" style="border-color:${col}">${esc(dt)} <span class="rm" onclick="svUnassignDay('${t.id}','${dt}')" title="Unassign this day">✕</span></span>`).join('')}
+            <span style="display:flex;gap:4px;align-items:center;margin-left:auto">
+              <input type="date" id="svDay-${t.id}-${o.id}" style="font-size:11px;padding:2px 5px">
+              <button class="btn" style="padding:2px 9px;font-size:11px" onclick="svAssignOrgDay('${t.id}',${o.id})">+ day</button></span>
+            <span class="res" style="color:var(--crit);cursor:pointer" onclick="setSiteVisitField(${o.id},'trip',null)" title="Remove from this trip">✕</span>
+          </div>`;}).join('') : '<div class="muted" style="font-size:12px">No orgs assigned yet — use the trip dropdown on the candidate list below.</div>'}
+        <div class="muted" style="font-size:11px;margin-top:4px">✈ Travel days: ${travelDays.length ? travelDays.map(d=>`<span class="sv-daychip" style="border-color:${col}">✈ ${esc(d)} <span class="rm" onclick="svUnassignDay('${t.id}','${d}')">✕</span></span>`).join(' ') : 'none yet'} — mark them on the calendar in <b>Trip itinerary</b> mode.</div>
       </div>
-      <div class="sv-gate ${!preDone && daysToGo!==null && daysToGo<14 ? 'warn':''}">
-        ⛩ Gate: every pre-production task must clear before departure${daysToGo!==null ? ` — ${daysToGo>=0?daysToGo+' days to go':'departed '+(-daysToGo)+' days ago'}` : ''}.
-        ${preDone?'✅ Pre-production complete — cleared for travel.':`${pc.pre.total-pc.pre.done} pre-production task${pc.pre.total-pc.pre.done===1?'':'s'} outstanding.`}
-        Production runs on the ground; post-production starts the day you land home.
-      </div>`;
-  }
+      <div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:11px 0 2px">Trip flow · pre → production → post</div>
+      ${svFlowHTML(t)}
+    </div>`;
+    return `<div class="sv-tripwrap">${head}${body}</div>`;
+  }).join('');
 
-  /* availability calendar */
+  /* candidates grouped by region → country */
+  const groupsHTML = svByRegion().map(([region, countries, n])=>`
+    <div class="sv-region">
+      <div class="rn">${esc(region)} <span class="pill" style="font-size:10px">${n} org${n===1?'':'s'}</span>
+        ${countries.length>1||n>1?'<span class="muted" style="font-size:10.5px;text-transform:none;letter-spacing:0;font-weight:500">— combinable into one regional trip</span>':''}</div>
+      ${countries.map(([country, orgs])=>`
+      <div class="sv-country">
+        <div class="cn">${esc(country)} <span class="pill" style="font-size:10px">${orgs.length}</span></div>
+        ${orgs.map(o=>`<div class="sv-org">
+          <b onclick="go('#/org/${o.id}')" title="Open the brief">${esc(o.name)}</b>
+          <select onchange="setSiteVisitField(${o.id},'status',this.value)" title="Visit status">
+            ${SV_STATUS.map(s=>`<option ${o.siteVisit.status===s?'selected':''}>${s}</option>`).join('')}</select>
+          <select onchange="setSiteVisitField(${o.id},'trip',this.value)" title="Assign to a trip">
+            <option value="">no trip</option>
+            ${trips.map(t=>`<option value="${t.id}" ${o.siteVisit.trip===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
+          <span class="res" style="color:var(--crit)" onclick="toggleSiteVisit(${o.id})" title="Remove candidate">✕</span>
+        </div>`).join('')}
+      </div>`).join('')}
+    </div>`).join('');
+
+  /* calendar */
   const [cy, cm] = svMonth().split('-').map(Number);
   const first = new Date(cy, cm-1, 1);
   const startDow = (first.getDay()+6)%7;                 // monday first
@@ -392,16 +526,22 @@ window.renderVisits = function(){
         const o = byId(d2.org);
         return o ? `<span class="day-chip" style="border-color:${col};color:var(--ink)" title="${esc(t.name)} — visiting ${esc(o.name)}">${esc(o.name.length>14?o.name.slice(0,13)+'…':o.name)}</span>` : '';
       }).join('');
+      // shared team notes: chip on the first covered day, soft wash on the rest
+      const noteCover = VISITS.notes.filter(n=>date>=n.start && date<=(n.end||n.start));
+      const noteChips = noteCover.filter(n=>date===n.start || day===1).map(n=>
+        `<span class="note-chip" onclick="event.stopPropagation();svOpenNote('${n.id}')" title="${esc(n.text)}${n.end&&n.end!==n.start?' · '+esc(n.start)+' → '+esc(n.end):''}">📌 ${esc(n.text.length>18?n.text.slice(0,17)+'…':n.text)}</span>`).join('');
       const inTrip = covering.length>0;
       const tip = svCalMode==='plan'
-        ? (planTrip ? `Plan ${esc(planTrip.name)}: click to cycle travel day → each org → clear` : 'Select a trip card first')
+        ? (planTrip ? `Plan ${esc(planTrip.name)}: click to toggle a ✈ travel day (org days are assigned in the Trips section)` : 'Select a trip row first')
+        : svCalMode==='notes'
+        ? 'Click to add a team note on this date'
         : `Click to mark ${esc(svMarkAs||me)}: available → unavailable → clear`;
-      cells += `<td class="${inTrip?'trip':''}" onclick="svMarkDay('${date}')" title="${tip}">
-        <div style="display:flex;justify-content:space-between"><span>${day}</span></div>
-        ${tags}${dayChips}
-        <div class="dts">${marks.map(a=>{
+      // availability initials sit in line with the date number to save space
+      cells += `<td class="${inTrip?'trip':''}${noteCover.length?' noted':''}" onclick="svMarkDay('${date}')" title="${tip}">
+        <div class="dnum"><span class="dn">${day}</span><span class="dts">${marks.map(a=>{
           const isMe = a.person===me;
-          return `<span class="ini ${a.state==='yes'?'':'no'} ${isMe?'me':''}" title="${esc(a.person)} — ${a.state==='yes'?'available':'unavailable'}" style="border-color:${svColor(a.person)};color:${svColor(a.person)==='#EFCB67'?'#7a6516':'inherit'};${a.state==='yes'?'background:'+svColor(a.person)+'33;':''}">${esc(initialsOf(a.person))}</span>`;}).join('')}</div>
+          return `<span class="ini ${a.state==='yes'?'':'no'} ${isMe?'me':''}" title="${esc(a.person)} — ${a.state==='yes'?'available':'unavailable'}" style="border-color:${svColor(a.person)};color:${svColor(a.person)==='#EFCB67'?'#7a6516':'inherit'};${a.state==='yes'?'background:'+svColor(a.person)+'33;':''}">${esc(initialsOf(a.person))}</span>`;}).join('')}</span></div>
+        ${tags}${noteChips}${dayChips}
       </td>`;
     }
     cells += '</tr>';
@@ -417,17 +557,17 @@ window.renderVisits = function(){
     <div class="sv-grid fade-up in">
       <div>
         <div class="sv-box">
-          <div class="rv-title">Candidate orgs · grouped by country</div>
-          ${groupsHTML || '<div class="muted" style="font-size:12.5px">No candidates yet — click the ✈ icon on any Data studio row to flag an org for a potential site visit.</div>'}
+          <div class="rv-title">Trips · click a row to open its full plan</div>
+          ${tripsHTML || '<div class="muted" style="font-size:12.5px">No trips yet. Group candidates that share a region into one trip to hit more orgs per journey.</div>'}
         </div>
         <div class="sv-box">
-          <div class="rv-title">Trips</div>
-          ${tripsHTML || '<div class="muted" style="font-size:12.5px">No trips yet. Group candidates that share a country into one trip to hit more orgs per journey.</div>'}
+          <div class="rv-title">Candidate orgs · grouped by region &amp; country</div>
+          ${groupsHTML || '<div class="muted" style="font-size:12.5px">No candidates yet — click the ✈ icon on any Data studio row to flag an org for a potential site visit.</div>'}
         </div>
       </div>
       <div>
         <div class="sv-box">
-          <div class="rv-title">Availability · who can travel when</div>
+          <div class="rv-title">Calendar · availability, itineraries &amp; team notes</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
             <span style="display:flex;gap:6px;align-items:center">
               <button class="btn" style="padding:2px 10px" onclick="svCalNav(-1)">‹</button>
@@ -435,19 +575,21 @@ window.renderVisits = function(){
               <button class="btn" style="padding:2px 10px" onclick="svCalNav(1)">›</button></span>
             <span class="sv-mode">
               <button class="${svCalMode==='avail'?'on':''}" onclick="svSetCalMode('avail')">Availability</button>
-              <button class="${svCalMode==='plan'?'on':''}" onclick="svSetCalMode('plan')" title="Click days to assign travel and org visits for the selected trip">Trip itinerary</button></span>
+              <button class="${svCalMode==='plan'?'on':''}" onclick="svSetCalMode('plan')" title="Click days to toggle travel days for the selected trip">Trip itinerary</button>
+              <button class="${svCalMode==='notes'?'on':''}" onclick="svSetCalMode('notes')" title="Add notes the whole team sees — what else is going on around these dates">Notes</button></span>
             ${svCalMode==='avail'?`<span style="font-size:11.5px;display:flex;gap:5px;align-items:center">Marking as
               <select onchange="svSetMarkAs(this.value)" style="border:1px solid var(--divider);border-radius:7px;padding:3px 6px;font:inherit;font-size:11.5px;background:#fff">
                 ${markOptions.map(p=>`<option value="${esc(p===me?'':p)}" ${svMarkAs===(p===me?'':p)?'selected':''}>${esc(p)}${p===me?' (you)':''}</option>`).join('')}
               </select></span>`
-            :`<span style="font-size:11.5px" class="muted">Planning: <b>${planTrip?esc(planTrip.name):'select a trip card'}</b> · click a day to cycle ✈ travel → each org → clear</span>`}
+            :svCalMode==='plan'?`<span style="font-size:11.5px" class="muted">Planning: <b>${planTrip?esc(planTrip.name):'select a trip row'}</b> · click a day to toggle ✈ travel · org days come from the Trips section</span>`
+            :`<span style="font-size:11.5px" class="muted">Click a date to note what else the team has going on · click a 📌 chip to edit</span>`}
           </div>
           <table class="sv-cal"><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>${cells}</table>
           <div class="sv-legend">
             ${svPeople().filter(p=>VISITS.avail.some(a=>a.person===p||a.person===p.replace(' (DP)','')) || p===me).slice(0,8).map(p=>{
               const raw = p.replace(' (DP)','');
               return `<span><span class="ini ${raw===me?'me':''}" style="border-color:${svColor(p)}">${esc(initialsOf(raw))}</span>${esc(p)}${raw===me?' (you)':''}</span>`;}).join('')}
-            <span class="muted">initials = availability (struck = unavailable, boxed bold = you) · colored tag = trip · chips = org / travel days</span>
+            <span class="muted">initials by the date = availability (struck = unavailable, boxed bold = you) · colored tag = trip · chips = org / travel days · 📌 = team note</span>
           </div>
         </div>
         <div class="sv-box">
@@ -461,9 +603,20 @@ window.renderVisits = function(){
             <button class="btn" onclick="svAddDp()">+ Add DP</button>
           </div>
         </div>
-        <div class="sv-box">
-          <div class="rv-title">Trip flow · pre → production → post</div>
-          ${flowHTML}
+      </div>
+    </div>
+    <div id="svNoteModal" onclick="if(event.target===this)svCloseNote()">
+      <div class="sv-notebox">
+        <div class="rv-title" style="font-weight:700;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--hairline)">Calendar note</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <label>From <input type="date" id="svNoteStart"></label>
+          <label>To <input type="date" id="svNoteEnd"></label>
+        </div>
+        <textarea id="svNoteText" placeholder="What else is going on — board meeting, gala, retreat, holidays, launch…"></textarea>
+        <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:10px">
+          <span id="svNoteDel" class="res" style="color:var(--crit);cursor:pointer;margin-right:auto;font-size:12px;align-self:center" onclick="svDelNote()">✕ Delete note</span>
+          <button class="btn" onclick="svCloseNote()">Cancel</button>
+          <button class="btn primary" onclick="svSaveNote()">Save note</button>
         </div>
       </div>
     </div>`;

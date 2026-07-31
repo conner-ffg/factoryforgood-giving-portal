@@ -262,8 +262,18 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     !!document.querySelector('#edBody .row-ic[title*="vertical"]')));
   await page.evaluate(() => { openVerticalEdit(+document.querySelector('#edBody tr').dataset.id); });
   await page.waitForTimeout(400);
-  check('vertical edit lists all fields as rows', await page.evaluate(() =>
-    document.querySelectorAll('#modalBox .ve-in').length > 60));
+  check('vertical edit defaults to Core, filters by group, all-fields still complete', await page.evaluate(() => {
+    const coreCount = document.querySelectorAll('#modalBox .ve-in').length;
+    const coreDefault = window._veGroup === 'Core' && coreCount > 5;
+    const groupSel = [...document.querySelectorAll('#modalBox select')].find(s => !s.classList.contains('ve-in'));
+    const hasGroups = !!groupSel && groupSel.textContent.includes('Core') && groupSel.textContent.includes('All fields');
+    openVerticalEdit(+document.querySelector('#edBody tr').dataset.id, 'All fields');
+    const allCount = document.querySelectorAll('#modalBox .ve-in').length;
+    const tools = !!document.querySelector('#modalBox .ve-lbl .row-ic[onclick^="veComment"]') &&
+                  !!document.querySelector('#modalBox .ve-lbl .row-ic[onclick^="veNote"]');
+    openVerticalEdit(+document.querySelector('#edBody tr').dataset.id, 'Core');
+    return coreDefault && hasGroups && allCount > 60 && allCount > coreCount && tools;
+  }));
   await page.evaluate(() => closeModal());
   // From the field: real quarterly updates managed from the leftmost 🗞 column
   check('updates column is the first studio column', await page.evaluate(() =>
@@ -286,9 +296,11 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
            row.data.siteVisit && row.data.siteVisit.status === 'candidate' &&
            !!document.querySelector('#edBody td.upd-c .sv-ic.on');
   }));
-  check('Site visits planner: country groups, trip, tasks, availability', await page.evaluate(async () => {
+  check('Site visits planner: region→country groups, trip, tasks, availability', await page.evaluate(async () => {
     go('#/visits'); visitsRoute();
-    const grouped = document.querySelector('#svRoot').textContent.includes('Fortify Health');
+    const grouped = document.querySelector('#svRoot').textContent.includes('Fortify Health') &&
+                    !!document.querySelector('.sv-region > .rn') &&
+                    !!document.querySelector('.sv-region .sv-country > .cn');
     svAddTrip();
     const trip = VISITS.trips[0];
     svTripField(trip.id, 'name', 'India Q4'); svTripField(trip.id, 'start', '2026-11-02'); svTripField(trip.id, 'end', '2026-11-12');
@@ -313,19 +325,29 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return document.querySelectorAll('.sv-col').length === 3 &&
            t.includes('Pre-production') && t.includes('Post-production') && t.includes('Gate:');
   }));
-  check('itinerary: org + travel days land on the calendar with trip tag', await page.evaluate(async () => {
+  check('itinerary: travel toggle + org day assigned from the trip row flow to the calendar', await page.evaluate(async () => {
     const trip = VISITS.trips[0];
     svCalMode = 'plan'; svTripSel = trip.id; svCalMonth = '2026-11'; renderVisits();
-    svMarkDay('2026-11-03');                       // → travel day
-    svMarkDay('2026-11-04'); svMarkDay('2026-11-04');  // → travel → first org
+    svMarkDay('2026-11-03');                       // → travel day (calendar toggle)
+    const org = ORGS.find(o => o.siteVisit && o.siteVisit.trip === trip.id);
+    svAssignOrgDay(trip.id, org.id, '2026-11-04'); // org day comes from the Trips section
     await new Promise(r => setTimeout(r, 700));
     const html = document.querySelector('.sv-cal').innerHTML;
     const tagOk = html.includes('trip-tag') && html.includes(trip.name);
     const travelOk = html.includes('✈ travel');
     const orgOk = !!document.querySelector('.sv-cal .day-chip[title*="visiting"]');
+    // clicking an org day in plan mode must NOT cycle it away; travel days toggle clear
+    svMarkDay('2026-11-04');
+    const orgSticky = trip.days['2026-11-04'] && trip.days['2026-11-04'].type === 'org';
+    svMarkDay('2026-11-03');
+    const travelCleared = !trip.days['2026-11-03'];
+    svMarkDay('2026-11-03');                       // restore for the persistence probe
+    // trip row shows the assigned day chip with an unassign ✕
+    const rowChip = !!document.querySelector('.sv-torg .sv-daychip');
+    await new Promise(r => setTimeout(r, 700));
     const persisted = (await sb.rest('site_visit_items?select=*')).some(r => r.kind === 'trip' && r.data.days && r.data.days['2026-11-03']);
     svCalMode = 'avail'; renderVisits();
-    return tagOk && travelOk && orgOk && persisted;
+    return tagOk && travelOk && orgOk && orgSticky && travelCleared && rowChip && persisted;
   }));
   check('availability shows initials; mine boxed bold; DP initials too', await page.evaluate(async () => {
     svCalMonth = '2026-11'; svCalMode = 'avail';
@@ -345,6 +367,47 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const auto = task.done === true && orgs.every(o => task.doneOrgs[o.id]);
     const chips = document.querySelectorAll('.sv-torgs .oc').length > 0;
     return auto && chips && orgs.length >= 1;
+  }));
+  check('trips are expandable rows above the candidates; collapse hides the flow', await page.evaluate(() => {
+    const trip = VISITS.trips[0];
+    renderVisits();
+    const html = document.querySelector('#svRoot').innerHTML;
+    const order = html.indexOf('Trips · click a row') > -1 &&
+                  html.indexOf('Trips · click a row') < html.indexOf('Candidate orgs · grouped by region');
+    const openHasFlow = !!document.querySelector('.sv-tbody .sv-flow');
+    svToggleTrip(trip.id);                        // collapse
+    const collapsed = !document.querySelector('.sv-tbody') &&
+                      !!document.querySelector('.sv-trow') &&
+                      document.querySelector('.sv-trow').textContent.includes(trip.name);
+    svToggleTrip(trip.id);                        // reopen (also re-selects)
+    const reopened = !!document.querySelector('.sv-tbody .sv-flow');
+    return order && openHasFlow && collapsed && reopened;
+  }));
+  check('availability initials sit in line with the calendar date number', await page.evaluate(() => {
+    svCalMonth = '2026-11'; svCalMode = 'avail'; renderVisits();
+    return !!document.querySelector('.sv-cal .dnum .dts .ini');
+  }));
+  check('calendar notes: add via modal, range chips + wash, edit + persistence', await page.evaluate(async () => {
+    svCalMode = 'notes'; svCalMonth = '2026-11'; renderVisits();
+    svMarkDay('2026-11-10');                      // opens the note modal prefilled
+    const modalOpen = document.querySelector('#svNoteModal').style.display === 'flex' &&
+                      document.querySelector('#svNoteStart').value === '2026-11-10';
+    document.querySelector('#svNoteEnd').value = '2026-11-12';
+    document.querySelector('#svNoteText').value = 'Board meeting + gala prep';
+    svSaveNote();
+    await new Promise(r => setTimeout(r, 700));
+    const chip = document.querySelector('.sv-cal .note-chip');
+    const chipOk = !!chip && chip.title.includes('Board meeting');
+    const washOk = document.querySelectorAll('.sv-cal td.noted').length >= 3;
+    const persisted = (await sb.rest('site_visit_items?select=*')).some(r => r.kind === 'note' && r.data.text && r.data.text.includes('Board meeting'));
+    const n = VISITS.notes.find(x => x.text.includes('Board meeting'));
+    svOpenNote(n.id);
+    const editOk = document.querySelector('#svNoteModal').style.display === 'flex' &&
+                   document.querySelector('#svNoteText').value.includes('Board meeting') &&
+                   document.querySelector('#svNoteDel').style.display !== 'none';
+    svCloseNote();
+    svCalMode = 'avail'; renderVisits();
+    return modalOpen && chipOk && washOk && persisted && editOk;
   }));
   await page.evaluate(async () => { go('#/editor'); await new Promise(r => setTimeout(r, 400)); });
   check('website cells carry a visit ↗ hyperlink', await page.evaluate(() => {

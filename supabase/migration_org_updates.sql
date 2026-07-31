@@ -59,10 +59,14 @@ alter table public.org_workflow_events add constraint org_workflow_events_kind_c
 -- ================================================================
 create table if not exists public.site_visit_items (
   id bigint generated always as identity primary key,
-  kind text not null check (kind in ('trip','dp','avail','task')),
+  kind text not null check (kind in ('trip','dp','avail','task','note')),
   data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+-- widen the kind check on already-created tables (adds 'note' = shared calendar notes)
+alter table public.site_visit_items drop constraint if exists site_visit_items_kind_check;
+alter table public.site_visit_items add constraint site_visit_items_kind_check
+  check (kind in ('trip','dp','avail','task','note'));
 alter table public.site_visit_items enable row level security;
 drop policy if exists site_visit_staff on public.site_visit_items;
 create policy site_visit_staff on public.site_visit_items for all

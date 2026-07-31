@@ -31,7 +31,7 @@ const FIELDS = [
  {k:'hq', l:'Headquarters', pub:1, cat:'Identity & Basic Info', core:1, desc:'Registered HQ location.'},
  {k:'contactEmail', l:'Contact Email', cat:'Identity & Basic Info', desc:'Primary contact at the org for grant and donor coordination.'},
  {k:'fiscalSponsor', l:'Intermediary (Fiscal Sponsor)', cat:'Identity & Basic Info', desc:'Fiscal sponsor or intermediary name, if the org isn\'t a direct 501(c)(3) or local equivalent.'},
- {k:'orgType', l:'Org Type', pub:1, cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based'], core:1, desc:'Organization model type.'},
+ {k:'orgType', l:'Org Type', pub:1, cat:'Identity & Basic Info', sel:['Direct Service','Systems Change','Research & Policy','Market-Based','Meta'], core:1, desc:'Organization model type.'},
  {k:'visibility', l:'Display on site', cat:'Identity & Basic Info', sel:['shown','hidden'], desc:'shown = appears in the library, globe, marquee, and briefs. hidden = tracked in Data Studio only, invisible to members until you flip it. New organizations start hidden.'},
  {k:'founded', l:'Start Date/Year', pub:1, cat:'Identity & Basic Info', num:1, nocomma:1, core:1, desc:'Year the org was founded.'},
  {k:'yearsOp', l:'Years in Operation', cat:'Identity & Basic Info', ro:1, fx:o=>2026-(+o.founded||2026), desc:'Auto-calculated from Start Date/Year.'},
@@ -47,12 +47,12 @@ const FIELDS = [
  // Intervention & Program
  {k:'interventionImage', l:'Intervention/Demographic Image', pub:1, core:1, cat:'Intervention & Program', img:1, desc:'Photo representing the intervention or the population served. Click the camera to paste a URL or upload.'},
  {k:'interventionName', l:'Intervention Name', cat:'Intervention & Program', desc:'Short name (3–8 words) for the specific program being evaluated.'},
- {k:'interventionDescription', l:'Intervention Description', pub:1, core:1, cat:'Intervention & Program', desc:'Description of the problem and the org\'s solution (2–3 sentences).'},
+ {k:'interventionDescription', l:'Intervention Description', cat:'Intervention & Program', desc:'Description of the problem and the org\'s solution (2–3 sentences).'},
  {k:'outputUnit', l:'Primary Output Unit', pub:1, cat:'Intervention & Program', core:1, desc:'The org\'s core countable output (nets distributed, meals served, classes taught).'},
  {k:'outputsText', l:'Outputs (What & Count)', cat:'Intervention & Program', desc:'Direct products of activity (meals served, people trained, wells built), with counts.'},
  {k:'outcomesText', l:'Outcomes (What & Count)', cat:'Intervention & Program', desc:'Actual changes in beneficiaries\' lives resulting from those outputs, with counts.'},
  {k:'outcomesList', l:'Outcomes (Compact List)', pub:1, cat:'Intervention & Program', arr:1, core:1, desc:'Lightweight outcomes list without counts, for compact card display.'},
- {k:'howImpactWorks', l:'How Your Impact Works', pub:1, core:1, cat:'Intervention & Program', desc:'Timeline showing how a contribution converts step by step into impact.'},
+ {k:'howImpactWorks', l:'How Your Impact Works', cat:'Intervention & Program', desc:'Timeline showing how a contribution converts step by step into impact.'},
  {k:'materialsLink', l:'Program Proposal/Materials', cat:'Intervention & Program', desc:'Org-provided supporting materials: proposals, decks, one-pagers.'},
  {k:'grantIntro', l:'Grant Intro', cat:'Intervention & Program', desc:'Standardized write-up used to introduce the org for a specific grant or referral.'},
  {k:'theoryOfChange', l:'Theory of Change', pub:1, cat:'Intervention & Program', core:1, desc:'Narrative causal chain from funding to durable impact.'},
@@ -60,12 +60,14 @@ const FIELDS = [
  {k:'annualReach', l:'Annual Reach', pub:1, cat:'Reach, Scale & Financials', num:1, core:1, desc:'Number of individuals reached in a given year.'},
  {k:'livesImpacted', l:'Lives Impacted', cat:'Reach, Scale & Financials', num:1, desc:'Headline number used in donor-facing materials for total people impacted.'},
  {k:'outcomeReachRate', l:'Outcome Reach Rate (%)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'%', core:1, desc:'Percent (0–100) of beneficiaries reached who experience the intended outcome.'},
- {k:'annualSpend', l:'Annual Spend ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Org\'s spend in the most recent year, on this program.'},
+ {k:'annualSpend', l:'Most Recent Annual Total Expenses (less offsets) ($)', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Total organizational expenses in the most recent year, net of offsets.'},
+ {k:'nextYearBudgetM', l:'Anticipated Next Year Budget ($)', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Projected total organizational budget for next year.'},
  {k:'budgetM', l:'Overall Org Budget ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'Total organization-wide budget, distinct from spend on this specific program.'},
  {k:'budgetTier', l:'Budget Tier', cat:'Reach, Scale & Financials', ro:1, fx:o=>{const b=+o.budgetM||0;return b<1?'<$1M':b<5?'$1–5M':b<25?'$5–25M':'$25M+';}, desc:'Bucketed budget range for filtering. Auto-derived from Overall Org Budget.'},
  {k:'revenueOffset', l:'Revenue Offset ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Non-donation revenue that offsets program cost (fees, government contracts, etc).'},
  {k:'commercialRevenue', l:'Commercial Revenue ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Org\'s own earned or commercial revenue, distinct from grants and donations.'},
- {k:'absorbencyM', l:'Absorbency ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'How much additional funding the org can productively absorb without diminishing returns.'},
+ {k:'absorbencyM', l:'Absorbency ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'Room for additional capital that will be usefully deployed toward producing outcomes in the next few years.'},
+ {k:'absorbencyRank', l:'Absorbency Level', pub:1, core:1, cat:'Reach, Scale & Financials', sel:['Low','Medium','High'], desc:'Ranked room for additional capital: low, medium, or high.'},
  {k:'growthCurve', l:'Scale Type', pub:1, cat:'Reach, Scale & Financials', sel:['Flat','Linear','Scalable'], core:1, desc:'Shape of the org\'s growth curve.'},
  {k:'scalePosition', l:'Scale Position (1–10)', cat:'Reach, Scale & Financials', num:1, desc:'Where the org sits on its growth curve.'},
  {k:'stage', l:'Stage', pub:1, cat:'Reach, Scale & Financials', sel:['Pilot','Growth','Scale'], core:1, desc:'Lifecycle stage: pilot, growth, or scale.'},
@@ -93,7 +95,8 @@ const FIELDS = [
  {k:'ceRationale', l:'Cost Effectiveness Rationale', cat:'Evaluation & Evidence', desc:'Written explanation behind the cost effectiveness rating.'},
  {k:'interventionEvidenceQuality', l:'Intervention Evidence Quality', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'Strength of the evidence base for this type of intervention generally.'},
  {k:'orgEvidenceQuality', l:'Organization Evidence Quality', pub:1, core:1, cat:'Evaluation & Evidence', sel:RATE5, desc:'Strength of the evidence specifically for this org\'s execution and results.'},
- {k:'whyWeLike', l:'Why We Like This Intervention/Org', pub:1, core:1, cat:'Evaluation & Evidence', desc:'Summary rationale for why this org made the cut.'},
+ {k:'whyWeLike', l:'Impact Team\'s Take', pub:1, core:1, cat:'Evaluation & Evidence', desc:'The impact team\'s honest read on this org — leads the Deeper insights tab of the brief, color-coded by Like Level.'},
+ {k:'likeLevel', l:'Like Level', pub:1, core:1, cat:'Evaluation & Evidence', sel:['Against funding','Dislike','Unsure','Neutral','Like','Strong like','One of our favorites'], desc:'How much the impact team likes this org — colors the Impact Team\'s Take on the brief.'},
  {k:'assessmentProblem', l:'Assessment of Problem', cat:'Evaluation & Evidence', desc:'Narrative evaluation of the problem being addressed.'},
  {k:'assessmentTeam', l:'Assessment of Team & Leadership', cat:'Evaluation & Evidence', desc:'Narrative evaluation of the org\'s leadership and team quality.'},
  {k:'assessmentTrackRecord', l:'Assessment of Track Record & Approach', cat:'Evaluation & Evidence', desc:'Narrative evaluation of past performance and methodology.'},
@@ -122,10 +125,10 @@ const FIELDS = [
  {k:'videoLink', l:'Video Link', cat:'Links & Metadata', desc:'Link to a video about the org or intervention.'},
  {k:'lastUpdated', l:'Last Updated', cat:'Links & Metadata', desc:'Date this record was last refreshed (YYYY-MM-DD).'},
  {k:'sources', l:'Supported By (Funders/Evaluators)', pub:1, cat:'Links & Metadata', arr:1, core:1, desc:'Evaluators and funders that approve of the org. Semicolon-separated; shown as tiles on the brief.'},
- {k:'orgNotes', l:'Org Notes (Provided by Org)', pub:1, core:1, cat:'Links & Metadata', desc:'Freeform notes provided directly by the org.'},
+ {k:'orgNotes', l:'Notes, Flags, Questions', pub:1, core:1, cat:'Links & Metadata', desc:'Notes, flags, and open questions — shown under Notes & flags on the brief\'s Deeper insights.'},
 ];
 const ED_CATS = ['Core', ...[...new Set(FIELDS.map(f=>f.cat))], 'All fields'];
-const edState = {q:'', tier:'', group:'Core'};
+const edState = {q:'', tier:'', group:'Core', solo:null};
 function activeCols(){
   let cols;
   if (edState.group==='All fields') cols = FIELDS;
@@ -570,11 +573,15 @@ function renderReviewPanel(){
       : '<div class="muted" style="font-size:12.5px;padding:6px 2px">No open submission invites. Use the checkbox on any studio row to invite org data.</div>'}</div>`;
   } else if (rvTab==='req'){
     const late = queue.filter(o=>wfDaysOld(o.workflow.req.date)>=6).map(o=>({o, kind:'review', e:o.workflow.req}));
+    const byWho = {};
+    queue.forEach(o=>{ (byWho[o.workflow.req.by] = byWho[o.workflow.req.by]||[]).push(o); });
     html = lateBox(late, 'awaiting review') + `<div class="rv-box">
       <div class="rv-title">Review queue · ${queue.length}</div>
-      ${queue.length ? queue.map(o=>rvItem(o,
-        `requested by ${initialsOf(o.workflow.req.by)} · ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}`,
-        `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span>`)).join('')
+      ${queue.length ? Object.entries(byWho).sort((a,b)=>a[0].localeCompare(b[0])).map(([who, os])=>`
+        <div class="rvh-person" style="margin-top:8px"><b>${initialsOf(who)}</b> <span class="muted">requested by ${esc(who)} · ${os.length}</span></div>
+        ${os.map(o=>rvItem(o,
+          `requested ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}`,
+          `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span>`)).join('')}`).join('')
       : '<div class="muted" style="font-size:12.5px;padding:6px 2px">Nothing waiting for review. Click ⏳ on any studio row to queue it.</div>'}</div>`;
   } else {
     const week = wfWeekStart(), month = wfMonthStart();
@@ -627,7 +634,7 @@ function jumpToCell(orgId, k, openComment){
   const col = FIELDS.find(f=>f.k===k);
   if (edState.group!=='All fields' && !activeCols().some(c=>c.k===k)){
     edState.group = col?.cat || 'All fields'; $('#edGroup').value = edState.group; renderEditor(); }
-  edState.q=''; edState.tier=''; edState.rev='';
+  edState.q=''; edState.tier=''; edState.rev=''; edState.solo=null;
   $('#edSearch').value=''; $('#edTier').value='';
   const revSel = $('#edRev'); if (revSel) revSel.value='';
   renderEdRows();
@@ -756,7 +763,7 @@ $('#edTier').insertAdjacentHTML('afterend', `<select id="edRev" title="Focus on 
 $('#edRev').addEventListener('change', e=>{ edState.rev = e.target.value; renderEdRows(); });
 $('#edRev').insertAdjacentHTML('afterend', `<button class="btn" id="edClear" title="Reset the search, tier, and review-status filters">✕ Clear filters</button>`);
 $('#edClear').addEventListener('click', ()=>{
-  edState.q=''; edState.tier=''; edState.rev='';
+  edState.q=''; edState.tier=''; edState.rev=''; edState.solo=null;
   $('#edSearch').value=''; $('#edTier').value=''; $('#edRev').value='';
   renderEdRows(); flash('Filters cleared — showing every organization');
 });
@@ -808,6 +815,7 @@ function renderEditor(){
 function renderEdRows(){
   const cols = activeCols();
   const list = ORGS.filter(o=>
+    (!edState.solo || o.id===edState.solo) &&
     (!edState.tier || o.tier===edState.tier) &&
     (!edState.rev || (edState.rev==='un' ? !(o.workflow&&o.workflow.done) : !!(o.workflow&&o.workflow.done))) &&
     (!edState.q || (o.name+' '+o.causes.join(' ')+' '+o.countries.join(' ')).toLowerCase().includes(edState.q)));
@@ -822,7 +830,7 @@ function renderEdRows(){
       : 'From the field — no updates logged yet. Click to draft this organization\'s first quarterly update.';
     return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span><span class="row-ic sv-ic ${o.siteVisit?'on':''}" title="${o.siteVisit?`Site-visit candidate (${esc(o.siteVisit.status||'candidate')}) — click to remove. Plan it in the Site visits tab.`:'Mark this org for a potential site visit'}" onclick="window.toggleSiteVisit&&toggleSiteVisit(${o.id})">✈</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
-    if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span></td>`;
+    if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span><span class="row-ic solo-ic ${edState.solo===o.id?'on':''}" style="margin-left:7px" title="${edState.solo===o.id?'Showing only this row — click to show all rows':'Filter the studio to just this row'}" onclick="event.stopPropagation();soloRow(${o.id})">◎</span></td>`;
     if (c.k==='website'){
       const url = String(o.website||'').trim();
       const href = url ? (/^https?:/i.test(url) ? url : 'https://'+url) : '';
@@ -1012,6 +1020,18 @@ function updStatusChip(u){
     : '<span class="pill gold">Scheduled — goes live when '+esc(qtrLabel(u.quarter))+' starts</span>';
   return '<span class="pill" style="border-color:#C0392B;color:#C0392B">Draft — its quarter has already started</span>';
 }
+window.soloRow = function(id){
+  edState.solo = (edState.solo===id) ? null : id;
+  renderEdRows();
+  flash(edState.solo ? 'Showing only '+(byId(id)||{}).name+' — ◎ again (or Clear filters) to show all' : 'Showing all rows');
+};
+/* staff: jump from anywhere straight to the studio filtered to one org */
+window.studioSolo = function(id){
+  edState.solo = id;
+  if (!location.hash.startsWith('#/editor')) go('#/editor');
+  renderEdRows();
+  flash('Data studio filtered to '+(byId(id)||{}).name);
+};
 window.openUpdatesMgr = function(id){
   updMgrState = {orgId:id, editId:null};
   renderUpdMgr();
@@ -1137,29 +1157,47 @@ window.delUpdMgr = function(uid){
 };
 
 /* ================= VERTICAL EDIT (transposed single-org view) ================= */
-window.openVerticalEdit = function(id){
+window.openVerticalEdit = function(id, group){
   const o = byId(id); if (!o) return;
+  window._veGroup = group || window._veGroup || 'Core';
   const veil = $('#modalVeil'), box = $('#modalBox');
   box.style.width = 'min(760px,95vw)'; box.style.maxHeight = '88vh'; box.style.overflow = 'auto';
-  const cats = [...new Set(FIELDS.map(f=>f.cat))];
+  const groups = ['Core', ...[...new Set(FIELDS.map(f=>f.cat))], 'All fields'];
+  const veFields = window._veGroup==='All fields' ? FIELDS
+    : window._veGroup==='Core' ? FIELDS.filter(f=>f.core||f.k==='name')
+    : FIELDS.filter(f=>f.cat===window._veGroup);
+  const cats = [...new Set(veFields.map(f=>f.cat))];
+  const noteDot = f => {
+    const hasC = NOTES.some(n=>!n.resolved && n.orgId===o.id && n.k===f.k);
+    const hasN = !!CELLNOTES[o.id+':'+f.k];
+    return (hasC?'<span title="Has open comments" style="color:#C4A47C">●</span>':'')+(hasN?'<span title="Has a note" style="color:#92C1DC">●</span>':'');
+  };
+  const tools = f => `<span style="white-space:nowrap;margin-left:6px">
+    <span class="row-ic" style="width:17px;height:17px;font-size:9.5px" title="Comment on this field (@ to tag a teammate)" onclick="veComment(${o.id},'${f.k}',event)">💬</span>
+    <span class="row-ic" style="width:17px;height:17px;font-size:9.5px;margin-left:3px" title="Add / edit the cell note" onclick="veNote(${o.id},'${f.k}',event)">📝</span>${noteDot(f)}</span>`;
   box.innerHTML = `<div class="kicker">Data studio · vertical edit</div>
-    <h3 style="margin-bottom:2px">${esc(o.name)}</h3>
-    <div class="muted" style="font-size:12px;margin-bottom:14px">Every field as a row — edits save live to the same cells as the table view. Text boxes grow as you type.</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3 style="margin-bottom:2px">${esc(o.name)}</h3>
+      <select onchange="openVerticalEdit(${o.id}, this.value)" style="border:1px solid var(--divider);border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;background:#fff" title="Which field group to edit">
+        ${groups.map(g=>`<option ${g===window._veGroup?'selected':''}>${g}</option>`).join('')}</select>
+    </div>
+    <div class="muted" style="font-size:12px;margin-bottom:14px">Every field as a row — edits save live to the same cells as the table view. 💬 comment · 📝 note on any field.</div>
     ${cats.map(cat=>`<div class="kicker" style="margin:18px 0 6px">${cat}</div>
-      <div class="ve-grid">${FIELDS.filter(f=>f.cat===cat).map(f=>{
+      <div class="ve-grid">${veFields.filter(f=>f.cat===cat).map(f=>{
         const pubTag = f.pub?'<span title="Live on the member site" style="color:var(--gold-2,#9A7B3F)"> ●</span>':'';
-        if (f.fx) return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div><div class="ve-ro">${esc(f.fx(o))}</div>`;
-        if (f.ro) return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div><div class="ve-ro">${esc(o[f.k])}</div>`;
+        const lbl = `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}${tools(f)}</div>`;
+        if (f.fx) return `${lbl}<div class="ve-ro">${esc(f.fx(o))}</div>`;
+        if (f.ro) return `${lbl}<div class="ve-ro">${esc(o[f.k])}</div>`;
         if (f.sel){
           const noBlank = f.k==='tier'||f.k==='visibility';
-          const opts = (noBlank?[]:['']).concat(f.sel.filter(s=>s!==''));
+          const opts = (noBlank?[]:['']).concat(f.sel.filter(x=>x!==''));
           const cur = f.k==='visibility' ? (o.visibility||'shown') : String(o[f.k]??'');
-          return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div>
-            <div><select class="ve-in" data-vk="${f.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></div>`;
+          return `${lbl}
+            <div><select class="ve-in" data-vk="${f.k}">${opts.map(x=>`<option value="${x}" ${x===cur?'selected':''}>${x||'—'}</option>`).join('')}</select></div>`;
         }
         let v = o[f.k]; if (Array.isArray(v)) v = v.join('; ');
         if (f.num) v = ((o._approx||{})[f.k]?'~':'') + fmtCellNum(f, v);
-        return `<div class="ve-lbl" title="${esc(f.desc||'')}">${f.l}${pubTag}</div>
+        return `${lbl}
           <div><textarea class="ve-in" data-vk="${f.k}" rows="1" ${f.num?'data-num="1"':''} spellcheck="false">${esc(v??'')}</textarea></div>`;
       }).join('')}</div>`).join('')}
     <div style="display:flex;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--hairline);padding-top:13px">
@@ -1179,6 +1217,19 @@ window.openVerticalEdit = function(id){
   });
   box.querySelectorAll('select.ve-in').forEach(sel=>sel.addEventListener('change', ()=>commitVertical(o, sel)));
 };
+/* comment / note popovers reachable from the vertical editor — same data as the table */
+function veCellStub(orgId, k){
+  return document.querySelector(`#edBody tr[data-id="${orgId}"] td[data-k="${k}"]`) || {classList:{add(){},remove(){}}};
+}
+window.veComment = function(orgId, k, ev){
+  ev.stopPropagation();
+  openNotePop(veCellStub(orgId,k), orgId, k, Math.min(innerWidth-320, ev.clientX), Math.min(innerHeight-290, ev.clientY+10));
+};
+window.veNote = function(orgId, k, ev){
+  ev.stopPropagation();
+  openCellNotePop(veCellStub(orgId,k), orgId, k, Math.min(innerWidth-320, ev.clientX), Math.min(innerHeight-240, ev.clientY+10));
+};
+
 function commitVertical(o, el){
   const key = el.dataset.vk, col = FIELDS.find(f=>f.k===key);
   if (!col || col.ro || col.fx) return;

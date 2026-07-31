@@ -166,7 +166,7 @@ function phMatchScore(o){
   return Math.min(99, 78 + (o.tier==='top'?14:6) + jitter - 4);
 }
 function phDeck(){
-  return ORGS.filter(o=>isShown(o) && (o.tier==='top'||o.tier==='recommended') && !inShortlist(o.id))
+  return ORGS.filter(o=>showcased(o) && (o.tier==='top'||o.tier==='recommended') && !inShortlist(o.id))
     .sort((a,b)=>((a.id*2654435761)%977)-((b.id*2654435761)%977));
 }
 window.mountPhinder = function(host){
