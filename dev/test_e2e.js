@@ -1070,6 +1070,49 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     renderEdRows();
     return grouped && badge;
   }));
+  check('org log icon carries a count badge like From the field', await page.evaluate(() => {
+    const o = ORGS[0];
+    o.orgLog = [{id:'x1', kind:'Note', date:'2026-07-30', title:'t', text:'x', links:[], by:'Sam Staff'}];
+    renderEdRows();
+    const badge = document.querySelector(`#edBody tr[data-id="${o.id}"] .log-ic .upd-n`);
+    const n = badge && badge.textContent === '1';
+    o.orgLog = []; renderEdRows();
+    return !!badge && n;
+  }));
+  check('visits calendar: Sun–Sat week, US dates, notes/trips span their whole range', await page.evaluate(async () => {
+    go('#/visits'); visitsRoute(); await new Promise(r => setTimeout(r, 300));
+    svCalMonth = '2026-11'; svSetCalMode('avail');
+    const ths = [...document.querySelectorAll('.sv-cal th')].map(t => t.textContent);
+    const sunFirst = ths[0] === 'Sun' && ths[6] === 'Sat';
+    // Nov 1 2026 is a Sunday — with Sun-first the 1st sits in the first cell
+    const firstCell = document.querySelector('.sv-cal tr:nth-child(2) td');
+    const gridOk = firstCell && firstCell.textContent.trim().startsWith('1');
+    // the 11-10 → 11-12 note from the earlier check spans 3 cells with joined segments
+    const segs = document.querySelectorAll('.sv-cal .note-chip').length;
+    const joined = document.querySelectorAll('.sv-cal .note-chip.seg-s').length >= 1 &&
+                   document.querySelectorAll('.sv-cal .note-chip.seg-e').length >= 1;
+    const tagSpan = document.querySelectorAll('.sv-cal .trip-tag').length >= 5;   // trip tags repeat across covered days now
+    const us = document.querySelector('#svRoot').textContent.includes('11-02-26');
+    return sunFirst && gridOk && segs >= 3 && joined && tagSpan && us;
+  }));
+  check('dashboard: globe left at 50% split, glass containers, floating region pills', await page.evaluate(async () => {
+    go('#/dashboard'); await new Promise(r => setTimeout(r, 600));
+    const grid = document.querySelector('.dash-grid');
+    const globeFirst = grid.children[0].classList.contains('globe-card');
+    const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').map(parseFloat);
+    const gap = parseFloat(getComputedStyle(grid).columnGap);
+    const gridW = grid.getBoundingClientRect().width;
+    const splitAtHalf = Math.abs(cols[0] - gridW / 2) < 2 && Math.abs(gap - 16) < 0.5;
+    const statGap = parseFloat(getComputedStyle(document.querySelector('.stat-row')).columnGap);
+    const card = document.querySelector('#view-dashboard .card');
+    const cs = getComputedStyle(card);
+    const glass = (cs.backgroundColor === 'rgba(0, 0, 0, 0)' || cs.backgroundColor === 'transparent') &&
+                  cs.boxShadow.includes('rgb');
+    const pills = document.querySelector('.globe-box #gRegions');
+    const floating = !!pills && getComputedStyle(pills).position === 'absolute' &&
+                     (getComputedStyle(pills).backgroundColor === 'rgba(0, 0, 0, 0)');
+    return globeFirst && splitAtHalf && statGap === 16 && glass && floating;
+  }));
   check('session: keep-alive armed, refresh survives a network failure', await page.evaluate(async () => {
     const armed = !!sb._ka && typeof sb.refresh === 'function';
     const hadSession = !!(sb.session && sb.session.refresh_token);
