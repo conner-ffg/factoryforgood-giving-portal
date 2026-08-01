@@ -5,10 +5,10 @@
     <span class="sub">The Meridian Collective</span>
   </div>
   <nav class="nav" id="mainNav">
-    <button data-route="#/dashboard">Dashboard</button>
-    <button data-route="#/orgs">Organizations</button>
-    <button data-route="#/org">Briefs</button>
-    <button data-route="#/editor">Data Studio</button>
+    <a data-route="#/dashboard" href="#/dashboard">Dashboard</a>
+    <a data-route="#/orgs" href="#/orgs">Organizations</a>
+    <a data-route="#/org" href="#/org">Briefs</a>
+    <a data-route="#/editor" href="#/editor">Data Studio</a>
   </nav>
   <div class="top-right">
     <button class="cartbtn" id="cartBtn">◈ My Shortlist <span class="cnt" id="cartCnt" style="display:none">0</span></button>
@@ -112,9 +112,9 @@
     <input type="search" id="edSearch" placeholder="Filter rows…">
     <select id="edTier">
       <option value="">All tiers</option><option value="top">Top picks</option>
-      <option value="recommended">Recommended</option><option value="represented">Represented</option><option value="flagged">Flagged</option>
+      <option value="recommended">Recommended</option><option value="represented">Represented</option><option value="flagged">Flagged</option><option value="archived">🗄 Archived</option>
     </select>
-    <select id="edGroup"></select>
+    <select id="edGroup" title="Column group — pick which set of columns the table shows (Core, a field category, or every field)"></select>
     <button class="btn" id="edAdd">+ Add organization</button>
     <button class="btn" id="edNotes">Comments <span id="edNoteCnt"></span></button>
     <button class="btn" id="edReviews">Reviews <span id="edRevCnt"></span></button>

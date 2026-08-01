@@ -151,8 +151,8 @@ window.setSiteVisitField = function(orgId, key, val){
   const nav = $('#mainNav');
   if (nav && !nav.querySelector('[data-route="#/visits"]')){
     const anchor = nav.querySelector('[data-route="#/donors"]') || nav.querySelector('[data-route="#/editor"]');
-    const btn = document.createElement('button');
-    btn.dataset.route = '#/visits'; btn.textContent = 'Site visits';
+    const btn = document.createElement('a');
+    btn.dataset.route = '#/visits'; btn.href = '#/visits'; btn.textContent = 'Site visits';
     anchor ? anchor.after(btn) : nav.appendChild(btn);
     btn.style.display = 'none';   // applyRole reveals it for staff
   }
@@ -166,7 +166,7 @@ function visitsRoute(){
   if (window.APP && APP.ready && !APP.staff){ go('#/dashboard'); return true; }
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-visits').classList.add('active');
-  $$('#mainNav button').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/visits'));
+  $$('#mainNav [data-route]').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/visits'));
   renderVisits();
   window.scrollTo({top:0});
   return true;
@@ -181,7 +181,7 @@ window.svAddTrip = function(){
   SV_DEFAULT_TASKS.pre.forEach(x=>VISITS.tasks.push(svNewTask(t.id,'pre',x)));
   SV_DEFAULT_TASKS.prod.forEach(x=>VISITS.tasks.push(svNewTask(t.id,'prod',x)));
   SV_DEFAULT_TASKS.post.forEach(x=>VISITS.tasks.push(svNewTask(t.id,'post',x)));
-  svTripSel = t.id; svOpenTrips[t.id] = true;
+  svTripSel = t.id; svOpenOnly(t.id);
   window.PERSIST && PERSIST.visit && PERSIST.visit('trip', t);
   VISITS.tasks.filter(k=>k.trip===t.id).forEach(k=>window.PERSIST && PERSIST.visit && PERSIST.visit('task', k));
   renderVisits();
@@ -206,12 +206,16 @@ window.svDelTrip = function(tid){
   delete svOpenTrips[tid];
   renderVisits();
 };
-window.svSelTrip = function(tid){ svTripSel = tid; svOpenTrips[tid] = true; renderVisits(); };
+/* one trip open at a time — opening a trip closes any other */
+function svOpenOnly(tid){ Object.keys(svOpenTrips).forEach(k=>delete svOpenTrips[k]); if (tid) svOpenTrips[tid] = true; }
+window.svSelTrip = function(tid){ svTripSel = tid; svOpenOnly(tid); renderVisits(); };
 window.svToggleTrip = function(tid){
-  if (svOpenTrips[tid]) delete svOpenTrips[tid];
-  else { svOpenTrips[tid] = true; svTripSel = tid; }
+  if (svOpenTrips[tid]) svOpenOnly(null);
+  else { svOpenOnly(tid); svTripSel = tid; }
   renderVisits();
 };
+const svFlowOpen = {};
+window.svToggleFlow = function(tid){ svFlowOpen[tid] = !svFlowOpen[tid]; renderVisits(); };
 
 /* ---------- org day assignment (from the trip row → flows to the calendar) ---------- */
 window.svAssignOrgDay = function(tid, orgId, dateOpt){
@@ -473,8 +477,10 @@ window.renderVisits = function(){
           </div>`;}).join('') : '<div class="muted" style="font-size:12px">No orgs assigned yet — use the trip dropdown on the candidate list below.</div>'}
         <div class="muted" style="font-size:11px;margin-top:4px">✈ Travel days: ${travelDays.length ? travelDays.map(d=>`<span class="sv-daychip" style="border-color:${col}">✈ ${esc(d)} <span class="rm" onclick="svUnassignDay('${t.id}','${d}')">✕</span></span>`).join(' ') : 'none yet'} — mark them on the calendar in <b>Trip itinerary</b> mode.</div>
       </div>
-      <div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:11px 0 2px">Trip flow · pre → production → post</div>
-      ${svFlowHTML(t)}
+      <div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:11px 0 2px;cursor:pointer;user-select:none" onclick="svToggleFlow('${t.id}')" title="${svFlowOpen[t.id]?'Collapse the flow board':'Expand the pre / production / post checklist board'}">
+        <span style="display:inline-block;width:11px">${svFlowOpen[t.id]?'▾':'▸'}</span>Trip flow · pre → production → post
+        <span style="font-weight:500;text-transform:none;letter-spacing:0">· ${pc.pre.done+pc.prod.done+pc.post.done}/${pc.pre.total+pc.prod.total+pc.post.total} done${svFlowOpen[t.id]?'':' · click to open'}</span></div>
+      ${svFlowOpen[t.id]?svFlowHTML(t):''}
     </div>`;
     return `<div class="sv-tripwrap">${head}${body}</div>`;
   }).join('');
@@ -562,7 +568,9 @@ window.renderVisits = function(){
         </div>
         <div class="sv-box">
           <div class="rv-title">Candidate orgs · grouped by region &amp; country</div>
+          <div style="max-height:440px;overflow:auto;overscroll-behavior:contain;padding-right:4px">
           ${groupsHTML || '<div class="muted" style="font-size:12.5px">No candidates yet — click the ✈ icon on any Data studio row to flag an org for a potential site visit.</div>'}
+          </div>
         </div>
       </div>
       <div>

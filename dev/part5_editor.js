@@ -68,7 +68,7 @@ const FIELDS = [
  {k:'commercialRevenue', l:'Commercial Revenue ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Org\'s own earned or commercial revenue, distinct from grants and donations.'},
  {k:'absorbencyM', l:'Absorbency ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'Room for additional capital that will be usefully deployed toward producing outcomes in the next few years.'},
  {k:'absorbencyRank', l:'Absorbency Level', pub:1, core:1, cat:'Reach, Scale & Financials', sel:['Low','Medium','High'], desc:'Ranked room for additional capital: low, medium, or high.'},
- {k:'growthCurve', l:'Scale Type', pub:1, cat:'Reach, Scale & Financials', sel:['Flat','Linear','Scalable'], core:1, desc:'Shape of the org\'s growth curve.'},
+ {k:'growthCurve', l:'Scale Type', pub:1, cat:'Reach, Scale & Financials', sel:['Flat','Linear','Exponential'], core:1, desc:'Shape of the org\'s growth curve.'},
  {k:'scalePosition', l:'Scale Position (1–10)', cat:'Reach, Scale & Financials', num:1, desc:'Where the org sits on its growth curve.'},
  {k:'stage', l:'Stage', pub:1, cat:'Reach, Scale & Financials', sel:['Pilot','Growth','Scale'], core:1, desc:'Lifecycle stage: pilot, growth, or scale.'},
  {k:'teamSize', l:'Team Size', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, desc:'Approximate staff count.'},
@@ -361,11 +361,17 @@ function openCtxMenu(td, orgId, k, x, y){
   const menu = $('#ctxMenu');
   const hasNote = cellNoteKey(orgId,k) in CELLNOTES;
   const nComments = NOTES.filter(n=>n.orgId===orgId&&n.k===k&&!n.resolved).length;
+  const o = byId(orgId);
   menu.innerHTML = `
     <button id="cmComment">💬 ${nComments?`View comments (${nComments}) / reply`:'Add comment'}</button>
     <div class="sep"></div>
     <button id="cmNote">📝 ${hasNote?'Edit note':'Add note'}</button>
-    ${hasNote?'<button id="cmDelNote" style="color:var(--crit)">Delete note</button>':''}`;
+    ${hasNote?'<button id="cmDelNote" style="color:var(--crit)">Delete note</button>':''}
+    <div class="sep"></div>
+    <button id="cmLog">🗒 Org log — calls, meetings &amp; notes</button>
+    ${o&&o.archived
+      ? '<button id="cmArchive" style="color:var(--good)">↩ Restore organization</button>'
+      : '<button id="cmArchive" style="color:var(--crit)">🗄 Archive organization…</button>'}`;
   menu.style.display='block';
   menu.style.left = Math.min(innerWidth-200, x)+'px';
   menu.style.top = Math.min(innerHeight-140, y)+'px';
@@ -374,6 +380,9 @@ function openCtxMenu(td, orgId, k, x, y){
   const del = menu.querySelector('#cmDelNote');
   if (del) del.onclick = ()=>{ menu.style.display='none'; delete CELLNOTES[cellNoteKey(orgId,k)];
     td.classList.remove('has-cellnote'); updateNoteCnt(); renderNotesPanel(); flash('Note deleted'); };
+  menu.querySelector('#cmLog').onclick = ()=>{ menu.style.display='none'; openOrgLog(orgId); };
+  menu.querySelector('#cmArchive').onclick = ()=>{ menu.style.display='none';
+    (o&&o.archived) ? restoreOrg(orgId) : archiveOrg(orgId); };
 }
 function openCellNotePop(td, orgId, k, x, y){
   const pop = $('#notePop');
@@ -671,14 +680,25 @@ document.addEventListener('click', e=>{
   const menu = $('#ctxMenu');
   if (menu.style.display==='block' && !menu.contains(e.target)) menu.style.display='none';
 });
-/* sheets-style hover: show the note when hovering a noted cell */
+/* sheets-style hover: hovering a cell with a note and/or open comments
+   auto-shows both — the note text plus the latest comments in the thread */
 document.addEventListener('mouseover', e=>{
-  const td = e.target.closest('#edBody td.has-cellnote'); if (!td) return;
-  const key = cellNoteKey(+td.closest('tr').dataset.id, td.dataset.k);
-  if (CELLNOTES[key]) showTip('📝 <b>Note</b> · '+esc(CELLNOTES[key]), e.clientX, e.clientY);
+  const td = e.target.closest('#edBody td.has-cellnote, #edBody td.has-note'); if (!td) return;
+  const orgId = +td.closest('tr').dataset.id, k = td.dataset.k;
+  const parts = [];
+  const note = CELLNOTES[cellNoteKey(orgId, k)];
+  if (note) parts.push('📝 <b>Note</b> · '+esc(note));
+  const cms = NOTES.filter(n=>n.orgId===orgId && n.k===k && !n.resolved);
+  if (cms.length){
+    const shown = cms.slice(-3);
+    parts.push((cms.length>3?`💬 <b>${cms.length} comments</b> (latest ${shown.length})`:`💬 <b>Comment${cms.length===1?'':'s'}</b>`)
+      + shown.map(n=>`<div style="margin-top:3px"><b>${esc(initialsOf(n.author||''))}</b> ${esc(n.text.length>160?n.text.slice(0,158)+'…':n.text)}</div>`).join('')
+      + '<div style="margin-top:3px;opacity:.7">right-click the cell to reply</div>');
+  }
+  if (parts.length) showTip(parts.join('<div style="height:6px"></div>'), e.clientX, e.clientY);
 });
 document.addEventListener('mouseout', e=>{
-  if (e.target.closest && e.target.closest('#edBody td.has-cellnote')) hideTip();
+  if (e.target.closest && e.target.closest('#edBody td.has-cellnote, #edBody td.has-note')) hideTip();
 });
 
 /* ---- Claude auto-fill ---- */
@@ -768,8 +788,8 @@ $('#edClear').addEventListener('click', ()=>{
   renderEdRows(); flash('Filters cleared — showing every organization');
 });
 (function(){ const g = $('#edGroup');
-  ED_CATS.forEach(c=>g.insertAdjacentHTML('beforeend',`<option ${c==='Core'?'selected':''}>${c}</option>`));
-  g.addEventListener('change', ()=>{ edState.group = g.value; renderEditor(); });
+  ED_CATS.forEach(c=>g.insertAdjacentHTML('beforeend',`<option value="${c}" ${c==='Core'?'selected':''}>Columns · ${c}</option>`));
+  g.addEventListener('change', ()=>{ edState.group = g.value; renderEditor(); flash('Showing '+(g.value==='All fields'?'every column':g.value+' columns')); });
 })();
 $('#edAdd').addEventListener('click', ()=>{
   const id = Math.max(...ORGS.map(o=>o.id))+1;
@@ -815,22 +835,34 @@ function renderEditor(){
 function renderEdRows(){
   const cols = activeCols();
   const list = ORGS.filter(o=>
+    (edState.tier==='archived' ? !!o.archived : !o.archived) &&
     (!edState.solo || o.id===edState.solo) &&
-    (!edState.tier || o.tier===edState.tier) &&
+    (!edState.tier || edState.tier==='archived' || o.tier===edState.tier) &&
     (!edState.rev || (edState.rev==='un' ? !(o.workflow&&o.workflow.done) : !!(o.workflow&&o.workflow.done))) &&
     (!edState.q || (o.name+' '+o.causes.join(' ')+' '+o.countries.join(' ')).toLowerCase().includes(edState.q)));
   $('#edCount').textContent = list.length+' of '+ORGS.length+' rows · '+cols.length+' of '+FIELDS.length+' fields';
   const wfRank = o=>{ const wf=o.workflow||{}; return wfLate(o) ? 0 : wf.req ? 1 : wf.sub ? 2 : 3; };
-  list.sort((a,b)=>wfRank(a)-wfRank(b));   // late first, then review requests, then submission invites
+  // late first, then review requests, then submission invites — and within the
+  // request bands, orgs are grouped by WHO requested the review (then by date)
+  const reqBy = o=>(o.workflow&&o.workflow.req&&o.workflow.req.by)||'';
+  list.sort((a,b)=>{
+    const d = wfRank(a)-wfRank(b); if (d) return d;
+    const w = reqBy(a).localeCompare(reqBy(b)); if (w) return w;
+    const da=(a.workflow&&a.workflow.req&&a.workflow.req.date)||'', db2=(b.workflow&&b.workflow.req&&b.workflow.req.date)||'';
+    return da<db2?-1:da>db2?1:0;
+  });
   $('#edBody').innerHTML = list.map(o=>{ const wf=o.workflow||{}; const rowCls = (wf.req?'wf-req':wf.sub?'wf-sub':'') + (wfLate(o)?' wf-late':'');
     const ups = (window.ORG_UPDATES||[]).filter(u=>u.orgId===o.id || (!u.orgId && u.org===o.name));
     const liveN = window.updIsLive ? ups.filter(u=>updIsLive(u)).length : 0;
     const updTitle = ups.length
       ? `From the field — ${liveN} live, ${ups.length-liveN} draft or upcoming. Click to view past updates and plan next quarter's.`
       : 'From the field — no updates logged yet. Click to draft this organization\'s first quarterly update.';
-    return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span><span class="row-ic sv-ic ${o.siteVisit?'on':''}" title="${o.siteVisit?`Site-visit candidate (${esc(o.siteVisit.status||'candidate')}) — click to remove. Plan it in the Site visits tab.`:'Mark this org for a potential site visit'}" onclick="window.toggleSiteVisit&&toggleSiteVisit(${o.id})">✈</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${initialsOf(wf.req.by)} on ${wf.req.date}. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
+    return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span><span class="row-ic sv-ic ${o.siteVisit?'on':''}" title="${o.siteVisit?`Site-visit candidate (${esc(o.siteVisit.status||'candidate')}) — click to remove. Plan it in the Site visits tab.`:'Mark this org for a potential site visit'}" onclick="window.toggleSiteVisit&&toggleSiteVisit(${o.id})">✈</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${esc(wf.req.by)} on ${wf.req.date}. Rows are grouped by requester. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳${wf.req?`<i class="req-by">${esc(initialsOf(wf.req.by))}</i>`:''}</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
-    if (c.k==='name') return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span><span class="row-ic solo-ic ${edState.solo===o.id?'on':''}" style="margin-left:7px" title="${edState.solo===o.id?'Showing only this row — click to show all rows':'Filter the studio to just this row'}" onclick="event.stopPropagation();soloRow(${o.id})">◎</span></td>`;
+    if (c.k==='name'){
+      if (o.archived) return `<td class="name-c pub${noted}" data-k="name" style="opacity:.75"><span title="Archived ${esc(o.archived.date||'')}${o.archived.by?' by '+esc(o.archived.by):''}" style="margin-right:7px">🗄</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span><span class="row-ic" style="margin-left:7px;color:var(--good)" title="Restore this organization to active" onclick="event.stopPropagation();restoreOrg(${o.id})">↩</span></td>`;
+      return `<td class="name-c pub${noted}" data-k="name"><span style="cursor:pointer;color:var(--gold-2);margin-right:7px" title="Auto-fill empty fields with Claude" onclick="autofillRow(${o.id})">✦</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span><span class="row-ic solo-ic ${edState.solo===o.id?'on':''}" style="margin-left:7px" title="${edState.solo===o.id?'Showing only this row — click to show all rows':'Filter the studio to just this row'}" onclick="event.stopPropagation();soloRow(${o.id})">◎</span><span class="row-ic log-ic ${(o.orgLog&&o.orgLog.length)?'on':''}" style="margin-left:3px" title="${(o.orgLog&&o.orgLog.length)?o.orgLog.length+' internal log entr'+(o.orgLog.length===1?'y':'ies')+' — calls, meetings, comms, notes':'Org log — record intro calls, meetings, comms, and internal notes'}" onclick="event.stopPropagation();openOrgLog(${o.id})">🗒</span></td>`;
+    }
     if (c.k==='website'){
       const url = String(o.website||'').trim();
       const href = url ? (/^https?:/i.test(url) ? url : 'https://'+url) : '';
@@ -1025,12 +1057,139 @@ window.soloRow = function(id){
   renderEdRows();
   flash(edState.solo ? 'Showing only '+(byId(id)||{}).name+' — ◎ again (or Clear filters) to show all' : 'Showing all rows');
 };
-/* staff: jump from anywhere straight to the studio filtered to one org */
+/* staff: jump from anywhere straight to the studio filtered to one org.
+   Clears every other filter (search text, tier, review status) first so the
+   org always actually shows — a leftover filter from a previous solo would
+   otherwise hide it. */
 window.studioSolo = function(id){
   edState.solo = id;
+  edState.q=''; edState.tier=''; edState.rev='';
+  if ((byId(id)||{}).archived) edState.tier = 'archived';   // an archived org only shows behind its filter
+  const sq=$('#edSearch'), st=$('#edTier'), sr=$('#edRev');
+  if (sq) sq.value=''; if (st) st.value=edState.tier; if (sr) sr.value='';
   if (!location.hash.startsWith('#/editor')) go('#/editor');
   renderEdRows();
-  flash('Data studio filtered to '+(byId(id)||{}).name);
+  flash('Data studio filtered to '+(byId(id)||{}).name+' — other filters cleared');
+};
+/* ---------- archive / restore (soft delete — data is kept) ---------- */
+window.archiveOrg = function(id){
+  const o = byId(id); if (!o) return;
+  if (!confirm('Archive "'+o.name+'"?\n\nIt disappears from members and from the studio, but every field, comment, and note is kept. Restore it any time from the 🗄 Archived filter.')) return;
+  o.archived = {by: wfMe(), date: new Date().toISOString().slice(0,10)};
+  if (edState.solo===id) edState.solo = null;
+  window.PERSIST && PERSIST.orgField && PERSIST.orgField(o, 'archived', o.archived);
+  if (typeof closeModal==='function') closeModal();
+  renderEdRows(); if (typeof buildPins==='function') buildPins();
+  flash(o.name+' archived — find it under the 🗄 Archived filter, restore with ↩');
+};
+window.restoreOrg = function(id){
+  const o = byId(id); if (!o || !o.archived) return;
+  delete o.archived;
+  window.PERSIST && PERSIST.orgField && PERSIST.orgField(o, 'archived', null);
+  renderEdRows(); if (typeof buildPins==='function') buildPins();
+  flash(o.name+' restored to active');
+};
+
+/* ---------- org log: internal record of calls, meetings, comms & notes ----------
+   Staff-only. Multiple dated entries per org with an optional link to related
+   files (Drive folder, deck, transcript…). Stored on the org record. */
+const OL_KINDS = ['Intro call','Meeting','Comms','Note','Other'];
+let olState = {orgId:null, editId:null, openId:null};
+window.openOrgLog = function(id, editId){
+  olState = {orgId:id, editId:editId||null, openId:editId||olState.openId||null};
+  renderOrgLog();
+  $('#modalVeil').classList.add('show');
+};
+window.olToggle = function(orgId, entryId){
+  olState.openId = String(olState.openId)===String(entryId) ? null : entryId;
+  renderOrgLog();
+};
+function olSave(o){
+  window.PERSIST && PERSIST.orgField && PERSIST.orgField(o, 'orgLog', o.orgLog);
+}
+const olLinks = e => (e.links && e.links.length ? e.links : (e.link ? [e.link] : []));
+function renderOrgLog(){
+  const o = byId(olState.orgId); if (!o) return;
+  const box = $('#modalBox');
+  box.style.width = 'min(680px,95vw)'; box.style.maxHeight = '88vh'; box.style.overflow = 'auto';
+  const log = (o.orgLog||[]).slice().sort((a,b)=> (a.date<b.date?1:a.date>b.date?-1:0));
+  const eu = olState.editId ? log.find(e=>String(e.id)===String(olState.editId)) : null;
+  const kindColor = {'Intro call':'#92C1DC','Meeting':'#91A5C6','Comms':'#C4A47C','Note':'#9ED1BB','Other':'#CB9A8B'};
+  box.innerHTML = `<div class="kicker">Org log · internal only</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <h3 style="margin-bottom:2px">${esc(o.name)}</h3>
+      <span class="muted" style="font-size:11.5px">${log.length||'No'} entr${log.length===1?'y':'ies'} — never shown to members</span></div>
+    <div class="muted" style="font-size:12px;margin-bottom:12px">Intro calls, meetings, comms, and in-the-moment thoughts you want to remember — with links to related files. Click an entry to expand it.</div>
+    <div style="max-height:330px;overflow:auto;margin-bottom:12px">
+      ${log.map(e=>{
+        const open = String(olState.openId)===String(e.id);
+        const title = e.title || (e.text||'').slice(0,60) + ((e.text||'').length>60?'…':'');
+        const links = olLinks(e);
+        return `<div class="note-item" style="padding:8px 10px;margin-bottom:6px;cursor:pointer" onclick="olToggle(${o.id},'${e.id}')">
+        <div style="display:flex;gap:9px;align-items:center;min-width:0">
+          <span style="width:10px;flex:none;font-size:9px;color:var(--ink-3)">${open?'▾':'▸'}</span>
+          <span class="pill" style="flex:none;font-size:10px;border-color:${kindColor[e.kind]||'#ccc'};background:${(kindColor[e.kind]||'#ccc')}22">${esc(e.kind||'Note')}</span>
+          <span style="flex:none;font-size:11px;color:var(--ink-3)">${esc(e.date||'')}</span>
+          <span style="flex:none;font-size:11px;color:var(--ink-3)" title="${esc(e.by||'')}">${esc(initialsOf(e.by||''))}</span>
+          <b style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</b>
+          ${links.length?`<span style="flex:none;font-size:10.5px" title="${links.length} link${links.length===1?'':'s'}">🔗${links.length>1?links.length:''}</span>`:''}
+        </div>
+        ${open?`<div style="margin:7px 0 0 19px" onclick="event.stopPropagation()">
+          <div style="font-size:12.5px;white-space:pre-wrap">${esc(e.text||'')}</div>
+          ${links.map(l=>`<div><a href="${esc(/^https?:/i.test(l)?l:'https://'+l)}" target="_blank" rel="noopener" style="font-size:11.5px">🔗 ${esc(l.length>62?l.slice(0,60)+'…':l)}</a></div>`).join('')}
+          <div style="display:flex;gap:12px;margin-top:6px">
+            <span class="res" style="cursor:pointer" onclick="openOrgLog(${o.id},'${e.id}')">✎ Edit</span>
+            <span class="res" style="cursor:pointer;color:var(--crit)" onclick="olDel(${o.id},'${e.id}')">✕ Delete</span>
+          </div>
+        </div>`:''}
+      </div>`;}).join('') || '<div class="muted" style="font-size:12.5px;padding:4px 2px">Nothing logged yet — add the first entry below.</div>'}
+    </div>
+    <div class="upd-form" style="border-top:1px solid var(--hairline);padding-top:12px">
+      <div class="kicker" style="margin-bottom:8px">${eu?'Edit entry':'New entry'}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <select id="olKind" style="border:1px solid var(--divider);border-radius:8px;padding:6px 9px;font:inherit;font-size:12.5px;background:#fff">
+          ${OL_KINDS.map(k=>`<option ${eu&&eu.kind===k?'selected':''}>${k}</option>`).join('')}</select>
+        <input id="olDate" type="date" value="${esc(eu?eu.date:new Date().toISOString().slice(0,10))}" style="border:1px solid var(--divider);border-radius:8px;padding:6px 9px;font:inherit;font-size:12.5px;background:#fff">
+        <input id="olTitle" type="text" placeholder="title — e.g. Intro call with the director" value="${esc(eu?eu.title||'':'')}" style="flex:1;min-width:200px;border:1px solid var(--divider);border-radius:8px;padding:6px 9px;font:inherit;font-size:12.5px;background:#fff">
+      </div>
+      <textarea id="olText" placeholder="What happened / what to remember — free flow" style="width:100%;min-height:74px;border:1px solid var(--divider);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;resize:vertical;background:#fff;box-sizing:border-box">${esc(eu?eu.text||'':'')}</textarea>
+      <textarea id="olLinks" placeholder="links to related files — one per line (Drive, deck, transcript…)" style="width:100%;min-height:38px;border:1px solid var(--divider);border-radius:9px;padding:7px 10px;font:inherit;font-size:12px;resize:vertical;background:#fff;box-sizing:border-box;margin-top:7px">${esc(eu?olLinks(eu).join('\n'):'')}</textarea>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:9px">
+        ${eu?`<button class="btn" onclick="olState.editId=null;renderOrgLog()">Cancel edit</button>`:''}
+        <button class="btn primary" onclick="olAdd(${o.id})">${eu?'Save entry':'+ Add entry'}</button>
+        <button class="btn" onclick="closeModal();renderEdRows()">Done</button>
+      </div>
+    </div>`;
+}
+window.olAdd = function(orgId){
+  const o = byId(orgId); if (!o) return;
+  const text = ($('#olText')?.value||'').trim();
+  const title = ($('#olTitle')?.value||'').trim();
+  if (!text && !title){ flash('Write the entry first'); return; }
+  const kind = $('#olKind')?.value||'Note', date = $('#olDate')?.value||new Date().toISOString().slice(0,10);
+  const links = ($('#olLinks')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  o.orgLog = (o.orgLog||[]).slice();
+  if (olState.editId){
+    const e = o.orgLog.find(x=>String(x.id)===String(olState.editId));
+    if (e){ e.kind=kind; e.date=date; e.title=title; e.text=text; e.links=links; delete e.link; }
+    olState.openId = olState.editId;
+  } else {
+    const e = {id:'ol'+Date.now().toString(36)+Math.floor(Math.random()*1e4), kind, date, title, text, links, by:wfMe()};
+    o.orgLog.push(e);
+    olState.openId = null;
+  }
+  olSave(o);
+  olState.editId = null;
+  renderOrgLog();
+  flash('Log entry saved — internal only');
+};
+window.olDel = function(orgId, entryId){
+  const o = byId(orgId); if (!o) return;
+  if (!confirm('Delete this log entry?')) return;
+  o.orgLog = (o.orgLog||[]).filter(x=>String(x.id)!==String(entryId));
+  olSave(o);
+  if (String(olState.editId)===String(entryId)) olState.editId = null;
+  renderOrgLog();
 };
 window.openUpdatesMgr = function(id){
   updMgrState = {orgId:id, editId:null};
@@ -1200,7 +1359,10 @@ window.openVerticalEdit = function(id, group){
         return `${lbl}
           <div><textarea class="ve-in" data-vk="${f.k}" rows="1" ${f.num?'data-num="1"':''} spellcheck="false">${esc(v??'')}</textarea></div>`;
       }).join('')}</div>`).join('')}
-    <div style="display:flex;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--hairline);padding-top:13px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;border-top:1px solid var(--hairline);padding-top:13px">
+      ${o.archived
+        ? `<button class="btn" style="color:var(--good)" onclick="restoreOrg(${o.id});closeModal()">↩ Restore to active</button>`
+        : `<button class="btn" style="color:var(--crit)" title="Soft delete — all data is kept and the org can be restored from the 🗄 Archived filter" onclick="archiveOrg(${o.id})">🗄 Archive organization</button>`}
       <button class="btn primary" onclick="closeModal();renderEdRows();flash('Vertical edits saved')">Done</button></div>`;
   veil.classList.add('show');
   const autos = ta=>{ ta.style.height='auto'; ta.style.height = Math.min(400, ta.scrollHeight+2)+'px'; };

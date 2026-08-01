@@ -84,9 +84,9 @@ const FFG_TOOLS = [
 (function(){
   const nav = $('#mainNav');
   if (nav && !nav.querySelector('[data-route="#/tools"]')){
-    const briefs = [...nav.querySelectorAll('button')].find(b=>/brief/i.test(b.textContent));
-    const btn = document.createElement('button');
-    btn.dataset.route = '#/tools'; btn.textContent = 'Tools';
+    const briefs = [...nav.querySelectorAll('[data-route]')].find(b=>/brief/i.test(b.textContent));
+    const btn = document.createElement('a');
+    btn.dataset.route = '#/tools'; btn.href = '#/tools'; btn.textContent = 'Tools';
     briefs ? briefs.after(btn) : nav.appendChild(btn);
   }
   if (!$('#view-tools')){
@@ -117,7 +117,7 @@ function toolsRoute(){
   if (window.APP && APP.ready && !APP.staff){ go('#/dashboard'); return true; }
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-tools').classList.add('active');
-  $$('#mainNav button').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/tools'));
+  $$('#mainNav [data-route]').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/tools'));
   const id = (location.hash.split('/')[2]||'').split('?')[0];
   renderTools(id || null);
   window.scrollTo({top:0});

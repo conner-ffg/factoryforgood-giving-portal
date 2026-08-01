@@ -319,11 +319,15 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
            kinds.includes('trip') && kinds.includes('task') && kinds.includes('dp') && kinds.includes('avail') &&
            document.querySelector('#svRoot').textContent.includes('Ava Lens');
   }));
-  check('trip flow board shows pre/production/post with the gate', await page.evaluate(() => {
+  check('trip flow board shows pre/production/post with the gate (behind its sub-toggle)', await page.evaluate(() => {
     renderVisits();
+    const closedByDefault = document.querySelectorAll('.sv-col').length === 0 &&
+                            document.querySelector('#svRoot').textContent.includes('Trip flow');
+    svToggleFlow(VISITS.trips[0].id);
     const t = document.querySelector('#svRoot').textContent;
-    return document.querySelectorAll('.sv-col').length === 3 &&
-           t.includes('Pre-production') && t.includes('Post-production') && t.includes('Gate:');
+    const open = document.querySelectorAll('.sv-col').length === 3 &&
+                 t.includes('Pre-production') && t.includes('Post-production') && t.includes('Gate:');
+    return closedByDefault && open;
   }));
   check('itinerary: travel toggle + org day assigned from the trip row flow to the calendar', await page.evaluate(async () => {
     const trip = VISITS.trips[0];
@@ -368,20 +372,29 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const chips = document.querySelectorAll('.sv-torgs .oc').length > 0;
     return auto && chips && orgs.length >= 1;
   }));
-  check('trips are expandable rows above the candidates; collapse hides the flow', await page.evaluate(() => {
+  check('trips: expandable rows above candidates, one open at a time, scrollable candidates', await page.evaluate(() => {
     const trip = VISITS.trips[0];
     renderVisits();
     const html = document.querySelector('#svRoot').innerHTML;
     const order = html.indexOf('Trips · click a row') > -1 &&
                   html.indexOf('Trips · click a row') < html.indexOf('Candidate orgs · grouped by region');
-    const openHasFlow = !!document.querySelector('.sv-tbody .sv-flow');
+    const openHasBody = !!document.querySelector('.sv-tbody');
     svToggleTrip(trip.id);                        // collapse
     const collapsed = !document.querySelector('.sv-tbody') &&
                       !!document.querySelector('.sv-trow') &&
                       document.querySelector('.sv-trow').textContent.includes(trip.name);
-    svToggleTrip(trip.id);                        // reopen (also re-selects)
-    const reopened = !!document.querySelector('.sv-tbody .sv-flow');
-    return order && openHasFlow && collapsed && reopened;
+    // single-open: adding a second trip opens it and closes everything else
+    svAddTrip();
+    const t2 = VISITS.trips[VISITS.trips.length - 1];
+    svToggleTrip(trip.id);                        // open first → second must close
+    const single = document.querySelectorAll('.sv-tbody').length === 1;
+    const realConfirm = window.confirm; window.confirm = () => true;
+    svDelTrip(t2.id);
+    window.confirm = realConfirm;
+    // candidates list scrolls instead of growing the page
+    const scrollBox = [...document.querySelectorAll('.sv-box')].find(b => b.textContent.includes('Candidate orgs'))
+      .querySelector('div[style*="overflow"], div[style*="max-height"]');
+    return order && openHasBody && collapsed && single && !!scrollBox;
   }));
   check('availability initials sit in line with the calendar date number', await page.evaluate(() => {
     svCalMonth = '2026-11'; svCalMode = 'avail'; renderVisits();
@@ -920,6 +933,154 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   const before = await page.evaluate(() => SHORTLIST.length);
   await page.evaluate(() => _phAct(true)); await page.waitForTimeout(900);
   check('phinder right-swipe saves to the shortlist', await page.evaluate(() => SHORTLIST.length) === before + 1);
+  // ---------- this round's additions ----------
+  await page.evaluate(async () => { go('#/editor'); await new Promise(r => setTimeout(r, 400)); });
+  check('nav tabs are real links (right-click → open in new tab works)', await page.evaluate(() => {
+    const a = document.querySelector('#mainNav a[data-route="#/editor"]');
+    const injected = document.querySelector('#mainNav a[data-route="#/tools"]');
+    return !!a && /#\/editor$/.test(a.href) && !!injected && /#\/tools$/.test(injected.href);
+  }));
+  check('scale type dropdown offers Exponential, not Scalable', await page.evaluate(() => {
+    const f = FIELDS.find(x => x.k === 'growthCurve');
+    return f.sel.includes('Exponential') && !f.sel.includes('Scalable') &&
+           !ORGS.some(o => o.growthCurve === 'Scalable');
+  }));
+  check('group-by select swaps the studio columns', await page.evaluate(() => {
+    const g = document.querySelector('#edGroup');
+    const n0 = document.querySelectorAll('#edTable thead th').length;
+    g.value = 'Funding Status & Gap'; g.dispatchEvent(new Event('change'));
+    const n1 = document.querySelectorAll('#edTable thead th').length;
+    g.value = 'Core'; g.dispatchEvent(new Event('change'));
+    return n0 !== n1 && n1 > 3;
+  }));
+  check('archive: org leaves studio + members, shows under 🗄 filter, restores', await page.evaluate(async () => {
+    const o = ORGS.find(x => x.tier === 'represented' && !x.archived);
+    const shownBefore = showcased(o);
+    const realConfirm = window.confirm; window.confirm = () => true;
+    archiveOrg(o.id);
+    window.confirm = realConfirm;
+    await new Promise(r => setTimeout(r, 600));
+    const goneFromStudio = !document.querySelector(`#edBody tr[data-id="${o.id}"]`);
+    const hiddenFromMembers = !isShown(o) && !showcased(o);
+    edState.tier = 'archived'; document.querySelector('#edTier').value = 'archived'; renderEdRows();
+    const inArchive = !!document.querySelector(`#edBody tr[data-id="${o.id}"]`) &&
+                      document.querySelector(`#edBody tr[data-id="${o.id}"] td.name-c`).textContent.includes('🗄');
+    const api = await sb.rest('orgs?select=id,data');
+    const row = api.find(r => r.id === o.id);
+    const persisted = row && row.data.archived && row.data.archived.date;
+    restoreOrg(o.id);
+    await new Promise(r => setTimeout(r, 600));
+    const api2 = await sb.rest('orgs?select=id,data');
+    const row2 = api2.find(r => r.id === o.id);
+    const restored = !o.archived && !(row2.data.archived) && shownBefore === showcased(o);
+    edState.tier = ''; document.querySelector('#edTier').value = ''; renderEdRows();
+    return goneFromStudio && hiddenFromMembers && inArchive && !!persisted && restored;
+  }));
+  check('hovering a commented/noted cell auto-shows the preview', await page.evaluate(async () => {
+    const tr = document.querySelector('#edBody tr');
+    const o = byId(+tr.dataset.id);
+    NOTES.push({id: noteSeq++, orgId: o.id, k: 'blurb', text: 'hover preview probe', author: 'Sam Staff', resolved: false, mentions: []});
+    CELLNOTES[o.id + ':blurb'] = 'note preview probe';
+    renderEdRows();
+    const td = document.querySelector(`#edBody tr[data-id="${o.id}"] td[data-k="blurb"]`);
+    td.dispatchEvent(new MouseEvent('mouseover', {bubbles: true, clientX: 400, clientY: 300}));
+    await new Promise(r => setTimeout(r, 150));
+    const tipEl = document.querySelector('#chartTip');
+    const shown = tipEl.style.display === 'block' &&
+                  tipEl.textContent.includes('note preview probe') &&
+                  tipEl.textContent.includes('hover preview probe');
+    td.dispatchEvent(new MouseEvent('mouseout', {bubbles: true}));
+    delete CELLNOTES[o.id + ':blurb'];
+    NOTES.pop(); renderEdRows();
+    return shown;
+  }));
+  check('studioSolo clears leftover filters so the org shows', await page.evaluate(() => {
+    const a = ORGS[0], b = ORGS[1];
+    edState.q = 'zzz-no-match'; document.querySelector('#edSearch').value = 'zzz-no-match';
+    edState.tier = 'top'; document.querySelector('#edTier').value = 'top';
+    edState.solo = a.id;
+    renderEdRows();
+    const hiddenFirst = !document.querySelector(`#edBody tr[data-id="${b.id}"]`);
+    studioSolo(b.id);
+    const visible = !!document.querySelector(`#edBody tr[data-id="${b.id}"]`) &&
+                    document.querySelectorAll('#edBody tr').length === 1 &&
+                    edState.q === '' && edState.tier === '' &&
+                    document.querySelector('#edSearch').value === '';
+    edState.solo = null; renderEdRows();
+    return hiddenFirst && visible;
+  }));
+  check('org log: titled entries, multi-links, collapsed list + expand, persisted', await page.evaluate(async () => {
+    const o = ORGS[0];
+    openOrgLog(o.id);
+    document.querySelector('#olKind').value = 'Intro call';
+    document.querySelector('#olDate').value = '2026-07-30';
+    document.querySelector('#olTitle').value = 'Intro call with the director';
+    document.querySelector('#olText').value = 'Great first call — director keen on a site visit.';
+    document.querySelector('#olLinks').value = 'drive.google.com/call-notes\ndocs.google.com/deck';
+    olAdd(o.id);
+    await new Promise(r => setTimeout(r, 600));
+    const eid = o.orgLog[0].id;
+    // collapsed: title + kind + date + author shown, body text and links NOT
+    const collapsedTxt = document.querySelector('#modalBox').textContent;
+    const collapsed = collapsedTxt.includes('Intro call with the director') &&
+                      !collapsedTxt.includes('Great first call') &&
+                      !document.querySelector('#modalBox a[href^="https://drive.google.com"]');
+    olToggle(o.id, eid);   // expand → full text + both links
+    const expanded = document.querySelector('#modalBox').textContent.includes('Great first call') &&
+                     document.querySelectorAll('#modalBox a[target="_blank"]').length >= 2;
+    const api = await sb.rest('orgs?select=id,data');
+    const pe = ((api.find(r => r.id === o.id) || {data:{}}).data.orgLog || [])[0] || {};
+    const persisted = pe.title === 'Intro call with the director' && (pe.links || []).length === 2;
+    openOrgLog(o.id, eid);
+    document.querySelector('#olText').value = 'Great first call — follow-up booked.';
+    olAdd(o.id);
+    const edited = o.orgLog.length === 1 && /follow-up booked/.test(o.orgLog[0].text);
+    const iconLit = (renderEdRows(), !!document.querySelector('#edBody td.name-c .log-ic.on'));
+    const realConfirm = window.confirm; window.confirm = () => true;
+    olDel(o.id, eid);
+    window.confirm = realConfirm;
+    const deleted = (o.orgLog || []).length === 0;
+    closeModal();
+    return collapsed && expanded && persisted && edited && iconLit && deleted;
+  }));
+  check('archive + org log reachable from the right-click menu', await page.evaluate(() => {
+    const td = document.querySelector('#edBody td[data-k="blurb"]');
+    const tr = td.closest('tr');
+    td.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true, cancelable: true, clientX: 500, clientY: 300}));
+    const menu = document.querySelector('#ctxMenu');
+    const has = menu.style.display === 'block' &&
+                !!menu.querySelector('#cmArchive') && !!menu.querySelector('#cmLog') &&
+                menu.textContent.includes('Archive organization');
+    menu.style.display = 'none';
+    return has;
+  }));
+  check('studio rows with open review requests group by requester', await page.evaluate(() => {
+    const a = ORGS[10], b = ORGS[11], c = ORGS[12];
+    [a, b, c].forEach(o => o.workflow = {...(o.workflow || {})});
+    a.workflow.req = {by: 'Zed Zulu', date: '2026-07-29'};
+    b.workflow.req = {by: 'Ann Alpha', date: '2026-07-30'};
+    c.workflow.req = {by: 'Zed Zulu', date: '2026-07-28'};
+    renderEdRows();
+    const ids = [...document.querySelectorAll('#edBody tr')].map(t => +t.dataset.id);
+    const pos = id => ids.indexOf(id);
+    // Ann's org first, then Zed's two adjacent (grouped), all in the request band
+    const grouped = pos(b.id) < pos(c.id) && pos(c.id) < pos(a.id) && pos(a.id) - pos(c.id) === 1;
+    const badge = !!document.querySelector(`#edBody tr[data-id="${a.id}"] .wf-req-ic .req-by`);
+    delete a.workflow.req; delete b.workflow.req; delete c.workflow.req;
+    renderEdRows();
+    return grouped && badge;
+  }));
+  check('session: keep-alive armed, refresh survives a network failure', await page.evaluate(async () => {
+    const armed = !!sb._ka && typeof sb.refresh === 'function';
+    const hadSession = !!(sb.session && sb.session.refresh_token);
+    const exp = sb.session && sb.session.expires_at;
+    const realFetch = window.fetch;
+    window.fetch = () => Promise.reject(new Error('offline'));
+    const out = await sb.refresh();
+    window.fetch = realFetch;
+    const keptSession = !!(sb.session && sb.session.refresh_token);   // network failure must NOT clear it
+    return armed && hadSession && !!exp && out === false && keptSession;
+  }));
   await page.close();
 
   console.log('\nPASS', ok.length, '| FAIL', bad.length, bad.length ? bad : '');

@@ -102,7 +102,7 @@ class H(BaseHTTPRequestHandler):
                 if not u: return self._send(400, {'error_description': 'Invalid login credentials'})
             tok = 'tok-' + u['id']
             TOKENS[tok] = u
-            return self._send(200, {'access_token': tok, 'refresh_token': tok, 'user': {'id': u['id'], 'email': u['email']}})
+            return self._send(200, {'access_token': tok, 'refresh_token': tok, 'expires_in': 3600, 'user': {'id': u['id'], 'email': u['email']}})
         if p.path == '/auth/v1/signup':
             b = self._body()
             e = (b.get('email') or '').lower()
