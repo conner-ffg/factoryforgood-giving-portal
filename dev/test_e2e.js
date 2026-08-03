@@ -6,7 +6,10 @@ const ok = [], bad = [];
 const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?'  ✓ ':'  ✗ ')+name);
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  // sandbox dev env ships chromium at a fixed path; CI uses playwright's own
+  const exe = process.env.PW_CHROMIUM ||
+    (require('fs').existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+  const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
   // ---------- member journey ----------
   let page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
@@ -140,12 +143,16 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   });
   await page.waitForTimeout(600);
   check('pending invite listed until first sign-in', (await page.textContent('#dsTable')).includes('truman@example.com'));
-  // + Add profile creates the account immediately with the starter password
-  await page.evaluate(async () => {
-    await createInvitedAccount('truman2@example.com', 'Truman Wells');
+  // + Add profile creates the account immediately; first sign-in is magic-link ONLY
+  const inviteRes = await page.evaluate(async () => {
+    const acct = await createInvitedAccount('truman2@example.com', 'Truman Wells');
     await loadDonorRoster(); renderDonorStudio();
+    return { leaked: 'starterPassword' in (acct || {}) };
   });
   await page.waitForTimeout(600);
+  check('invite creates the account with NO shareable password (legacy shared pw gone from source)',
+    !inviteRes.leaked &&
+    await page.evaluate(() => !document.documentElement.innerHTML.includes('FFGwelcome2026!')));
   check('invited account appears as a full editable profile', await page.evaluate(() =>
     DB.donors.some(d => d.email === 'truman2@example.com' && d.fullName === 'Truman Wells')));
   check('Donor studio shows real lifetime totals', (await page.textContent('#dsTable')).includes('$300k'));
@@ -883,30 +890,28 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('cell notes restored', await page.evaluate(() => Object.keys(CELLNOTES).length) === 1);
   await page.close();
 
-  // ---------- invited guest: starter password, then set their own ----------
+  // ---------- invited guest: magic-link-only first sign-in, then set their own password ----------
   page = await browser.newPage({ viewport: { width: 1500, height: 980 } });
   page.on('pageerror', e => errs.push('invited: ' + e.message));
-  await page.goto(U); await page.waitForTimeout(700);
-  await page.fill('#gateEmail', 'truman2@example.com');
-  await page.click('#gatePwToggle'); await page.fill('#gatePw', 'FFGwelcome2026!'); await page.click('#gatePwGo');
-  await page.waitForTimeout(1800);
+  // simulate landing from the sign-in email: tokens arrive in the URL fragment
+  await page.goto(U + '#access_token=tok-u-truman2&refresh_token=tok-u-truman2&expires_in=3600');
+  await page.waitForTimeout(2200);
   await page.evaluate(() => { window.dismissOverlay && dismissOverlay(); window.endTour && endTour(); }); await page.waitForTimeout(400);
-  check('first login forces creating an own password', await page.evaluate(() =>
+  check('magic-link landing signs the invited guest in', await page.evaluate(() =>
+    document.querySelector('#gate').style.display === 'none'));
+  check('first sign-in forces creating an own password', await page.evaluate(() =>
     document.querySelector('#modalVeil').classList.contains('show') &&
     !!document.querySelector('#pw1') &&
     document.querySelector('#modalVeil').dataset.required === '1' &&
     !document.querySelector('#modalBox').textContent.includes('Cancel')));
-  check('invited guest signs in with the starter password', await page.evaluate(() =>
-    document.querySelector('#gate').style.display === 'none'));
-  // set their own password via the avatar modal, sign out, sign back in with it
-  await page.evaluate(() => document.querySelector('#topAvatar').click()); await page.waitForTimeout(300);
+  // choose their own password in the required modal, sign out, sign back in with it
   await page.fill('#pw1', 'myOwnPass9'); await page.fill('#pw2', 'myOwnPass9');
   await page.click('#pwGo'); await page.waitForTimeout(600);
   await page.evaluate(async () => { await sb.signOut(); location.reload(); }); await page.waitForTimeout(1200);
   await page.fill('#gateEmail', 'truman2@example.com');
   await page.click('#gatePwToggle'); await page.fill('#gatePw', 'myOwnPass9'); await page.click('#gatePwGo');
   await page.waitForTimeout(1500);
-  check('self-set password replaces the starter one', await page.evaluate(() =>
+  check('self-set password works for every later sign-in', await page.evaluate(() =>
     document.querySelector('#gate').style.display === 'none'));
   // tools are staff-only: members don't see the tab and get bounced
   check('Tools hidden for members', await page.evaluate(() =>

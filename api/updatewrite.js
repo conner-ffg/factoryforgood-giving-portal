@@ -3,6 +3,18 @@
 // update's title, summary, and mini-blog body. Env vars: SUPABASE_URL,
 // SUPABASE_ANON_KEY, ANTHROPIC_API_KEY (server-side only — never in the browser).
 
+// Simple per-user rate limit (per warm serverless instance) — caps runaway
+// loops on the metered Claude calls without adding a datastore.
+const RL = new Map();
+function rateLimited(who, max = 20, windowMs = 10 * 60 * 1000) {
+  const now = Date.now();
+  const hits = (RL.get(who) || []).filter(t => now - t < windowMs);
+  if (hits.length >= max) { RL.set(who, hits); return true; }
+  hits.push(now); RL.set(who, hits);
+  if (RL.size > 500) RL.clear();
+  return false;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
@@ -20,6 +32,9 @@ export default async function handler(req, res) {
   const user = await uRes.json();
   if (!/@factoryforgood\.com$/i.test(user.email || '')) {
     return res.status(403).json({ error: 'Auto-write is limited to Factory for Good staff' });
+  }
+  if (rateLimited(user.email)) {
+    return res.status(429).json({ error: 'Rate limit: 20 drafts per 10 minutes — try again shortly' });
   }
 
   // 2. assemble the request

@@ -3702,9 +3702,11 @@ window.openUpdateArticle = function(uid){
   const causes = updCauses(u);
   const veil = $('#modalVeil'), box = $('#modalBox');
   box.style.width = 'min(720px,94vw)'; box.style.maxHeight = '86vh'; box.style.overflow = 'auto';
+  // only real web URLs become clickable — anything else (javascript:, data:) is dropped
+  const safeUrl = x => /^https?:\/\//i.test(String(x||'').trim()) ? String(x).trim() : '';
   const links = [
-    u.link ? `<a href="${esc(u.link)}" target="_blank" rel="noopener" style="font-size:13px">Read the public update ↗</a>` : '',
-    u.video ? `<a href="${esc(u.video)}" target="_blank" rel="noopener" style="font-size:13px">Watch the video ↗</a>` : '',
+    safeUrl(u.link) ? `<a href="${esc(safeUrl(u.link))}" target="_blank" rel="noopener" style="font-size:13px">Read the public update ↗</a>` : '',
+    safeUrl(u.video) ? `<a href="${esc(safeUrl(u.video))}" target="_blank" rel="noopener" style="font-size:13px">Watch the video ↗</a>` : '',
   ].filter(Boolean).join('<span style="color:var(--ink-3);margin:0 8px">·</span>');
   box.innerHTML = `${updHero(u).replace('class="upd-hero"','class="upd-hero" style="height:150px;border-radius:12px;overflow:hidden;margin:-8px 0 16px"')}
     <div class="kicker">From the field · ${esc(o?o.name:u.org)}</div>
@@ -5377,7 +5379,7 @@ function addProfileRow(){
     <input id="npName" style="width:100%;margin:5px 0 12px">
     <label style="font-size:12px;color:var(--ink-3)">Email (they'll sign in with this)</label>
     <input id="npEmail" type="email" style="width:100%;margin:5px 0 12px">
-    <div class="muted" style="font-size:11.5px;margin-bottom:14px">On the live site this creates their account immediately. They sign in with their email and the starter password <b>${esc(window.FFG_STARTER_PW||'FFGwelcome2026!')}</b> — no email link needed — and can set their own password afterwards by clicking their avatar.</div>
+    <div class="muted" style="font-size:11.5px;margin-bottom:14px">On the live site this creates their account immediately. Their first sign-in is by <b>email link</b>: they enter this address on the sign-in page, click "Email me a sign-in link", and choose their own password once they're in. No passwords to pass around.</div>
     <div style="display:flex;justify-content:flex-end;gap:10px"><button class="btn" onclick="closeModal()">Cancel</button>
     <button class="btn primary" id="npGo">Create profile</button></div>`;
   veil.classList.add('show');
@@ -5391,8 +5393,17 @@ function addProfileRow(){
       try{
         await createInvitedAccount(email, name);
         if (typeof loadDonorRoster==='function') await loadDonorRoster();
-        closeModal(); renderDonorStudio();
-        flash(name+"'s account is ready — they sign in with the starter password "+(window.FFG_STARTER_PW||''));
+        renderDonorStudio();
+        box.innerHTML = `<div class="kicker">Donor studio</div><h3>${esc(name)}'s account is ready</h3>
+          <div class="muted" style="font-size:12.5px;margin-bottom:14px">Let ${esc(name)} know they're in. Their first sign-in:</div>
+          <ol style="font-size:13px;line-height:1.7;margin:0 0 14px 18px;padding:0">
+            <li>Go to the portal and enter <b>${esc(email)}</b></li>
+            <li>Click <b>"Email me a sign-in link"</b> and open the email</li>
+            <li>They'll be asked to choose their own password once they're in</li>
+          </ol>
+          <div class="muted" style="font-size:11.5px;margin-bottom:14px">No starter password exists for this account — the email link is the only first key, so there's nothing to share or intercept.</div>
+          <div style="display:flex;justify-content:flex-end"><button class="btn primary" onclick="closeModal()">Done</button></div>`;
+        flash(name+"'s account is ready — first sign-in is by email link");
       }catch(e){
         // fall back to a plain invite (profile appears at their first sign-in)
         window.PERSIST?.donorInvite?.({email, fullName:name});
@@ -6651,7 +6662,7 @@ const sb = {
     this.session = this._stamp(j); this.save(); return j;
   },
   async updatePassword(pw){
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify({password:pw, data:{pw_set:true}})});
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify({password:pw, data:{pw_set:true, starter:false}})});
     if (r.status===401 && await this.refresh()) return this.updatePassword(pw);
     const t = await r.text(); let j = {}; try{ j = t?JSON.parse(t):{}; }catch(e){}
     if (!r.ok) throw new Error(j.msg || j.message || ('Error '+r.status));
@@ -6734,6 +6745,31 @@ const sb = {
   },
 };
 
+/* ---------- error monitoring: uncaught errors land in client_errors ----------
+   Staff can review them in Supabase (table editor or SQL). Throttled and
+   deduped so a render loop can't flood the table. Fails silent everywhere. */
+(function(){
+  const seen = new Set(); let sent = 0;
+  function report(message, stack){
+    try{
+      if (!SUPABASE_URL || sent >= 5) return;
+      const key = String(message).slice(0,120);
+      if (seen.has(key)) return;
+      seen.add(key); sent++;
+      sb.rest('client_errors', {method:'POST', body:{
+        page: location.hash.slice(0,300),
+        message: String(message).slice(0,2000),
+        stack: String(stack||'').slice(0,6000),
+        ua: navigator.userAgent.slice(0,400),
+      }, headers:{'Prefer':''}}).catch(()=>{});
+    }catch(e){}
+  }
+  window.addEventListener('error', e=>report(e.message, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', e=>report(
+    (e.reason && (e.reason.message||e.reason)) || 'unhandled rejection',
+    e.reason && e.reason.stack));
+})();
+
 /* ================= APP STATE ================= */
 const APP = {
   ready:false, demo:false, profile:null,
@@ -6742,20 +6778,37 @@ const APP = {
 window.APP = APP;
 const DEMO_DB = window.__DEMO_DATA__;   // the illustrative dataset, staff-only sandbox
 
-/* Every invited guest's account is created with this starter password, so
-   they can sign in immediately without waiting on an email link. They should
-   set their own password after first sign-in (click your avatar). */
-const FFG_STARTER_PW = 'FFGwelcome2026!';
-window.FFG_STARTER_PW = FFG_STARTER_PW;
+/* Every invited guest gets their OWN one-time starter password, generated
+   fresh at invite time and shown once to the inviting staff member to pass
+   along. Nothing shared, nothing embedded in this page's source. Legacy
+   accounts created under the old shared starter are detected by hash (the
+   hash reveals nothing) and forced onto a password of their own. */
+const FFG_LEGACY_STARTER_SHA = '011c8c6b467025110e63d662686dc5f4a3e22c02933dd48e808980e244fda404';
+async function sha256Hex(s){
+  try{
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return ''; }
+}
+function genStarterPw(){
+  const alpha = 'abcdefghjkmnpqrstuvwxyz23456789';   // no lookalikes
+  const buf = new Uint32Array(12); crypto.getRandomValues(buf);
+  const c = i => alpha[buf[i] % alpha.length];
+  return 'FFG-'+c(0)+c(1)+c(2)+c(3)+'-'+c(4)+c(5)+c(6)+c(7)+'-'+c(8)+c(9)+c(10)+c(11);
+}
 
-/* Staff: record the invite, then create the account itself with the starter
-   password. The database trigger validates the invite and builds the profile
-   row instantly, so the new member appears in the Donor studio right away. */
+/* Staff: record the invite, then create the account itself. First sign-in is
+   MAGIC LINK ONLY: the account is created with an internal throwaway password
+   that is never shown to anyone (so password sign-in is impossible until the
+   member chooses their own at first sign-in). The database trigger validates
+   the invite and builds the profile row instantly, so the new member appears
+   in the Donor studio right away. */
 window.createInvitedAccount = async function(email, fullName){
   await sb.rest('invites', {method:'POST', body:{email, note:'Invited from Donor studio: '+fullName}}).catch(()=>{});
+  const throwaway = genStarterPw() + genStarterPw();   // never displayed, never stored
   const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {method:'POST',
     headers:{'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+SUPABASE_ANON, 'Content-Type':'application/json'},
-    body: JSON.stringify({email, password:FFG_STARTER_PW, data:{full_name:fullName}})});
+    body: JSON.stringify({email, password:throwaway, data:{full_name:fullName, starter:true}})});
   const t = await r.text(); let j = {}; try{ j = t?JSON.parse(t):{}; }catch(e){}
   if (!r.ok) throw new Error(j.msg || j.error_description || j.message || ('Signup failed '+r.status));
   return j;
@@ -6797,6 +6850,9 @@ async function ensureOwnPassword(){
     if (!r.ok) return;
     const u = await r.json();
     if (u.user_metadata && u.user_metadata.pw_set) return;          // already has their own
+    // accounts still on their generated one-time starter always get the prompt,
+    // even on a restored session — the starter is a hand-off credential, not a password
+    if (u.user_metadata && u.user_metadata.starter){ setTimeout(()=>openPasswordModal(true), 400); return; }
     const how = window._FFG_LOGIN;
     if (how === 'password'){
       // proved a unique password at the gate — record it, no prompt
@@ -6848,7 +6904,7 @@ function injectGate(){
         <input id="gatePw" type="password" autocomplete="current-password" style="width:100%;background:#F7F5F1;border:1px solid #DEDBD6;border-radius:9px;padding:11px 13px;font-size:14px;font-family:inherit;outline:none;margin:5px 0 12px">
         <button id="gatePwGo" class="btn primary" style="width:100%;padding:12px">Sign in</button>
       </div>
-      <div style="font-size:11.5px;color:#797772;margin-top:18px;border-top:1px solid #DEDBD6;padding-top:12px">Access is by invitation. Invited members: choose "Use a password instead" and sign in with the starter password Factory for Good shared with you — you can set your own afterwards by clicking your avatar. Staff sign in with their @factoryforgood.com email.</div>
+      <div style="font-size:11.5px;color:#797772;margin-top:18px;border-top:1px solid #DEDBD6;padding-top:12px">Access is by invitation. First time here? Enter your invited email and we'll send you a sign-in link — you'll choose a password of your own once you're in. After that, sign in either way.</div>
     </div>
   </div>`);
   const msg = (t, bad)=>{ const m=$('#gateMsg'); m.style.display='block'; m.textContent=t;
@@ -6866,8 +6922,9 @@ function injectGate(){
     try{
       const pw = $('#gatePw').value;
       await sb.signInPassword($('#gateEmail').value.trim(), pw);
-      // signing in with a unique (non-starter) password proves they already have one
-      window._FFG_LOGIN = (pw === FFG_STARTER_PW) ? 'starter' : 'password';
+      // a legacy shared-starter sign-in is detected by hash only (nothing secret
+      // lives in this page) and treated like any starter: must set their own
+      window._FFG_LOGIN = (await sha256Hex(pw)) === FFG_LEGACY_STARTER_SHA ? 'starter' : 'password';
       await bootAfterAuth();
     }catch(e){ msg(e.message, true); }
   });

@@ -99,6 +99,11 @@ class H(BaseHTTPRequestHandler):
                 if b.get('refresh_token'):
                     for t, usr in TOKENS.items():
                         if t == b['refresh_token']: u = usr; break
+                    # magic-link simulation: a token minted by the email link isn't
+                    # in TOKENS yet — resolve it by the user id it encodes
+                    if not u and str(b.get('refresh_token', '')).startswith('tok-'):
+                        uid = b['refresh_token'][4:]
+                        u = next((x for x in USERS.values() if x['id'] == uid), None)
                 if not u: return self._send(400, {'error_description': 'Invalid login credentials'})
             tok = 'tok-' + u['id']
             TOKENS[tok] = u
@@ -111,7 +116,7 @@ class H(BaseHTTPRequestHandler):
             if not invited: return self._send(400, {'msg': 'This portal is invite-only. Ask Factory for Good to invite ' + e})
             USERS[e] = {'id': 'u-' + e.split('@')[0], 'email': e,
                         'role': 'staff' if e.endswith('@factoryforgood.com') else 'member',
-                        'full_name': (b.get('data') or {}).get('full_name', ''), 'pw': b.get('password'), 'pw_set': False}
+                        'full_name': (b.get('data') or {}).get('full_name', ''), 'pw': b.get('password'), 'pw_set': False, 'starter': bool((b.get('data') or {}).get('starter'))}
             return self._send(200, {'user': {'id': USERS[e]['id'], 'email': e}})
         if p.path == '/auth/v1/otp':
             b = self._body()
@@ -212,7 +217,7 @@ class H(BaseHTTPRequestHandler):
         p = urllib.parse.urlparse(self.path)
         if p.path == '/auth/v1/user':
             u = user_from(self.headers)
-            return self._send(200, {'id': u['id'], 'email': u['email'], 'user_metadata': {'pw_set': u.get('pw_set', False)}}) if u else self._send(401, {})
+            return self._send(200, {'id': u['id'], 'email': u['email'], 'user_metadata': {'pw_set': u.get('pw_set', False), 'starter': u.get('starter', False)}}) if u else self._send(401, {})
         u = user_from(self.headers)
         if not u: return self._send(401, {'message': 'JWT required'})
         f = parse_filters(p.query)
@@ -276,6 +281,7 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/auth/v1/user':
             if b.get('password'): u['pw'] = b['password']
             if (b.get('data') or {}).get('pw_set'): u['pw_set'] = True
+            if 'starter' in (b.get('data') or {}): u['starter'] = bool(b['data']['starter'])
             return self._send(200, {'id': u['id'], 'email': u['email']})
         return self._send(404, {'message': 'mock: no route'})
 
