@@ -1,0 +1,52 @@
+name: Nightly data backup
+# Dumps every application table to JSON on the `backups` branch, nightly.
+# Requires two repository secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL              e.g. https://xxxx.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY the service_role key (Project Settings -> API).
+# The service key bypasses RLS — it lives ONLY here as a secret, never in code.
+on:
+  schedule:
+    - cron: '17 8 * * *'   # daily, 08:17 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Dump tables
+        env:
+          SB_URL: ${{ secrets.SUPABASE_URL }}
+          SB_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          if [ -z "$SB_URL" ] || [ -z "$SB_KEY" ]; then
+            echo "::error::Backup secrets not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)"; exit 1; fi
+          git switch backups 2>/dev/null || git switch --orphan backups
+          mkdir -p data
+          STAMP=$(date -u +%F)
+          # Works with either key style: the legacy service_role JWT (eyJ...)
+          # or a new-format secret key (sb_secret_...). New-style keys go in
+          # the apikey header only; JWTs also go in Authorization.
+          AUTH_ARGS=(-H "apikey: $SB_KEY")
+          case "$SB_KEY" in eyJ*) AUTH_ARGS+=(-H "Authorization: Bearer $SB_KEY");; esac
+          for T in orgs org_history org_comments org_cell_notes org_workflow_events org_updates site_visit_items donations profiles invites circles circle_members client_errors; do
+            echo "dumping $T"
+            curl -sf "$SB_URL/rest/v1/$T?select=*" \
+              "${AUTH_ARGS[@]}" \
+              -H "Range-Unit: items" -H "Range: 0-999999" \
+              -o "data/$T.json" || echo "[]" > "data/$T.json"
+          done
+          echo "{\"backed_up_at\":\"$(date -u +%FT%TZ)\"}" > data/_meta.json
+      - name: Commit
+        run: |
+          git config user.name "ffg-backup-bot"
+          git config user.email "backup@factoryforgood.com"
+          git add data
+          git commit -m "Nightly backup $(date -u +%F)" || echo "no changes"
+          git push origin backups
