@@ -6661,12 +6661,26 @@ const sb = {
     const j = await this.auth('token?grant_type=password', {email, password});
     this.session = this._stamp(j); this.save(); return j;
   },
-  async updatePassword(pw){
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify({password:pw, data:{pw_set:true, starter:false}})});
-    if (r.status===401 && await this.refresh()) return this.updatePassword(pw);
+  async updatePassword(pw, nonce){
+    const body = {password:pw, data:{pw_set:true, starter:false}};
+    if (nonce) body.nonce = nonce;   // secure-password-change: emailed 6-digit code
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {method:'PUT', headers:this.headers(), body:JSON.stringify(body)});
     const t = await r.text(); let j = {}; try{ j = t?JSON.parse(t):{}; }catch(e){}
-    if (!r.ok) throw new Error(j.msg || j.message || ('Error '+r.status));
+    const msg = j.msg || j.message || '';
+    // an expired token 401 is retried after refresh; a reauthentication 401 is
+    // a real answer the caller must handle (it asks for the emailed code)
+    if (r.status===401 && !/reauth|nonce/i.test(msg) && await this.refresh()) return this.updatePassword(pw, nonce);
+    if (!r.ok) throw new Error(msg || ('Error '+r.status));
     return j;
+  },
+  /* secure password change: ask Supabase to email the signed-in user a
+     6-digit confirmation code (nonce) proving it's really them */
+  async reauthenticate(){
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/reauthenticate`, {headers:this.headers()});
+    if (r.status===401 && await this.refresh()) return this.reauthenticate();
+    if (!r.ok){ const t = await r.text(); let j={}; try{ j=t?JSON.parse(t):{}; }catch(e){}
+      throw new Error(j.msg || j.message || ('Error '+r.status)); }
+    return true;
   },
   async sendMagicLink(email){
     return this.auth('otp', {email, create_user:true, options:{email_redirect_to: location.origin + location.pathname}});
@@ -6827,7 +6841,7 @@ window.openPasswordModal = function(required){
     <input id="pw1" type="password" autocomplete="new-password" style="width:100%;margin:5px 0 12px">
     <label style="font-size:12px;color:var(--ink-3)">Repeat it</label>
     <input id="pw2" type="password" autocomplete="new-password" style="width:100%;margin:5px 0 16px">
-    <div style="display:flex;justify-content:flex-end;gap:10px">
+    <div id="pwActions" style="display:flex;justify-content:flex-end;gap:10px">
       ${required?'':'<button class="btn" onclick="closeModal()">Cancel</button>'}
       <button class="btn primary" id="pwGo">Save password</button></div>`;
   veil.classList.add('show');
@@ -6836,10 +6850,123 @@ window.openPasswordModal = function(required){
     const a = $('#pw1').value, b = $('#pw2').value;
     if (a.length < 8) return flash('Use at least 8 characters');
     if (a !== b) return flash('The two entries don’t match');
-    try{ await sb.updatePassword(a); delete veil.dataset.required; closeModal(); flash('Password saved — use it next time you sign in'); }
-    catch(e){ flash('Could not update: '+e.message); }
+    const nonce = ($('#pwNonce')?.value||'').trim();
+    try{
+      await sb.updatePassword(a, nonce || undefined);
+      delete veil.dataset.required; closeModal(); flash('Password saved — use it next time you sign in');
+    }catch(e){
+      if (/reauth|nonce/i.test(e.message||'')){
+        // secure password change is on and this session isn't fresh —
+        // Supabase emails a 6-digit code to confirm it's really them
+        if (!$('#pwNonceRow')){
+          try{ await sb.reauthenticate(); }catch(_){}
+          $('#pwActions').insertAdjacentHTML('beforebegin', `<div id="pwNonceRow" style="margin:0 0 16px">
+            <div class="muted" style="font-size:12px;margin-bottom:6px">One more step — we just emailed you a 6-digit code to confirm it's you.</div>
+            <input id="pwNonce" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" style="width:100%">
+          </div>`);
+          $('#pwNonce').focus();
+          flash('Check your email for a 6-digit confirmation code');
+        } else if (nonce){
+          flash('That code didn’t match — check the newest email');
+        } else {
+          $('#pwNonce').focus(); flash('Enter the emailed 6-digit code');
+        }
+        return;
+      }
+      flash('Could not update: '+e.message);
+    }
   });
 };
+/* ---------- account page: photo, name, email, password, sign out ---------- */
+function syncTopAvatar(){
+  const av = $('#topAvatar'); if (!av) return;
+  if (MEMBER.avatarUrl){
+    av.style.backgroundImage = `url("${MEMBER.avatarUrl.replace(/"/g,'')}")`;
+    av.style.backgroundSize = 'cover'; av.style.backgroundPosition = 'center';
+    av.textContent = '';
+  } else {
+    av.style.backgroundImage = '';
+    av.textContent = (MEMBER.fullName||MEMBER.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  }
+}
+window.syncTopAvatar = syncTopAvatar;
+async function uploadAvatar(file){
+  if (!/^image\//.test(file.type)) throw new Error('Choose an image file');
+  if (file.size > 8*1024*1024) throw new Error('Image too large (8 MB max)');
+  const bmp = await createImageBitmap(file);
+  const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  const side = Math.min(bmp.width, bmp.height);
+  ctx.drawImage(bmp, (bmp.width-side)/2, (bmp.height-side)/2, side, side, 0, 0, S, S);
+  const blob = await new Promise(res=>c.toBlob(res, 'image/jpeg', 0.85));
+  if (!blob) throw new Error('Could not process the image');
+  const path = APP.userId + '.jpg';
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${path}`, {method:'POST',
+    headers:{'apikey':SUPABASE_ANON, 'Authorization':'Bearer '+(sb.session?.access_token||''), 'Content-Type':'image/jpeg', 'x-upsert':'true'},
+    body: blob});
+  if (!r.ok){ const t = await r.text(); throw new Error((t||'').slice(0,120) || ('Upload failed '+r.status)); }
+  return `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}?v=${Date.now()}`;
+}
+window.openAccountModal = function(){
+  if (!window.APP || !APP.ready) return;
+  const veil = $('#modalVeil'), box = $('#modalBox');
+  box.style.width = 'min(460px,94vw)'; box.style.maxHeight = '88vh'; box.style.overflow = 'auto';
+  const initials = (MEMBER.fullName||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const role = APP.staff ? 'Factory for Good staff' : 'Member';
+  box.innerHTML = `<div class="kicker">Your account</div>
+    <div style="display:flex;gap:16px;align-items:center;margin:8px 0 18px">
+      <div id="accAv" style="width:64px;height:64px;border-radius:50%;background:var(--ink);color:#F7F5F1;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;overflow:hidden;${MEMBER.avatarUrl?`background-image:url('${esc(MEMBER.avatarUrl)}');background-size:cover;background-position:center;`:''}">${MEMBER.avatarUrl?'':initials}</div>
+      <div style="min-width:0">
+        <div style="font-weight:600;font-size:16px">${esc(MEMBER.fullName||'')}</div>
+        <div class="muted" style="font-size:12px">${role}${APP.profile?.member_since?` · member since ${esc(String(APP.profile.member_since))}`:''}</div>
+        <div style="display:flex;gap:12px;margin-top:7px">
+          <label class="res" style="cursor:pointer;font-size:12px">📷 ${MEMBER.avatarUrl?'Change photo':'Add a photo'}<input id="accFile" type="file" accept="image/*" style="display:none"></label>
+          ${MEMBER.avatarUrl?'<span class="res" id="accAvDel" style="cursor:pointer;font-size:12px;color:var(--crit)">Remove</span>':''}
+        </div>
+      </div></div>
+    <label style="font-size:12px;color:var(--ink-3)">Display name</label>
+    <div style="display:flex;gap:8px;margin:5px 0 14px">
+      <input id="accName" value="${esc(MEMBER.fullName||'')}" style="flex:1">
+      <button class="btn" id="accNameGo">Save</button></div>
+    <label style="font-size:12px;color:var(--ink-3)">Sign-in email</label>
+    <div style="font-size:13.5px;margin:5px 0 2px">${esc(APP.profile?.email||'')}</div>
+    <div class="muted" style="font-size:11px;margin-bottom:16px">Your email is your identity here — ask the FFG team if it ever needs to change.</div>
+    <div style="border-top:1px solid var(--hairline);padding-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="openPasswordModal()">Change password…</button>
+      <button class="btn" onclick="sb.signOut().then(()=>location.reload())">Sign out</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn primary" onclick="closeModal()">Done</button></div>`;
+  veil.classList.add('show');
+  $('#accNameGo').addEventListener('click', async ()=>{
+    const n = $('#accName').value.trim();
+    if (!n) return flash('Enter a name');
+    try{
+      await sb.rest('rpc/update_own_profile', {method:'POST', body:{new_name:n, new_avatar:null}});
+      MEMBER.fullName = n; if (APP.profile) APP.profile.full_name = n;
+      $('#topMemberName').textContent = n; syncTopAvatar();
+      flash('Name updated');
+    }catch(e){ flash('Could not save: '+e.message); }
+  });
+  $('#accFile').addEventListener('change', async e=>{
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try{
+      flash('Uploading photo…');
+      const url = await uploadAvatar(f);
+      await sb.rest('rpc/update_own_profile', {method:'POST', body:{new_name:null, new_avatar:url}});
+      MEMBER.avatarUrl = url; if (APP.profile) APP.profile.avatar_url = url;
+      syncTopAvatar(); openAccountModal(); flash('Photo updated');
+    }catch(err){ flash('Upload failed: '+err.message); }
+  });
+  const del = $('#accAvDel');
+  if (del) del.addEventListener('click', async ()=>{
+    try{
+      await sb.rest('rpc/update_own_profile', {method:'POST', body:{new_name:null, new_avatar:''}});
+      MEMBER.avatarUrl = null; if (APP.profile) APP.profile.avatar_url = null;
+      syncTopAvatar(); openAccountModal(); flash('Photo removed');
+    }catch(e){ flash('Could not remove: '+e.message); }
+  });
+};
+
 /* Require creating an own password ONLY for accounts that have never chosen
    one: sign-ins via the starter password or an email link. Anyone who signs in
    with their own unique password is silently marked as set — existing users
@@ -6946,6 +7073,7 @@ async function loadLiveData(){
   const member = {
     name: (profile?.full_name||profile?.email||'').split(/[@ ]/)[0] || 'there',
     fullName: profile?.full_name || profile?.email || '',
+    avatarUrl: profile?.avatar_url || null,
     donations: dons.filter(d=>d.status==='logged').map(d=>({id:d.id, org:d.org_id, date:d.gift_date, amount:+d.amount, note:d.note})),
     planned: dons.filter(d=>d.status==='planned').map(d=>({id:d.id, org:d.org_id, date:d.gift_date, amount:+d.amount, note:d.note})),
     circles: [],
@@ -7323,8 +7451,8 @@ function applyRole(){
   const av = $('#topAvatar');
   if (av && !av.dataset.pwWired){
     av.dataset.pwWired = '1'; av.style.cursor = 'pointer';
-    av.title = 'Change your password';
-    av.addEventListener('click', ()=>openPasswordModal());
+    av.title = 'Your account — photo, name, password';
+    av.addEventListener('click', ()=>openAccountModal());
   }
 }
 

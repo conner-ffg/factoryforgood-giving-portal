@@ -1148,6 +1148,48 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     document.body.classList.remove('va-member');
     return hidden && bounced;
   }));
+  check('account page: photo/name/email/password/sign-out, name edit persists', await page.evaluate(async () => {
+    openAccountModal();
+    const box = document.querySelector('#modalBox');
+    const hasAll = box.textContent.includes('staff@factoryforgood.com') &&
+                   !!box.querySelector('#accFile') && !!box.querySelector('#accName') &&
+                   box.textContent.includes('Change password') && box.textContent.includes('Sign out');
+    box.querySelector('#accName').value = 'Sam S. Staff';
+    box.querySelector('#accNameGo').click();
+    await new Promise(r => setTimeout(r, 500));
+    const api = await sb.rest('profiles?select=*');
+    const persisted = api.some(p => p.full_name === 'Sam S. Staff');
+    const topSync = document.querySelector('#topMemberName').textContent === 'Sam S. Staff';
+    // avatar url round-trip via the same RPC the photo upload uses
+    await sb.rest('rpc/update_own_profile', {method: 'POST', body: {new_name: null, new_avatar: 'https://example.com/a.jpg'}});
+    MEMBER.avatarUrl = 'https://example.com/a.jpg'; syncTopAvatar();
+    const avShown = document.querySelector('#topAvatar').style.backgroundImage.includes('example.com');
+    const api2 = await sb.rest('profiles?select=*');
+    const avPersisted = api2.some(p => p.avatar_url === 'https://example.com/a.jpg');
+    // restore
+    await sb.rest('rpc/update_own_profile', {method: 'POST', body: {new_name: 'Sam Staff', new_avatar: ''}});
+    MEMBER.fullName = 'Sam Staff'; MEMBER.avatarUrl = null; syncTopAvatar();
+    document.querySelector('#topMemberName').textContent = 'Sam Staff';
+    closeModal();
+    return hasAll && persisted && topSync && avShown && avPersisted;
+  }));
+  check('secure password change: emailed code path works end to end', await page.evaluate(async () => {
+    await fetch(SUPABASE_URL + '/__test/secure_pw', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{"on":true}'});
+    openPasswordModal();
+    document.querySelector('#pw1').value = 'brandNewPass1';
+    document.querySelector('#pw2').value = 'brandNewPass1';
+    document.querySelector('#pwGo').click();
+    await new Promise(r => setTimeout(r, 600));
+    const codeAsked = !!document.querySelector('#pwNonceRow') &&
+                      document.querySelector('#modalVeil').classList.contains('show');
+    document.querySelector('#pwNonce').value = '123456';
+    document.querySelector('#pwGo').click();
+    await new Promise(r => setTimeout(r, 600));
+    const saved = !document.querySelector('#modalVeil').classList.contains('show');
+    await fetch(SUPABASE_URL + '/__test/secure_pw', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{"on":false}'});
+    await sb.updatePassword('pw');   // restore the mock account's password
+    return codeAsked && saved;
+  }));
   check('session: keep-alive armed, refresh survives a network failure', await page.evaluate(async () => {
     const armed = !!sb._ka && typeof sb.refresh === 'function';
     const hadSession = !!(sb.session && sb.session.refresh_token);

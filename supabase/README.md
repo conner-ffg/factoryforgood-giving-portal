@@ -7,6 +7,7 @@ Paste each file into the Supabase SQL editor and run, in this order:
 1. `migration_donorstudio.sql` — baseline schema (tables, RLS, RPCs, seeds)
 2. `migration_org_updates.sql` — org updates + site visits addendum
 3. `migration_hardening.sql` — change history, write validation, error log
+4. `migration_account.sql` — account page (avatar storage, self-service profile RPC)
 
 ## CLI path (recommended once a staging project exists)
 The same files live under `migrations/` with ordered names for the Supabase

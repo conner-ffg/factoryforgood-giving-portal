@@ -12,6 +12,7 @@ Authentication → Email Templates, then for each:
 | Magic Link | `magic-link.html` | Your Factory for Good sign-in link |
 | Confirm signup | `confirm-signup.html` | Welcome to Factory for Good — confirm your email |
 | Reset password | `reset-password.html` | Reset your Factory for Good password |
+| Reauthentication | `reauthentication.html` | Your Factory for Good confirmation code |
 
 Paste the file's full contents into the template body (Source view), set the
 subject, save. `{{ .ConfirmationURL }}` is filled in by Supabase.

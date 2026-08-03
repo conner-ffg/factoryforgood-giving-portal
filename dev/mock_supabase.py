@@ -17,6 +17,7 @@ USERS = {
     'member2@example.com': {'id': 'u-member2', 'email': 'member2@example.com', 'role': 'member', 'full_name': 'Noah Chen', 'pw_set': False},
 }
 TOKENS = {}  # token -> user
+SECURE_PW = {'on': False}   # test toggle: simulate the dashboard's secure-password-change setting
 DONATIONS, COMMENTS, NOTES, SHORTLIST = [], [], {}, []
 CIRCLES = {'test-circle': {'id': 'test-circle', 'name': 'Test Circle', 'description': 'Mock giving circle'}}
 CIRCLE_MEMBERS = [{'circle_id': 'test-circle', 'user_id': 'u-member'},
@@ -124,6 +125,22 @@ class H(BaseHTTPRequestHandler):
             if e.endswith('@factoryforgood.com') or e in USERS: return self._send(200, {})
             return self._send(400, {'msg': 'This portal is invite-only. Ask Factory for Good to invite ' + e})
         if p.path == '/auth/v1/logout': return self._send(204)
+        if p.path == '/__test/secure_pw':
+            SECURE_PW['on'] = bool(self._body().get('on')); return self._send(200, SECURE_PW)
+        if p.path.startswith('/storage/v1/object/avatars/'):
+            u2 = user_from(self.headers)
+            if not u2: return self._send(401, {'message': 'JWT required'})
+            n = int(self.headers.get('Content-Length') or 0)
+            self.rfile.read(n)
+            return self._send(200, {'Key': p.path.split('/storage/v1/object/')[1]})
+        if p.path == '/rest/v1/rpc/update_own_profile':
+            u2 = user_from(self.headers)
+            if not u2: return self._send(401, {'message': 'JWT required'})
+            b2 = self._body()
+            if b2.get('new_name'): u2['full_name'] = b2['new_name']
+            if b2.get('new_avatar') is not None:
+                u2['avatar_url'] = None if b2['new_avatar'] == '' else b2['new_avatar']
+            return self._send(200, None)
         if p.path == '/rest/v1/rpc/network_alloc':
             agg = {}
             for d in DONATIONS:
@@ -218,11 +235,13 @@ class H(BaseHTTPRequestHandler):
         if p.path == '/auth/v1/user':
             u = user_from(self.headers)
             return self._send(200, {'id': u['id'], 'email': u['email'], 'user_metadata': {'pw_set': u.get('pw_set', False), 'starter': u.get('starter', False)}}) if u else self._send(401, {})
+        if p.path == '/auth/v1/reauthenticate':
+            return self._send(200, {}) if user_from(self.headers) else self._send(401, {})
         u = user_from(self.headers)
         if not u: return self._send(401, {'message': 'JWT required'})
         f = parse_filters(p.query)
         if p.path == '/rest/v1/profiles':
-            rows = [dict(id=x['id'], email=x['email'], role=x['role'], full_name=x['full_name']) for x in USERS.values()]
+            rows = [dict(id=x['id'], email=x['email'], role=x['role'], full_name=x['full_name'], avatar_url=x.get('avatar_url')) for x in USERS.values()]
             if u['role'] != 'staff': rows = [r for r in rows if r['id'] == u['id']]
             if 'id' in f: rows = [r for r in rows if r['id'] == f['id']]
             return self._send(200, rows)
@@ -279,7 +298,10 @@ class H(BaseHTTPRequestHandler):
         if not u: return self._send(401, {'message': 'JWT required'})
         b = self._body()
         if p.path == '/auth/v1/user':
-            if b.get('password'): u['pw'] = b['password']
+            if b.get('password'):
+                if SECURE_PW['on'] and b.get('nonce') != '123456':
+                    return self._send(401, {'message': 'Password update requires reauthentication'})
+                u['pw'] = b['password']
             if (b.get('data') or {}).get('pw_set'): u['pw_set'] = True
             if 'starter' in (b.get('data') or {}): u['starter'] = bool(b['data']['starter'])
             return self._send(200, {'id': u['id'], 'email': u['email']})
