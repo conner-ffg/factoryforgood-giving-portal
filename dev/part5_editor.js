@@ -41,8 +41,6 @@ const FIELDS = [
  {k:'demographicFocus', l:'Demographic Focus', cat:'Classification & Focus', desc:'Who the org serves (age, gender, income level, refugee status, etc).'},
  {k:'countries', l:'Countries of Operation', pub:1, cat:'Classification & Focus', arr:1, core:1, desc:'All countries where the org runs programs.'},
  {k:'statesOfOperation', l:'States of Operation', cat:'Classification & Focus', arr:1, desc:'Subnational detail for orgs working in specific US states or equivalent regions.'},
- {k:'lat', l:'Service Lat', pub:1, cat:'Classification & Focus', num:1, nocomma:1, core:1, desc:'Latitude of primary geography of service (drives the globe pin).'},
- {k:'lng', l:'Service Lng', pub:1, cat:'Classification & Focus', num:1, nocomma:1, core:1, desc:'Longitude of primary geography of service (drives the globe pin).'},
  {k:'icp', l:'ICP (Ideal Contributor Profile)', cat:'Classification & Focus', desc:'Type of donor this org is the best fit for (2–4 sentences).'},
  // Intervention & Program
  {k:'interventionImage', l:'Intervention/Demographic Image', pub:1, core:1, cat:'Intervention & Program', img:1, desc:'Photo representing the intervention or the population served. Click the camera to paste a URL or upload.'},
@@ -59,10 +57,9 @@ const FIELDS = [
  // Reach, Scale & Financials
  {k:'annualReach', l:'Annual Reach', pub:1, cat:'Reach, Scale & Financials', num:1, core:1, desc:'Number of individuals reached in a given year.'},
  {k:'livesImpacted', l:'Lives Impacted', cat:'Reach, Scale & Financials', num:1, desc:'Headline number used in donor-facing materials for total people impacted.'},
- {k:'outcomeReachRate', l:'Outcome Reach Rate (%)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'%', core:1, desc:'Percent (0–100) of beneficiaries reached who experience the intended outcome.'},
- {k:'annualSpend', l:'Most Recent Annual Total Expenses (less offsets) ($)', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Total organizational expenses in the most recent year, net of offsets.'},
- {k:'nextYearBudgetM', l:'Anticipated Next Year Budget ($)', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Projected total organizational budget for next year.'},
- {k:'budgetM', l:'Overall Org Budget ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'Total organization-wide budget, distinct from spend on this specific program.'},
+ {k:'outcomeReachRate', l:'Outcome Reach Rate (%)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'%', desc:'Percent (0–100) of beneficiaries reached who experience the intended outcome.'},
+ {k:'annualSpend', l:'Most Recent Annual Total Expenses ($)', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Total organizational expenses in the most recent year (gross — not net of offsets).'},
+ {k:'budgetM', l:'Anticipated Next Year Budget ($)', pub:1, cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, core:1, desc:'Anticipated total organization-wide budget for the coming year.'},
  {k:'budgetTier', l:'Budget Tier', cat:'Reach, Scale & Financials', ro:1, fx:o=>{const b=+o.budgetM||0;return b<1?'<$1M':b<5?'$1–5M':b<25?'$5–25M':'$25M+';}, desc:'Bucketed budget range for filtering. Auto-derived from Overall Org Budget.'},
  {k:'revenueOffset', l:'Revenue Offset ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Non-donation revenue that offsets program cost (fees, government contracts, etc).'},
  {k:'commercialRevenue', l:'Commercial Revenue ($)', cat:'Reach, Scale & Financials', num:1, unit:'$', mult:1e6, desc:'Org\'s own earned or commercial revenue, distinct from grants and donations.'},
@@ -70,8 +67,8 @@ const FIELDS = [
  {k:'absorbencyRank', l:'Absorbency Level', pub:1, core:1, cat:'Reach, Scale & Financials', sel:['Low','Medium','High'], desc:'Ranked room for additional capital: low, medium, or high.'},
  {k:'growthCurve', l:'Scale Type', pub:1, cat:'Reach, Scale & Financials', sel:['Flat','Linear','Exponential'], core:1, desc:'Shape of the org\'s growth curve.'},
  {k:'scalePosition', l:'Scale Position (1–10)', cat:'Reach, Scale & Financials', num:1, desc:'Where the org sits on its growth curve.'},
- {k:'stage', l:'Stage', pub:1, cat:'Reach, Scale & Financials', sel:['Pilot','Growth','Scale'], core:1, desc:'Lifecycle stage: pilot, growth, or scale.'},
- {k:'teamSize', l:'Team Size', pub:1, core:1, cat:'Reach, Scale & Financials', num:1, desc:'Approximate staff count.'},
+ {k:'stage', l:'Stage', pub:1, cat:'Reach, Scale & Financials', sel:['Pilot','Growth','Scale','Maturity'], core:1, desc:'Lifecycle stage: pilot, growth, scale, or maturity.'},
+ {k:'teamSize', l:'Team Size', pub:1, core:1, cat:'Reach, Scale & Financials', sel:['<10','10-50','50-100','100+'], desc:'Staff count range.'},
  {k:'potentialForScale', l:'Potential for Scale', pub:1, core:1, cat:'Reach, Scale & Financials', sel:RATE5, desc:'Rating of scalability. Pairs with Assessment of Growth/Scalability and Fit.'},
  {k:'payerAtScaleInterest', l:'Payer-at-Scale Interest', cat:'Reach, Scale & Financials', desc:'Degree of interest from institutional payers (governments, insurers, multilaterals).'},
  {k:'governmentAdoption', l:'Government Adoption', cat:'Reach, Scale & Financials', desc:'Whether and how much government has adopted or funded the approach.'},
@@ -195,7 +192,7 @@ window.wfAction = function(orgId, kind){
   const wf = o.workflow = Object.assign({}, o.workflow);
   if (kind==='sub'){
     if (wf.sub){ delete wf.sub; wfRetract('submission', o); flash('Submission invite withdrawn — removed from the tallies'); }
-    else { wf.sub = {by:me, date}; wfLog('submission', o); flash('Submission of org data invited — '+o.name); }
+    else { wf.sub = {by:me, date}; wfLog('submission', o); flash('Submission of org data invited — '+o.name); wfOfferAssign(o, 'sub'); }
   }
   if (kind==='req'){
     if (wf.req){ delete wf.req; wfRetract('request', o); flash(o.name+' removed from the review queue — request not counted'); }
@@ -203,6 +200,7 @@ window.wfAction = function(orgId, kind){
       wf.req = {by:me, date}; wfLog('request', o);
       if (wf.sub){ wf.subDone = wf.sub; delete wf.sub; flash(o.name+': submission fulfilled → review queued'); }
       else flash(o.name+' added to the review queue');
+      wfOfferAssign(o, 'req');
     }
   }
   if (kind==='done'){
@@ -230,6 +228,30 @@ window.wfAction = function(orgId, kind){
   updateNoteCnt(); renderEdRows();
   if ($('#notesDrawer').classList.contains('show')) renderNotesPanel();
   if ($('#reviewDrawer') && $('#reviewDrawer').classList.contains('show')) renderReviewPanel();
+};
+/* optional assignee for a fresh submission invite / review request */
+function wfOfferAssign(o, kind){
+  const menu = $('#ctxMenu'); if (!menu) return;
+  const ev = window.event;
+  const x = ev && ev.clientX ? Math.min(innerWidth-240, ev.clientX) : Math.round(innerWidth/2)-110;
+  const y = ev && ev.clientY ? Math.min(innerHeight-240, ev.clientY+10) : 160;
+  const people = teamMembers().filter(n=>n!=='FFG Team');
+  menu.innerHTML = `<div style="font-size:11px;color:var(--ink-3);padding:7px 12px 3px">Assign this ${kind==='sub'?'submission':'review'} to… <span style="opacity:.7">(optional)</span></div>`
+    + people.map(n=>`<button onclick="wfAssign(${o.id},'${kind}','${esc(n).replace(/'/g,"\\'")}')"><b>${esc(initialsOf(n))}</b> ${esc(n)}</button>`).join('')
+    + `<div class="sep"></div><button onclick="document.querySelector('#ctxMenu').style.display='none'">No assignee</button>`;
+  menu.style.display = 'block';
+  menu.style.left = x+'px'; menu.style.top = y+'px';
+}
+window.wfAssign = function(orgId, kind, name){
+  const menu = $('#ctxMenu'); if (menu) menu.style.display = 'none';
+  const o = byId(orgId); if (!o || !o.workflow) return;
+  const slot = kind==='sub' ? o.workflow.sub : o.workflow.req;
+  if (!slot){ return; }
+  slot.assignee = name;
+  if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o, 'workflow', o.workflow) : PERSIST.org(o); }
+  renderEdRows();
+  if ($('#reviewDrawer') && $('#reviewDrawer').classList.contains('show')) renderReviewPanel();
+  flash((kind==='sub'?'Submission':'Review')+' assigned to '+name);
 };
 function wfDaysOld(d){ try{ return Math.floor((Date.now() - new Date(d+'T00:00:00').getTime())/864e5); }catch(e){ return 0; } }
 function wfLate(o){
@@ -577,7 +599,7 @@ function renderReviewPanel(){
     html = lateBox(late, 'awaiting submission') + `<div class="rv-box">
       <div class="rv-title">Submission invites · ${subQueue.length}</div>
       ${subQueue.length ? subQueue.map(o=>rvItem(o,
-        `invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago`,
+        `invited by ${initialsOf(o.workflow.sub.by)} · ${o.workflow.sub.date} · ${wfDaysOld(o.workflow.sub.date)}d ago${o.workflow.sub.assignee?' · assigned → '+initialsOf(o.workflow.sub.assignee)+' '+esc(o.workflow.sub.assignee):''}`,
         `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'req')">⏳ Fulfil → request review</span>`)).join('')
       : '<div class="muted" style="font-size:12.5px;padding:6px 2px">No open submission invites. Use the checkbox on any studio row to invite org data.</div>'}</div>`;
   } else if (rvTab==='req'){
@@ -589,7 +611,7 @@ function renderReviewPanel(){
       ${queue.length ? Object.entries(byWho).sort((a,b)=>a[0].localeCompare(b[0])).map(([who, os])=>`
         <div class="rvh-person" style="margin-top:8px"><b>${initialsOf(who)}</b> <span class="muted">requested by ${esc(who)} · ${os.length}</span></div>
         ${os.map(o=>rvItem(o,
-          `requested ${o.workflow.req.date}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}`,
+          `requested ${o.workflow.req.date}${o.workflow.req.assignee?` · assigned → ${initialsOf(o.workflow.req.assignee)} ${esc(o.workflow.req.assignee)}`:''}${o.workflow.subDone?` · submission fulfilled (${initialsOf(o.workflow.subDone.by)} ${o.workflow.subDone.date})`:''}`,
           `<span class="res" onclick="event.stopPropagation();wfAction(${o.id},'done')">✓ Mark reviewed</span>`)).join('')}`).join('')
       : '<div class="muted" style="font-size:12.5px;padding:6px 2px">Nothing waiting for review. Click ⏳ on any studio row to queue it.</div>'}</div>`;
   } else {
@@ -797,7 +819,7 @@ $('#edAdd').addEventListener('click', ()=>{
     countries:['Global'], lat:0, lng:20, hq:'', founded:2026, visibility:'hidden', blurb:'', outputUnit:'output', costPerOutput:0,
     outcomesList:[], costPerOutcome:0, outcomeReachRate:0, annualReach:0, website:'', outcomesTargeted:0,
     sufferMin:3, flourishMax:6, confidence:'Emerging', theoryOfChange:'', orgType:'Direct Service', stage:'Pilot',
-    growthCurve:'Linear', budgetM:0, absorbencyM:0, goalM:0, raisedM:0, teamSize:0, gathering:[], region:'Global'};
+    growthCurve:'Linear', budgetM:0, absorbencyM:0, goalM:0, raisedM:0, teamSize:'', gathering:[], region:'Global'};
   FIELDS.forEach(f=>{ if (!(f.k in blank) && !f.fx) blank[f.k] = f.num?0:(f.arr?[]:''); });
   blank.lastUpdated = new Date().toISOString().slice(0,10);
   blank.vettingStatus = 'Not started';
@@ -857,7 +879,7 @@ function renderEdRows(){
     const updTitle = ups.length
       ? `From the field — ${liveN} live, ${ups.length-liveN} draft or upcoming. Click to view past updates and plan next quarter's.`
       : 'From the field — no updates logged yet. Click to draft this organization\'s first quarterly update.';
-    return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span><span class="row-ic sv-ic ${o.siteVisit?'on':''}" title="${o.siteVisit?`Site-visit candidate (${esc(o.siteVisit.status||'candidate')}) — click to remove. Plan it in the Site visits tab.`:'Mark this org for a potential site visit'}" onclick="window.toggleSiteVisit&&toggleSiteVisit(${o.id})">✈</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${esc(wf.req.by)} on ${wf.req.date}. Rows are grouped by requester. Click to remove.`:'Request review — adds this org to the review queue'}" onclick="wfAction(${o.id},'req')">⏳${wf.req?`<i class="req-by">${esc(initialsOf(wf.req.by))}</i>`:''}</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
+    return `<tr data-id="${o.id}" class="${rowCls}"><td class="upd-c"><span class="row-ic upd-ic ${liveN?'on':''}" title="${updTitle}" onclick="openUpdatesMgr(${o.id})">🗞${ups.length?`<i class="upd-n">${ups.length}</i>`:''}</span><span class="row-ic sv-ic ${o.siteVisit?'on':''}" title="${o.siteVisit?`Site-visit candidate (${esc(o.siteVisit.status||'candidate')}) — click to remove. Plan it in the Site visits tab.`:'Mark this org for a potential site visit'}" onclick="window.toggleSiteVisit&&toggleSiteVisit(${o.id})">✈</span></td><td class="vis-c"><div style="display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap"><label class="vswitch" title="${isShown(o)?'Shown on the site — click to hide':'Hidden from members — click to show'}"><input type="checkbox" ${isShown(o)?'checked':''} data-vis="${o.id}"><i></i></label><span class="row-ic" title="Go to this organization's brief" onclick="go('#/org/${o.id}')">↗</span><span class="row-ic" title="Edit in vertical view — all fields as rows" onclick="openVerticalEdit(${o.id})">✎</span><input type="checkbox" class="wf-cb" ${wf.sub?'checked':''} title="${wf.sub?`Submission invited by ${initialsOf(wf.sub.by)} on ${wf.sub.date}${wf.sub.assignee?' — assigned to '+esc(wf.sub.assignee):''} — uncheck to clear`:'Invite submission of org data (new or existing org)'}" onclick="event.preventDefault();wfAction(${o.id},'sub')"><span class="row-ic wf-req-ic ${wf.req?'on':''}" title="${wf.req?`In the review queue — requested by ${esc(wf.req.by)} on ${wf.req.date}.${wf.req.assignee?' Assigned to '+esc(wf.req.assignee)+'.':''} Rows are grouped by requester. Click to remove.`:'Request review — adds this org to the review queue (you can assign it to someone)'}" onclick="wfAction(${o.id},'req')">⏳${wf.req?`<i class="req-by">${esc(initialsOf(wf.req.by))}</i>`:''}</span><span class="row-ic wf-done-ic ${wf.done?'on':''}" onmousemove="wfTip(event,${o.id})" onmouseleave="hideTip()" onclick="wfAction(${o.id},'done')">✓</span></div></td>${cols.map(c=>{
     const noted = (noteFor(o.id, c.k) ? ' has-note':'') + (CELLNOTES[cellNoteKey(o.id,c.k)] ? ' has-cellnote':'') + (c.pub ? ' pub':'');
     if (c.k==='name'){
       if (o.archived) return `<td class="name-c pub${noted}" data-k="name" style="opacity:.75"><span title="Archived ${esc(o.archived.date||'')}${o.archived.by?' by '+esc(o.archived.by):''}" style="margin-right:7px">🗄</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(o.name)}</span><span class="row-ic" style="margin-left:7px;color:var(--good)" title="Restore this organization to active" onclick="event.stopPropagation();restoreOrg(${o.id})">↩</span></td>`;
@@ -964,7 +986,7 @@ function commitCell(el){
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
   if (key==='countries') autoLatLng(o);
-  if (key==='lat'||key==='lng'||key==='countries') { o.region = regionOf(o); buildPins(); }
+  if (key==='countries'){ window.deriveOrgLL && deriveOrgLL(o); o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
   flash('Updated '+o.name);
 }
@@ -1415,7 +1437,7 @@ function commitVertical(o, el){
   o[key] = v;
   o.lastUpdated = new Date().toISOString().slice(0,10);
   if (key==='countries') autoLatLng(o);
-  if (key==='lat'||key==='lng'||key==='countries'||key==='tier'||key==='visibility'){ o.region = regionOf(o); buildPins(); }
+  if (key==='countries'||key==='tier'||key==='visibility'){ if (key==='countries' && window.deriveOrgLL) deriveOrgLL(o); o.region = regionOf(o); buildPins(); }
   clearGathering(o, key, v, col);
   flash(o.name+' updated');
   if (window.PERSIST){ PERSIST.orgField ? PERSIST.orgField(o, key, v) : PERSIST.org(o); }

@@ -259,10 +259,26 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('~ input marks the value approximate and shows a range', await page.evaluate(() => {
     const tr = document.querySelector('#edBody tr');
     const o = byId(+tr.dataset.id);
-    const td = tr.querySelector('td[data-k="teamSize"]');
+    const td = tr.querySelector('td[data-k="annualReach"]');
+    const prev = td.textContent;
     td.textContent = '~50'; commitCell(td);
-    return (o._approx||{}).teamSize === 1 && td.textContent === '~50' &&
+    const ok = (o._approx||{}).annualReach === 1 && td.textContent === '~50' &&
            fmtApproxRange(50) === '35+' && fmtApproxRange(1000000, true) === '$750K+';
+    td.textContent = prev.replace('~',''); commitCell(td);   // restore
+    return ok;
+  }));
+  check('teamSize is a range dropdown; stage offers Maturity; lat/lng columns gone', await page.evaluate(() => {
+    const f = FIELDS.find(x => x.k === 'teamSize');
+    const stage = FIELDS.find(x => x.k === 'stage');
+    const noLL = !FIELDS.some(x => x.k === 'lat' || x.k === 'lng');
+    const sel = document.querySelector('#edBody td[data-k="teamSize"] select');
+    const bucketed = ORGS.every(o => typeof o.teamSize !== 'number');
+    const merged = !FIELDS.some(x => x.k === 'nextYearBudgetM') &&
+                   FIELDS.find(x => x.k === 'budgetM').l.includes('Anticipated Next Year Budget');
+    const grossExp = FIELDS.find(x => x.k === 'annualSpend').l === 'Most Recent Annual Total Expenses ($)';
+    const reachRate = !FIELDS.find(x => x.k === 'outcomeReachRate').core;
+    return !!f.sel && f.sel.includes('100+') && stage.sel.includes('Maturity') && noLL &&
+           !!sel && bucketed && merged && grossExp && reachRate;
   }));
   check('brief + vertical-edit buttons on every row', await page.evaluate(() =>
     !!document.querySelector('#edBody .row-ic[title*="brief"]') &&
