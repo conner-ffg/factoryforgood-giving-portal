@@ -168,7 +168,8 @@ window.setSiteVisitField = function(orgId, key, val){
 })();
 function visitsRoute(){
   if (!location.hash.startsWith('#/visits')) return false;
-  if (window.APP && APP.ready && !APP.staff){ go('#/dashboard'); return true; }
+  // staff-only: bounce members, and staff previewing in view-as-member mode
+  if ((window.APP && APP.ready && !APP.staff) || (window.VIEW_AS && VIEW_AS.role!=='staff')){ go('#/dashboard'); return true; }
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-visits').classList.add('active');
   $$('#mainNav [data-route]').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/visits'));

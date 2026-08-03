@@ -1057,9 +1057,10 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   check('studio rows with open review requests group by requester', await page.evaluate(() => {
     const a = ORGS[10], b = ORGS[11], c = ORGS[12];
     [a, b, c].forEach(o => o.workflow = {...(o.workflow || {})});
-    a.workflow.req = {by: 'Zed Zulu', date: '2026-07-29'};
-    b.workflow.req = {by: 'Ann Alpha', date: '2026-07-30'};
-    c.workflow.req = {by: 'Zed Zulu', date: '2026-07-28'};
+    const daysAgo = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+    a.workflow.req = {by: 'Zed Zulu', date: daysAgo(2)};   // recent — never trips the late band
+    b.workflow.req = {by: 'Ann Alpha', date: daysAgo(1)};
+    c.workflow.req = {by: 'Zed Zulu', date: daysAgo(3)};
     renderEdRows();
     const ids = [...document.querySelectorAll('#edBody tr')].map(t => +t.dataset.id);
     const pos = id => ids.indexOf(id);
@@ -1112,6 +1113,35 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const floating = !!pills && getComputedStyle(pills).position === 'absolute' &&
                      (getComputedStyle(pills).backgroundColor === 'rgba(0, 0, 0, 0)');
     return globeFirst && splitAtHalf && statGap === 16 && glass && floating;
+  }));
+  check('giving-over-time lead-ins never cross the y-axis (sparse live data)', await page.evaluate(async () => {
+    // sparse case: all real gifts fall in a single year → gw spans the whole plot
+    go('#/dashboard'); await new Promise(r => setTimeout(r, 500));
+    state.scope = 'me'; state.dashTab = 'trend'; renderDashPanel();
+    await new Promise(r => setTimeout(r, 400));
+    const svg = document.querySelector('#trendBox svg');
+    if (!svg) return false;
+    const leads = [...svg.querySelectorAll('path.ombre.in[stroke^="url"]')];
+    const axisX = 56;   // P.l
+    const ok = leads.length === 3 && leads.every(p => {
+      const m = p.getAttribute('d').match(/M([\d.]+) /);
+      const q = p.getAttribute('d').match(/Q([\d.]+) /);
+      return m && +m[1] >= axisX - 0.01 && q && +q[1] >= axisX - 0.01;
+    });
+    state.dashTab = 'composition'; renderDashPanel();
+    return ok;
+  }));
+  check('view-as-member hides Site visits and bounces its route', await page.evaluate(async () => {
+    window.VIEW_AS = {role: 'member', name: 'Probe Member'};
+    document.body.classList.add('va-member');
+    const btn = document.querySelector('#mainNav [data-route="#/visits"]');
+    const hidden = btn && getComputedStyle(btn).display === 'none';
+    go('#/visits'); visitsRoute();
+    await new Promise(r => setTimeout(r, 300));
+    const bounced = !location.hash.startsWith('#/visits');
+    window.VIEW_AS = null;
+    document.body.classList.remove('va-member');
+    return hidden && bounced;
   }));
   check('session: keep-alive armed, refresh survives a network failure', await page.evaluate(async () => {
     const armed = !!sb._ka && typeof sb.refresh === 'function';

@@ -30,6 +30,21 @@
   --grid:rgba(20,20,19,.07); --axis:rgba(20,20,19,.22);
   --serif:'PP Fragment Glare','Fragment Glare','Iowan Old Style',Georgia,'Times New Roman',serif;
   --sans:'PP Fragment Sans','Fragment Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+/* ---- brand typography: PP Fragment superfamily (self-hosted) ----
+   Drop the licensed .woff2 files into /assets/fonts/ with these names and
+   the whole platform switches over automatically (see assets/fonts/README).
+   Until the files exist, the stacks above fall back gracefully. */
+@font-face{font-family:'PP Fragment Glare';src:url('/assets/fonts/glare-regular.woff2') format('woff2');font-weight:300 500;font-style:normal;font-display:swap}
+@font-face{font-family:'PP Fragment Glare';src:url('/assets/fonts/glare-italic.woff2') format('woff2');font-weight:300 500;font-style:italic;font-display:swap}
+@font-face{font-family:'PP Fragment Sans';src:url('/assets/fonts/sans-regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'PP Fragment Sans';src:url('/assets/fonts/sans-italic.woff2') format('woff2');font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'PP Fragment Sans';src:url('/assets/fonts/sans-medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'PP Fragment Sans';src:url('/assets/fonts/sans-semibold.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:'PP Fragment Sans';src:url('/assets/fonts/sans-bold.woff2') format('woff2');font-weight:700 800;font-style:normal;font-display:swap}
+/* brand guideline: never synthesize italics or bolds the family doesn't ship */
+html{font-synthesis:none}
+:root{
   --shadow:0 14px 40px rgba(20,20,19,.10);
   --sketch-ink:#797772; --person-ink:#263759;
 }
@@ -376,6 +391,7 @@ td.has-cellnote::before{content:'';position:absolute;top:0;left:0;border-style:s
 .va-member #mainNav [data-route="#/editor"],
 .va-member #mainNav [data-route="#/donors"],
 .va-member #mainNav [data-route="#/tools"],
+.va-member #mainNav [data-route="#/visits"],
 .va-member #demoToggle{display:none!important}
 /* @mentions in comments */
 .mention{color:var(--ink);background:rgba(196,164,124,.22);border-radius:5px;padding:0 4px;font-weight:600}
@@ -3498,7 +3514,11 @@ function drawAnnual(box, d){
     <path class="ombre" d="${area(r=>Y$(r.cum))}" fill="url(#omb1)"/>
     <path class="ombre" d="${area(r=>YC(r.co))}" fill="url(#omb2)"/>
     <path class="ombre" d="${area(r=>YC(r.cl))}" fill="url(#omb3)"/>
-    ${(()=>{ const x0 = gx(0)-gw*0.85, lead = (fn,g)=>`<path class="ombre in" d="M${x0.toFixed(1)} ${H-P.b} Q${(gx(0)-gw*0.45).toFixed(1)} ${fn(rows[0]).toFixed(1)} ${gx(0).toFixed(1)} ${fn(rows[0]).toFixed(1)}" fill="none" stroke="url(#${g})" stroke-width="2"/>`;
+    ${(()=>{ // lead-in fades start AT the y-axis, never left of it — with few data
+      // years (common on live) gw is huge and the old unclamped start point
+      // escaped both the axis and the container
+      const x0 = Math.max(P.l, gx(0)-gw*0.85), xq = Math.max(P.l+(gx(0)-P.l)*0.4, gx(0)-gw*0.45);
+      const lead = (fn,g)=>`<path class="ombre in" d="M${x0.toFixed(1)} ${H-P.b} Q${xq.toFixed(1)} ${fn(rows[0]).toFixed(1)} ${gx(0).toFixed(1)} ${fn(rows[0]).toFixed(1)}" fill="none" stroke="url(#${g})" stroke-width="2"/>`;
       return lead(r=>Y$(rows[0].cum),'lead1') + lead(r=>YC(rows[0].co),'lead2') + lead(r=>YC(rows[0].cl),'lead3'); })()}
     <path class="tline" d="${line(r=>Y$(r.cum))}" fill="none" stroke="#54749E" stroke-width="2"/>
     <path class="tline" d="${line(r=>YC(r.co))}" fill="none" stroke="#82A3C6" stroke-width="2" stroke-dasharray="7 5"/>
@@ -6120,7 +6140,8 @@ window.setSiteVisitField = function(orgId, key, val){
 })();
 function visitsRoute(){
   if (!location.hash.startsWith('#/visits')) return false;
-  if (window.APP && APP.ready && !APP.staff){ go('#/dashboard'); return true; }
+  // staff-only: bounce members, and staff previewing in view-as-member mode
+  if ((window.APP && APP.ready && !APP.staff) || (window.VIEW_AS && VIEW_AS.role!=='staff')){ go('#/dashboard'); return true; }
   $$('.view').forEach(v=>v.classList.remove('active'));
   $('#view-visits').classList.add('active');
   $$('#mainNav [data-route]').forEach(b=>b.classList.toggle('active', b.dataset.route==='#/visits'));
