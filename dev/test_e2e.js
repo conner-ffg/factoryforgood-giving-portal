@@ -1206,6 +1206,36 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     await sb.updatePassword('pw');   // restore the mock account's password
     return codeAsked && saved;
   }));
+  check('new org lands at the TOP of the studio and persists immediately', await page.evaluate(async () => {
+    go('#/editor'); await new Promise(r => setTimeout(r, 300));
+    edState.q=''; edState.tier=''; edState.rev=''; edState.solo=null; renderEdRows();
+    document.querySelector('#edAdd').click();
+    await new Promise(r => setTimeout(r, 600));
+    const newId = ORGS[0].id;
+    const firstRow = +document.querySelector('#edBody tr').dataset.id === newId;
+    const api = await sb.rest('orgs?select=id,data');
+    const persisted = api.some(r => r.id === newId);   // row exists in the DB from the first moment
+    // clean up so later checks see the original dataset
+    ORGS.shift(); edState.fresh && edState.fresh.clear(); renderEdRows();
+    return firstRow && persisted;
+  }));
+  check('numeric fields accept $X-$Y ranges (midpoint stored, range shown + persisted)', await page.evaluate(async () => {
+    const tr = document.querySelector('#edBody tr');
+    const o = byId(+tr.dataset.id);
+    const td = tr.querySelector('td[data-k="budgetM"]');
+    const before = o.budgetM;
+    td.focus(); td.textContent = '$1M-$2M'; commitCell(td);
+    const shown = td.textContent.includes('$1,000,000') && td.textContent.includes('$2,000,000');
+    const stored = o.budgetM === 1.5 && (o._range||{}).budgetM && o._range.budgetM[0] === 1 && o._range.budgetM[1] === 2;
+    await new Promise(r => setTimeout(r, 600));
+    const api = await sb.rest('orgs?select=id,data');
+    const row = api.find(r => r.id === o.id);
+    const persisted = row && row.data._range && Array.isArray(row.data._range.budgetM);
+    // plain number clears the range again
+    td.focus(); td.textContent = String(before * 1e6); commitCell(td);
+    const cleared = !(o._range||{}).budgetM && o.budgetM === before;
+    return shown && stored && persisted && cleared;
+  }));
   check('session: keep-alive armed, refresh survives a network failure', await page.evaluate(async () => {
     const armed = !!sb._ka && typeof sb.refresh === 'function';
     const hadSession = !!(sb.session && sb.session.refresh_token);

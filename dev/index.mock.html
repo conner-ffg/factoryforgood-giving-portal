@@ -2376,7 +2376,12 @@ $('#edAdd').addEventListener('click', ()=>{
   blank.lastUpdated = new Date().toISOString().slice(0,10);
   blank.vettingStatus = 'Not started';
   ORGS.unshift(blank); window.PERSIST&&PERSIST.orgInsert(blank);
-  renderEdRows(); flash('Organization added (hidden from members until you set Display on site to shown)');
+  (edState.fresh = edState.fresh || new Set()).add(id);   // pins the new row to the top of the table
+  if (window.PERSIST && PERSIST.orgInsert) PERSIST.orgInsert(blank);   // exists in the database from the first moment
+  renderEdRows();
+  const wrap = document.querySelector('.tbl-wrap'); if (wrap) wrap.scrollTop = 0;
+  window.scrollTo({top:0, behavior:'smooth'});
+  flash('Organization added at the top (hidden from members until you set Display on site to shown)');
   buildPins();
 });
 $('#edExport').addEventListener('click', ()=>{
@@ -2419,8 +2424,9 @@ function renderEdRows(){
   // late first, then review requests, then submission invites — and within the
   // request bands, orgs are grouped by WHO requested the review (then by date)
   const reqBy = o=>(o.workflow&&o.workflow.req&&o.workflow.req.by)||'';
+  const rank = o => (edState.fresh && edState.fresh.has(o.id)) ? -1 : wfRank(o);   // just-created orgs pin to the top
   list.sort((a,b)=>{
-    const d = wfRank(a)-wfRank(b); if (d) return d;
+    const d = rank(a)-rank(b); if (d) return d;
     const w = reqBy(a).localeCompare(reqBy(b)); if (w) return w;
     const da=(a.workflow&&a.workflow.req&&a.workflow.req.date)||'', db2=(b.workflow&&b.workflow.req&&b.workflow.req.date)||'';
     return da<db2?-1:da>db2?1:0;
@@ -2451,7 +2457,7 @@ function renderEdRows(){
       return `<td class="${noted}" data-k="${c.k}"><select data-k="${c.k}">${opts.map(s=>`<option value="${s}" ${s===cur?'selected':''}>${s||'—'}</option>`).join('')}</select></td>`;
     }
     let v = o[c.k]; if (Array.isArray(v)) v = v.join('; ');
-    if (c.num) v = ((o._approx||{})[c.k]?'~':'') + fmtCellNum(c, v);
+    if (c.num) v = (o._range||{})[c.k] ? fmtCellRange(c, o._range[c.k]) : ((o._approx||{})[c.k]?'~':'') + fmtCellNum(c, v);
     if (c.img) return `<td class="${noted}" data-k="${c.k}" title="${esc(c.desc||'')}"><span style="cursor:pointer;margin-right:6px" onclick="window.pickImage&&pickImage(${o.id},'${c.k}')">📷</span><span contenteditable="true" spellcheck="false" data-inline="1">${esc(v)}</span></td>`;
     return `<td class="${noted}${c.num?' num-cell':''}" contenteditable="true" data-k="${c.k}" spellcheck="false" title="${esc(c.desc||'')}">${esc(v)}</td>`;
   }).join('')}</tr>`;}).join('');
@@ -2521,16 +2527,32 @@ function commitCell(el){
   let approx = false;
   if (col.num){
     approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
-    if (v.trim()===''){ v = 0; approx = false; }
+    o._range = Object.assign({}, o._range);
+    const range = parseStudioRange(v);
+    if (range){
+      const lo = col.mult ? range[0]/col.mult : range[0], hi = col.mult ? range[1]/col.mult : range[1];
+      o._range[key] = [lo, hi];
+      v = (lo + hi) / 2;   // stored numeric = midpoint, keeps charts and totals sane
+      approx = false;
+      el.textContent = fmtCellRange(col, [lo, hi]);
+    } else if (v.trim()===''){ v = 0; approx = false; delete o._range[key]; el.textContent = ''; }
     else {
       v = parseStudioNum(v);
-      if (v===null){ el.textContent = fmtCellNum(col, Array.isArray(old)?old.join('; '):old); flash('Not a number — reverted'); return; }
+      if (v===null){
+        const r0 = (o._range||{})[key];
+        el.textContent = r0 ? fmtCellRange(col, r0) : fmtCellNum(col, Array.isArray(old)?old.join('; '):old);
+        flash('Not a number — use 1200000, $1.2M, or a range like $1M-$2M'); return;
+      }
       if (col.mult) v = v / col.mult;   // displayed in full dollars, stored in $M
+      delete o._range[key];
+      el.textContent = (approx?'~':'') + fmtCellNum(col, v);
     }
     o._approx = Object.assign({}, o._approx);
     if (approx) o._approx[key] = 1; else delete o._approx[key];
-    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)) PERSIST.orgField(o, '_approx', o._approx);
-    el.textContent = (approx?'~':'') + fmtCellNum(col, v);
+    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)){
+      PERSIST.orgField(o, '_approx', o._approx);
+      PERSIST.orgField(o, '_range', o._range);
+    }
   }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   const changed = JSON.stringify(v)!==JSON.stringify(old);
@@ -2566,6 +2588,24 @@ function fmtCellNum(col, v){
   if (col.unit==='%') return full===0 ? '' : body+'%';
   return body;
 }
+/* "$1M-$2M" style ranges on numeric fields: the exact range is kept in
+   o._range and shown everywhere; the numeric field stores the midpoint so
+   charts, totals, and sorting keep working */
+function parseStudioRange(s){
+  const m = String(s).match(/^\s*\$?\s*([\d.,]+\s*[kKmMbB]?)\s*[-\u2013\u2014]\s*\$?\s*([\d.,]+\s*[kKmMbB]?)\s*%?\s*$/);
+  if (!m) return null;
+  const a = parseStudioNum(m[1]), b = parseStudioNum(m[2]);
+  if (a==null || b==null) return null;
+  return a<=b ? [a,b] : [b,a];
+}
+function fmtCellRange(col, r){ return fmtCellNum(col, r[0]) + '\u2013' + fmtCellNum(col, r[1]); }
+window.fmtCellRange = fmtCellRange;
+/* briefs & other displays: show the range when one was entered */
+window.fmtOrgNum = function(o, key, fmt){
+  const r = (o._range||{})[key];
+  if (r) return fmt(r[0]) + '\u2013' + fmt(r[1]);
+  return (o[key] || o[key]===0) && o[key] !== '' ? fmt(o[key]) : '\u2014';
+};
 function parseStudioNum(s){
   let t = String(s).replace(/[,$\s%]/g, '');
   const suf = t.match(/^(-?[\d.]+)([kKmMbB])$/);
@@ -2929,7 +2969,7 @@ window.openVerticalEdit = function(id, group){
             <div><select class="ve-in" data-vk="${f.k}">${opts.map(x=>`<option value="${x}" ${x===cur?'selected':''}>${x||'—'}</option>`).join('')}</select></div>`;
         }
         let v = o[f.k]; if (Array.isArray(v)) v = v.join('; ');
-        if (f.num) v = ((o._approx||{})[f.k]?'~':'') + fmtCellNum(f, v);
+        if (f.num) v = (o._range||{})[f.k] ? fmtCellRange(f, o._range[f.k]) : ((o._approx||{})[f.k]?'~':'') + fmtCellNum(f, v);
         return `${lbl}
           <div><textarea class="ve-in" data-vk="${f.k}" rows="1" ${f.num?'data-num="1"':''} spellcheck="false">${esc(v??'')}</textarea></div>`;
       }).join('')}</div>`).join('')}
@@ -2972,17 +3012,31 @@ function commitVertical(o, el){
   let v = (el.value||'').trim();
   const old = o[key];
   if (col.num){
-    const approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
-    if (v.trim()===''){ v = 0; }
+    let approx = /^\s*~/.test(v); v = v.replace(/~/g,'');
+    o._range = Object.assign({}, o._range);
+    const range = parseStudioRange(v);
+    if (range){
+      const lo = col.mult ? range[0]/col.mult : range[0], hi = col.mult ? range[1]/col.mult : range[1];
+      o._range[key] = [lo, hi]; v = (lo+hi)/2; approx = false;
+      el.value = fmtCellRange(col, [lo, hi]);
+    } else if (v.trim()===''){ v = 0; approx = false; delete o._range[key]; el.value = ''; }
     else {
       const n = parseStudioNum(v);
-      if (n===null){ el.value = fmtCellNum(col, old); flash('Not a number — reverted'); return; }
+      if (n===null){
+        const r0 = (o._range||{})[key];
+        el.value = r0 ? fmtCellRange(col, r0) : fmtCellNum(col, old);
+        flash('Not a number — use 1200000, $1.2M, or a range like $1M-$2M'); return;
+      }
       v = col.mult ? n/col.mult : n;
+      delete o._range[key];
+      el.value = (approx && v ?'~':'') + fmtCellNum(col, v);
     }
     o._approx = Object.assign({}, o._approx);
     if (approx && v) o._approx[key] = 1; else delete o._approx[key];
-    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)) PERSIST.orgField(o, '_approx', o._approx);
-    el.value = (approx && v ?'~':'') + fmtCellNum(col, v);
+    if (window.PERSIST && PERSIST.orgField && !((window.APP||{}).demo)){
+      PERSIST.orgField(o, '_approx', o._approx);
+      PERSIST.orgField(o, '_range', o._range);
+    }
   }
   if (col.arr) v = v.split(/[;|]/).map(s=>s.trim()).filter(Boolean);
   if (JSON.stringify(v)===JSON.stringify(old)) return;
@@ -5031,8 +5085,8 @@ function orgInsightsHTML(o){
         <span class="num">${o.absorbencyRank?`<b style="color:var(--ink)">${esc(o.absorbencyRank)}</b> · `:''}<b style="color:var(--ink)">$${o.absorbencyM}M</b></span></div>
       <div class="progress"><i style="width:0" data-w="${absPct}"></i></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;font-size:12.5px">
-        <div><span class="dim">Anticipated next year budget</span><br><b class="num" style="color:var(--ink)">${o.budgetM?fmtMoney(o.budgetM*1e6):'—'}</b></div>
-        <div><span class="dim">Most recent annual total expenses <span class="muted">(less offsets)</span></span><br><b class="num" style="color:var(--ink)">${o.annualSpend?'$'+o.annualSpend+'M':'—'}</b></div>
+        <div><span class="dim">Anticipated next year budget</span><br><b class="num" style="color:var(--ink)">${fmtOrgNum(o,'budgetM',v=>fmtMoney(v*1e6))}</b></div>
+        <div><span class="dim">Most recent annual total expenses</span><br><b class="num" style="color:var(--ink)">${fmtOrgNum(o,'annualSpend',v=>fmtMoney(v*1e6))}</b></div>
       </div>`,54)}
     </div>
     <div class="card fade-up span5">
