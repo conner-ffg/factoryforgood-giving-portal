@@ -1,0 +1,29 @@
+name: CI
+# Runs the full 150+-check browser suite against the mock backend on every
+# push and pull request. A red X here means DO NOT deploy that commit.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1
+          npx playwright install --with-deps chromium
+      - name: Start mock Supabase
+        run: |
+          (cd dev && nohup python3 mock_supabase.py > /tmp/mock.log 2>&1 &)
+          sleep 3
+          tail -1 /tmp/mock.log
+      - name: Run e2e suite
+        run: NODE_PATH=$PWD/node_modules node dev/test_e2e.js
