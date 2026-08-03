@@ -1,91 +1,99 @@
 # Factory for Good — giving portal
 
-A members-only giving intelligence portal: personal dashboard with an interactive
-globe, a library of 200+ vetted organizations, deep-dive org briefs, and a
-staff-only Data Studio for maintaining the underlying data.
+A members-only giving intelligence portal: personal dashboard with an
+interactive globe, a library of 200+ vetted organizations, deep-dive org
+briefs, and staff-only studios for data, donors, tools, and site visits.
 
-**Stack:** static frontend (`index.html`, zero build step) · Supabase (Postgres,
-auth, row-level security) · one Vercel serverless function (`api/autofill.js`)
-for the staff Claude auto-fill.
+**Stack:** static frontend (`index.html`, no build step at deploy time) ·
+Supabase (Postgres, auth, row-level security) · two Vercel serverless
+functions (`api/autofill.js`, `api/updatewrite.js`) proxying the Claude API ·
+GitHub Actions for CI and nightly data backups.
+
+**Read next:** `ENGINEERING.md` is the full handbook (architecture, security
+model, runbooks). `supabase/README.md` covers database migrations.
+`supabase/email-templates/README.md` covers the branded auth emails.
 
 ## Access model
 
 | Who | How they get in | What they see |
 |---|---|---|
-| Staff — any verified `@factoryforgood.com` email | Sign in directly (magic link) | Everything, plus Data Studio and the Demo toggle |
-| Members | Must be invited (email added to the `invites` table by staff) before their first sign-in | Dashboard, library, briefs, shortlist, and their own donation log |
+| Staff — any verified `@factoryforgood.com` email | Sign in directly (password or email link) | Everything, plus the staff studios and the Demo toggle |
+| Members | Invited by staff from the Donor studio; **first sign-in is by email link only**, then they choose their own password | Dashboard, library, briefs, shortlist, their own donation log, and their account page |
 | Anyone else | Sign-in refused by a database trigger | Nothing |
 
-The rules are enforced in Postgres row-level security, not just in the UI:
-members can only read/write their own donations and shortlist; only staff can
-touch orgs, comments, notes, and invites. Collective totals are exposed through
-a pair of aggregate-only functions so members never see each other's rows.
+The rules are enforced in Postgres row-level security, not just in the UI.
+Members can only read/write their own donations, shortlist, and profile
+(name/photo only); org data, comments, notes, workflow, history, and invites
+are staff-only. Collective totals come from aggregate-only functions so
+members never see each other's rows. `dev/test_rls.js` verifies this boundary
+against a real project.
 
 ## Go-live checklist
 
-### 1. Database (5 minutes)
-Open the Supabase dashboard → SQL editor → paste the entire contents of
-`supabase/migration.sql` → Run. This creates every table, policy, trigger,
-and seeds the 206 organizations. Safe to re-run.
+### 1. Database
+Supabase SQL editor — paste and run each file, in this order (all idempotent):
+1. `supabase/migration.sql` — core schema, security, and org seeds
+2. `supabase/storage_setup.sql` — public org-media bucket
+3. `supabase/migration_donorstudio.sql` — circles + Donor studio
+4. `supabase/migration_org_updates.sql` — From-the-field updates + site visits
+5. `supabase/migration_hardening.sql` — change history, validation, error log
+6. `supabase/migration_account.sql` — account page (avatars, profile RPC)
 
-Then paste `supabase/migration_donorstudio.sql` → Run. This adds giving
-circles, the staff-only Donor Studio tables (profile fields, circle
-membership, staff notes), and the `circle_stats` function. Privacy model:
-members can only ever read their own donation rows; circle and collective
-views are produced by security-definer functions that return pooled
-aggregates only, and only to members of that circle (or staff). Staff notes
-about a donor are in a staff-only table the member cannot read. Safe to re-run.
-
-### 2. Auth configuration (5 minutes)
+### 2. Auth configuration
 Supabase dashboard → Authentication:
-- **URL configuration** → Site URL: your production URL (e.g. `https://portal.factoryforgood.com`). Add the Vercel preview URL (`https://<project>.vercel.app`) to the redirect allow list too.
-- **Providers → Email**: leave email sign-in enabled. **Turn "Confirm email" OFF** — invited guests' accounts are created from the Donor Studio with the starter password (`FFGwelcome2026!`), and with confirmation on they would be blocked from password sign-in until they click an email link, defeating the point. Guests set their own password after first sign-in (click the avatar in the top bar).
-- Before inviting real members: **Settings → SMTP** — configure a custom sender (Resend, or Google Workspace SMTP) so sign-in emails come from your domain instead of Supabase's shared sender.
+- **URL configuration** → Site URL: the production URL. Add the Vercel
+  preview URL to the redirect allow-list.
+- **Providers → Email**: leave email sign-in on; keep **"Confirm email" OFF**
+  (member accounts are created by staff from the Donor studio; the sign-in
+  link itself proves email ownership). Set minimum password length to 8;
+  enable leaked-password protection (Pro).
+- **Email templates**: paste the four branded templates from
+  `supabase/email-templates/` (see its README for subjects).
+- **SMTP** (before inviting real members): configure a custom sender so
+  emails come from your domain — the default shared sender is rate-capped.
 
-### 3. Deploy (10 minutes)
-- Push this repo to GitHub, then in Vercel: **Add New Project** → import the repo. Framework preset: **Other**. No build command, output directory: root.
-- Project → Settings → Environment variables:
-  - `SUPABASE_URL` — your project URL
-  - `SUPABASE_ANON_KEY` — the anon (public) key
-  - `ANTHROPIC_API_KEY` — enables the staff ✦ auto-fill (optional; the button errors politely without it)
-  - `AUTOFILL_MODEL` — optional model override
-- Deploy. The site is live at `<project>.vercel.app` immediately.
+### 3. Deploy
+- Push this repo to GitHub → Vercel: Add New Project → import. Framework
+  preset **Other**, no build command, output directory root.
+- Environment variables: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `ANTHROPIC_API_KEY` (staff auto-fill/auto-write; optional), `AUTOFILL_MODEL`
+  (optional override).
+- GitHub repo secrets (Settings → Secrets → Actions): `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` — these power the nightly backup workflow,
+  which dumps every table to the `backups` branch. The service key bypasses
+  RLS: it lives ONLY in that secret store, never in code.
+- CI runs the full e2e suite on every push — a red X means don't deploy.
 
-### 4. Domain (5 minutes + DNS propagation)
-Vercel → Project → Settings → Domains → add `portal.factoryforgood.com`, then
-create the CNAME record Vercel shows you at your DNS provider. Update the
-Supabase Site URL (step 2) to the final domain.
+### 4. Domain
+Vercel → Settings → Domains → add the domain, create the CNAME it shows, and
+update the Supabase Site URL to match.
 
 ### 5. First users
-- Staff: just sign in with an `@factoryforgood.com` address — the domain gate
-  recognizes it and grants the staff role automatically.
-- Members: a staff user adds their email to `invites` (SQL editor for now:
-  `insert into invites (email) values ('member@example.com');`), then the member
-  signs in with a magic link.
-- Set display names: `update profiles set full_name = 'Ada Lovelace' where email = '...';`
-
-### 6. Housekeeping
-- Rotate the `service_role` key in Supabase (Settings → API) — it was used
-  during setup and should be re-issued. **It is not needed anywhere in this app.**
-- The anon key in `index.html` is public by design; row-level security is the
-  actual boundary.
+- Staff: sign in with an `@factoryforgood.com` address — the domain gate
+  grants the staff role automatically.
+- Members: staff use **Donor studio → Add profile**, which creates the
+  account instantly; the member's first sign-in is via "Email me a sign-in
+  link," after which they set their own password. No starter credentials
+  exist anywhere.
 
 ## Local development
 
 ```
 python3 dev/mock_supabase.py            # local stand-in API on :8787
-# open dev/index.mock.html in a browser  (staff@factoryforgood.com / pw · member@example.com / pw)
-NODE_PATH=$(npm root -g) node dev/test_e2e.js   # 20-check end-to-end suite
+# build & open dev/index.mock.html      (staff@factoryforgood.com / pw · member@example.com / pw)
+NODE_PATH=$(npm root -g) node dev/test_e2e.js   # 155-check end-to-end suite
+node dev/test_rls.js                    # RLS boundary tests vs a real project (see file header)
 ```
 
-`index.html` is generated from source parts by the build pipeline that produced
-this repo; treat it as the deployable artifact. `supabase/migration_schema.sql`
-is the schema without seed data, for reference and future migrations.
+`index.html` is generated from source parts — treat it as the deployable
+artifact and never edit it directly (see `ENGINEERING.md` §2).
+`supabase/migration_schema.sql` is the schema without seed data, for
+reference.
 
 ## Data notes
 
 Seeded organization figures (cost per outcome, absorbency, fundraise numbers)
-are research-based estimates, not audited data. Fields marked "being gathered"
-render blurred in the UI until staff replace them in Data Studio. The Demo
-toggle (staff-only) loads a clearly-bannered illustrative dataset for
-walkthroughs and sales conversations; nothing in it is real or persisted.
+are research-based estimates, not audited data. Fields marked "being
+gathered" render blurred until staff replace them in the Data studio. The
+Demo toggle (staff-only) loads a clearly-bannered illustrative dataset;
+nothing in it is real or persisted.

@@ -107,10 +107,12 @@ is hostile; the UI hiding a button is UX, not security.
 - Deploys: push to GitHub → Vercel builds automatically. Prefer git pushes
   over zip uploads: every push gets CI (the e2e suite) and a Vercel preview
   URL before it hits prod. **A red CI run means do not merge/deploy.**
-- Migrations live in `supabase/` (`migration_donorstudio.sql` is the
-  baseline, `migration_org_updates.sql` and `migration_hardening.sql` are
-  addenda). All are idempotent — safe to re-run. Apply to staging first, then
-  prod, in file order. Record what you ran in the commit message.
+- Migrations live in `supabase/` — run order for a fresh database:
+  `migration.sql` (true baseline) → `storage_setup.sql` →
+  `migration_donorstudio.sql` → `migration_org_updates.sql` →
+  `migration_hardening.sql` → `migration_account.sql` (full list + rules in
+  `supabase/README.md`). All are idempotent — safe to re-run. Apply to
+  staging first, then prod, in file order. Record what you ran in the commit message.
 - Backups: nightly GitHub Action dumps every table as JSON to the `backups`
   branch (needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` repo secrets).
   Restore = re-insert rows from the JSON with the service key, or use
