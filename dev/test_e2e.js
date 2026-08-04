@@ -40,6 +40,12 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
   }));
   await page.evaluate(() => go('#/visits')); await page.waitForTimeout(500);
   check('visits route bounces member to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
+  check('Pipeline hidden for member', await page.evaluate(() => {
+    const b = document.querySelector('#mainNav [data-route="#/pipeline"]');
+    return b && b.style.display === 'none';
+  }));
+  await page.evaluate(() => go('#/pipeline')); await page.waitForTimeout(500);
+  check('pipeline route bounces member to dashboard', await page.evaluate(() => location.hash.includes('dashboard')));
   check('member sees their circle pill', await page.evaluate(() =>
     !!document.querySelector('#scopeToggle [data-circle="test-circle"]')));
   // log a real gift
@@ -1163,6 +1169,141 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     window.VIEW_AS = null;
     document.body.classList.remove('va-member');
     return hidden && bounced;
+  }));
+  // ---------- org pipeline (staff-only, fully reversible) ----------
+  check('pipeline board renders the 14-stage spearhead for staff', await page.evaluate(async () => {
+    const btn = document.querySelector('#mainNav [data-route="#/pipeline"]');
+    const shown = btn && btn.style.display !== 'none' && btn.tagName === 'A';
+    go('#/pipeline'); pipelineRoute();
+    await new Promise(r => setTimeout(r, 300));
+    const active = document.querySelector('#view-pipeline').classList.contains('active');
+    const stages = Object.keys(PIPE_STAGES).length === 14 && PIPE_ALL.length === 14;
+    const phases = PIPE_PHASES.length === 5;
+    return shown && active && stages && phases && !!document.querySelector('#ppRoot').innerHTML;
+  }));
+  check('org added to the pipeline persists through the audited org path', await page.evaluate(async () => {
+    const o = ORGS.find(x => !x.pipeline && !x.archived);
+    window.__ppOrg = o.id;
+    pipeAdd(o.id);
+    const local = o.pipeline && o.pipeline.stage === 1 && o.pipeline.status === 'active' &&
+                  o.pipeline.owner && o.pipeline.history.length === 1;
+    await new Promise(r => setTimeout(r, 600));
+    const api = await sb.rest('orgs?select=id,data');
+    const row = api.find(r => r.id === o.id);
+    return local && row && row.data.pipeline && row.data.pipeline.stage === 1;
+  }));
+  check('moves are fully reversible: forward, skip (noted), back (skips cleared)', await page.evaluate(() => {
+    const o = byId(window.__ppOrg), p = () => o.pipeline;
+    const realPrompt = window.prompt; window.prompt = () => 'testing a jump';
+    pipeStep(o.id, +1);                                   // 1 → 2
+    const fwd = p().stage === 2 && p().enteredAt[2];
+    pipeMove(o.id, 5);                                    // skip 3,4
+    const skipped = p().stage === 5 && p().skips[3] === 'testing a jump' && p().skips[4] === 'testing a jump';
+    pipeMove(o.id, 1);                                    // all the way back
+    window.prompt = realPrompt;
+    const back = p().stage === 1 && !p().skips[3] && !p().skips[4];
+    const kinds = p().history.map(h => h.kind);
+    return fwd && skipped && back && kinds.includes('move') && kinds.includes('back');
+  }));
+  check('go / no-go / revisit decisions each reverse with a second click', await page.evaluate(() => {
+    const o = byId(window.__ppOrg), p = () => o.pipeline;
+    const realPrompt = window.prompt; window.prompt = () => '2030-01-01';
+    pipeMove(o.id, 3);
+    pipeDecide(o.id, 'go');
+    const go = p().status === 'go' && p().stage === 4;     // GO opens funding ops
+    pipeDecide(o.id, 'go');
+    const goUndone = p().status === 'active';
+    pipeMove(o.id, 3);                                     // walk back to decision point
+    pipeDecide(o.id, 'nogo');
+    const nogo = p().status === 'nogo';
+    pipeDecide(o.id, 'nogo');
+    const nogoUndone = p().status === 'active';
+    pipeDecide(o.id, 'revisit');
+    const rev = p().status === 'revisit' && p().revisitDate === '2030-01-01';
+    pipeDecide(o.id, 'revisit');
+    const revUndone = p().status === 'active' && !p().revisitDate;
+    window.prompt = realPrompt;
+    return go && goUndone && nogo && nogoUndone && rev && revUndone;
+  }));
+  check('stage checklist: check off (reversibly), assign, feeds team load', await page.evaluate(() => {
+    const o = byId(window.__ppOrg);
+    pipeStep(o.id, +1);                                    // 3 → 4 (multi-item checklist)
+    const p = o.pipeline;
+    const key = p.stage + ':0';
+    pipeCheck(o.id, key);
+    const done = p.checks[key] && p.checks[key].done && p.checks[key].by;
+    pipeAssignItem(o.id, p.stage + ':1', 'Truman');
+    const assigned = p.checks[p.stage + ':1'].who === 'Truman';
+    const load = pipeLoad();
+    const loaded = (load['Truman'] || 0) > 0;
+    pipeCheck(o.id, key);                                  // un-check reverses it
+    const undone = !p.checks[key].done;
+    return done && assigned && loaded && undone;
+  }));
+  check('tasks: add with owner + due, overdue nudge fires, toggle + delete', await page.evaluate(async () => {
+    const o = byId(window.__ppOrg);
+    openPipeJourney(o.id);
+    document.querySelector('#ppTaskTitle').value = 'Call the founder';
+    document.querySelector('#ppTaskWho').value = 'VA';           // always in the people pool
+    document.querySelector('#ppTaskDue').value = '2020-01-01';   // long overdue
+    pipeTaskAdd(o.id);
+    const t = o.pipeline.tasks.find(x => x.t === 'Call the founder');
+    const added = t && t.who === 'VA' && !t.done;
+    const nudged = pipeNudges().some(n => n.org.id === o.id && /Call the founder/.test(n.txt));
+    pipeTaskToggle(o.id, t.id);
+    const toggled = o.pipeline.tasks.find(x => x.id === t.id).done;
+    const quiet = !pipeNudges().some(n => /Call the founder/.test(n.txt));
+    pipeTaskDel(o.id, t.id);
+    const gone = !o.pipeline.tasks.some(x => x.id === t.id);
+    closeModal();
+    return added && nudged && toggled && quiet && gone;
+  }));
+  check('nudges: missing owner + stalled stage + arrived revisit date', await page.evaluate(() => {
+    const o = byId(window.__ppOrg), p = o.pipeline;
+    const saved = {owner: p.owner, entered: {...p.enteredAt}, status: p.status};
+    p.owner = '';
+    const noOwner = pipeNudges().some(n => n.org.id === o.id && /No owner/.test(n.txt));
+    p.owner = saved.owner;
+    p.enteredAt[p.stage] = '2020-01-01';
+    const stalled = pipeStalled(o) && pipeNudges().some(n => n.org.id === o.id && /Stalled/.test(n.txt));
+    p.enteredAt = saved.entered;
+    p.status = 'revisit'; p.revisitDate = '2020-06-01';
+    const revisit = pipeNudges().some(n => n.org.id === o.id && /Revisit date arrived/.test(n.txt));
+    p.status = saved.status; delete p.revisitDate;
+    return noOwner && stalled && revisit;
+  }));
+  check('pipeline state round-trips through the API intact', await page.evaluate(async () => {
+    const o = byId(window.__ppOrg);
+    pipeOwner(o.id, 'Morgan');
+    await new Promise(r => setTimeout(r, 600));
+    const api = await sb.rest('orgs?select=id,data');
+    const row = api.find(r => r.id === o.id);
+    const pp = row && row.data.pipeline;
+    return pp && pp.owner === 'Morgan' && pp.stage === o.pipeline.stage &&
+           pp.history.length === o.pipeline.history.length && Array.isArray(pp.tasks);
+  }));
+  check('view-as-member hides Pipeline and bounces its route', await page.evaluate(async () => {
+    window.VIEW_AS = {role: 'member', name: 'Probe Member'};
+    document.body.classList.add('va-member');
+    const btn = document.querySelector('#mainNav [data-route="#/pipeline"]');
+    const hidden = btn && getComputedStyle(btn).display === 'none';
+    go('#/pipeline'); pipelineRoute();
+    await new Promise(r => setTimeout(r, 300));
+    const bounced = !location.hash.startsWith('#/pipeline');
+    window.VIEW_AS = null;
+    document.body.classList.remove('va-member');
+    return hidden && bounced;
+  }));
+  check('removing from the pipeline clears it in the API (history stays in audit log)', await page.evaluate(async () => {
+    const o = byId(window.__ppOrg);
+    const realConfirm = window.confirm; window.confirm = () => true;
+    pipeRemove(o.id);
+    window.confirm = realConfirm;
+    const local = !o.pipeline;
+    await new Promise(r => setTimeout(r, 600));
+    const api = await sb.rest('orgs?select=id,data');
+    const row = api.find(r => r.id === o.id);
+    return local && row && !row.data.pipeline;
   }));
   check('account page: photo/name/email/password/sign-out, name edit persists', await page.evaluate(async () => {
     openAccountModal();

@@ -63,7 +63,7 @@ __COMPILED__
 
 # ---- assemble ----
 parts = []
-for f in ['part7a_v2.js', 'part7b_globe.js', 'part7c_brief.js', 'part7d_donors.js', 'part8_tools.js']:
+for f in ['part7a_v2.js', 'part7b_globe.js', 'part7c_brief.js', 'part7d_donors.js', 'part8_tools.js', 'part9_visits.js', 'part10_pipeline.js']:
     s = open(f).read()
     if f == 'part7b_globe.js':
         assert '__POLYS__' in s
