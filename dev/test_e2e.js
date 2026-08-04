@@ -1220,8 +1220,8 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     return firstRow && persisted;
   }));
   check('numeric fields accept $X-$Y ranges (midpoint stored, range shown + persisted)', await page.evaluate(async () => {
-    const tr = document.querySelector('#edBody tr');
-    const o = byId(+tr.dataset.id);
+    const o = ORGS.find(x => x.tier === 'top' && !x.archived);
+    const tr = document.querySelector(`#edBody tr[data-id="${o.id}"]`);
     const td = tr.querySelector('td[data-k="budgetM"]');
     const before = o.budgetM;
     td.focus(); td.textContent = '$1M-$2M'; commitCell(td);
@@ -1231,10 +1231,20 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     const api = await sb.rest('orgs?select=id,data');
     const row = api.find(r => r.id === o.id);
     const persisted = row && row.data._range && Array.isArray(row.data._range.budgetM);
+    // member-facing brief shows the RANGE, not the midpoint
+    go('#/org/' + o.id); await new Promise(r => setTimeout(r, 600));
+    const briefBtns = [...document.querySelectorAll('button, .pill, .tab')].filter(b => /deeper insights/i.test(b.textContent));
+    if (briefBtns[0]) briefBtns[0].click();
+    await new Promise(r => setTimeout(r, 400));
+    const briefTxt = document.querySelector('#orgRoot').textContent;
+    const briefRange = briefTxt.includes('$1.0M–$2.0M') || briefTxt.includes('$1M–$2M') ||
+                       /\$1(\.0)?M–\$2(\.0)?M/.test(briefTxt);
+    go('#/editor'); await new Promise(r => setTimeout(r, 400));
     // plain number clears the range again
-    td.focus(); td.textContent = String(before * 1e6); commitCell(td);
+    const td2 = document.querySelector(`#edBody tr[data-id="${o.id}"] td[data-k="budgetM"]`);
+    td2.focus(); td2.textContent = String(before * 1e6); commitCell(td2);
     const cleared = !(o._range||{}).budgetM && o.budgetM === before;
-    return shown && stored && persisted && cleared;
+    return shown && stored && persisted && briefRange && cleared;
   }));
   check('session: keep-alive armed, refresh survives a network failure', await page.evaluate(async () => {
     const armed = !!sb._ka && typeof sb.refresh === 'function';

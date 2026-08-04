@@ -4758,8 +4758,8 @@ function renderLibGrid(){
       <div class="geo">${geo}</div>
       <div class="blurb">${esc(o.blurb)}</div>
       <div class="foot">
-        <span>${o.costPerOutcome>0?`<b>${fmtCost(o.costPerOutcome)}</b> avg / outcome`:'<span class="muted">cost in diligence</span>'}</span>
-        <span class="muted num">reach ${fmtNum(o.annualReach)}/yr</span>
+        <span>${o.costPerOutcome>0?`<b>${fmtOrgNum(o,'costPerOutcome',fmtCost)}</b> avg / outcome`:'<span class="muted">cost in diligence</span>'}</span>
+        <span class="muted num">reach ${(o._range||{}).annualReach?fmtOrgNum(o,'annualReach',fmtNum):fmtNum(o.annualReach)}/yr</span>
       </div>
     </div>`;}).join('');
 }
@@ -4995,9 +4995,9 @@ function orgOverviewHTML(o){
         ${gWrap(o,'outcomesList',`<div class="oc-list">${(o.outcomesList||[]).map(c=>`<span class="oc-chip">${checkSVG}${esc(c)}</span>`).join('')||'&nbsp;'}</div>`,44)}
         <div class="oc-cost">
           <div class="item">${gWrap(o,'costPerOutcome',`<div class="l">Avg est. cost per outcome</div>
-            <div class="v num">${o.costPerOutcome>0?fmtCost(o.costPerOutcome):'—'}</div>`)}</div>
+            <div class="v num">${o.costPerOutcome>0?fmtOrgNum(o,'costPerOutcome',fmtCost):'—'}</div>`)}</div>
           <div class="item">${gWrap(o,'annualReach',`<div class="l">Annual reach<i class="info-i" data-reach="${o.id}">i</i></div>
-            <div class="v num">${o.annualReach?fmtNum(o.annualReach):'—'} <span class="unit">people / yr</span></div>`)}</div>
+            <div class="v num">${o.annualReach?fmtOrgNum(o,'annualReach',fmtNum):'—'} <span class="unit">people / yr</span></div>`)}</div>
         </div>
       </div>
     </div>
@@ -5077,12 +5077,12 @@ function orgInsightsHTML(o){
       ${gWrap(o,'raisedM',`
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px">
         <span class="dim">Raised toward current goal</span>
-        <span class="num"><b style="color:var(--ink)">$${o.raisedM}M</b> <span class="muted">of $${o.goalM}M · ${o.timePeriod||''}</span></span></div>
+        <span class="num"><b style="color:var(--ink)">${fmtOrgNum(o,'raisedM',v=>fmtMoney(v*1e6))}</b> <span class="muted">of ${fmtOrgNum(o,'goalM',v=>fmtMoney(v*1e6))} · ${o.timePeriod||''}</span></span></div>
       <div class="progress gold"><i style="width:0" data-w="${pct}"></i></div>`,54)}
       ${gWrap(o,'absorbencyM',`
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:14px">
         <span class="dim">Absorbency <i class="info-i" title="Room for additional capital that will be usefully deployed toward producing outcomes in the next few years.">i</i></span>
-        <span class="num">${o.absorbencyRank?`<b style="color:var(--ink)">${esc(o.absorbencyRank)}</b> · `:''}<b style="color:var(--ink)">$${o.absorbencyM}M</b></span></div>
+        <span class="num">${o.absorbencyRank?`<b style="color:var(--ink)">${esc(o.absorbencyRank)}</b> · `:''}<b style="color:var(--ink)">${fmtOrgNum(o,'absorbencyM',v=>fmtMoney(v*1e6))}</b></span></div>
       <div class="progress"><i style="width:0" data-w="${absPct}"></i></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;font-size:12.5px">
         <div><span class="dim">Anticipated next year budget</span><br><b class="num" style="color:var(--ink)">${fmtOrgNum(o,'budgetM',v=>fmtMoney(v*1e6))}</b></div>
