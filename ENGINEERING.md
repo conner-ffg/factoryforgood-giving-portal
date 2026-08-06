@@ -12,7 +12,7 @@ develop and deploy safely, and what to do when something breaks.
 | Backend | Supabase: managed PostgreSQL + PostgREST + GoTrue auth, security enforced by RLS | `supabase/*.sql` |
 | Serverless | Two Vercel functions proxying the Claude API (key stays server-side) | `api/autofill.js`, `api/updatewrite.js` |
 | Hosting | Vercel serves the static file + functions; headers (incl. CSP) in `vercel.json` | — |
-| Tests | 150+-check Playwright browser suite vs a Python mock of Supabase; RLS tests vs real Supabase | `dev/test_e2e.js`, `dev/test_rls.js`, `dev/mock_supabase.py` |
+| Tests | 173-check Playwright browser suite vs a Python mock of Supabase; RLS tests vs real Supabase | `dev/test_e2e.js`, `dev/test_rls.js`, `dev/mock_supabase.py` |
 | CI | GitHub Actions: e2e on every push; nightly data backup to the `backups` branch | `.github/workflows/` |
 
 There is intentionally no build framework, package manager dependency tree, or

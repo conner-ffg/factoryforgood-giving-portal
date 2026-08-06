@@ -81,7 +81,7 @@ update the Supabase Site URL to match.
 ```
 python3 dev/mock_supabase.py            # local stand-in API on :8787
 # build & open dev/index.mock.html      (staff@factoryforgood.com / pw · member@example.com / pw)
-NODE_PATH=$(npm root -g) node dev/test_e2e.js   # 155-check end-to-end suite
+NODE_PATH=$(npm root -g) node dev/test_e2e.js   # 173-check end-to-end suite
 node dev/test_rls.js                    # RLS boundary tests vs a real project (see file header)
 ```
 

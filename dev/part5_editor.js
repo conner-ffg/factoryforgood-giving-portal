@@ -813,8 +813,13 @@ $('#edClear').addEventListener('click', ()=>{
   ED_CATS.forEach(c=>g.insertAdjacentHTML('beforeend',`<option value="${c}" ${c==='Core'?'selected':''}>Columns · ${c}</option>`));
   g.addEventListener('change', ()=>{ edState.group = g.value; renderEditor(); flash('Showing '+(g.value==='All fields'?'every column':g.value+' columns')); });
 })();
-$('#edAdd').addEventListener('click', ()=>{
-  const id = Math.max(...ORGS.map(o=>o.id))+1;
+$('#edAdd').addEventListener('click', async ()=>{
+  if ((window.APP||{}).demo){ flash('Demo mode is on — turn it off before adding real organizations (demo edits are never saved)'); return; }
+  // reserve an id the SERVER doesn't have yet — a teammate may have added orgs
+  // since this page loaded, and a stale local max would silently collide
+  let serverMax = 0;
+  try{ const ids = await sb.rest('orgs?select=id'); serverMax = Math.max(0, ...ids.map(r=>+r.id)); }catch(e){}
+  const id = Math.max(serverMax, ...ORGS.map(o=>o.id))+1;
   const blank = {id, name:'New Organization', tier:'represented', sources:['Meridian'], causes:['Global Health'],
     countries:['Global'], lat:0, lng:20, hq:'', founded:2026, visibility:'hidden', blurb:'', outputUnit:'output', costPerOutput:0,
     outcomesList:[], costPerOutcome:0, outcomeReachRate:0, annualReach:0, website:'', outcomesTargeted:0,
@@ -825,7 +830,29 @@ $('#edAdd').addEventListener('click', ()=>{
   blank.vettingStatus = 'Not started';
   ORGS.unshift(blank);
   (edState.fresh = edState.fresh || new Set()).add(id);   // pins the new row to the top of the table
-  if (window.PERSIST && PERSIST.orgInsert) PERSIST.orgInsert(blank);   // exists in the database from the first moment
+  // exists in the database from the first moment — retry on id conflict, and
+  // NEVER fail silently: a row that isn't in the database vanishes on reload
+  if (window.PERSIST && PERSIST.orgInsert){
+    (async ()=>{
+      for (let attempt=0; attempt<3; attempt++){
+        try{ await PERSIST.orgInsert(blank); return; }
+        catch(e){
+          const conflict = /duplicate|conflict|already exists|409|23505/i.test(String(e&&e.message||e));
+          if (!conflict || attempt===2){
+            flash('⚠ '+blank.name+' was NOT saved ('+(e&&e.message||e)+') — keep this tab open, copy your entries, and re-add it');
+            setTimeout(()=>flash('⚠ New org NOT saved to the database — it will disappear on reload. Copy your entries and re-add.'), 2200);
+            return;
+          }
+          let mx = blank.id;
+          try{ const ids = await sb.rest('orgs?select=id'); mx = Math.max(mx, ...ids.map(r=>+r.id)); }catch(_){}
+          const fresh = Math.max(mx, ...ORGS.map(x=>x.id))+1;
+          if (edState.fresh){ edState.fresh.delete(blank.id); edState.fresh.add(fresh); }
+          blank.id = fresh;
+          renderEdRows();
+        }
+      }
+    })();
+  }
   renderEdRows();
   const wrap = document.querySelector('.tbl-wrap'); if (wrap) wrap.scrollTop = 0;
   window.scrollTo({top:0, behavior:'smooth'});

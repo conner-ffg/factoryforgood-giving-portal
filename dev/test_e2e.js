@@ -1351,7 +1351,9 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     go('#/editor'); await new Promise(r => setTimeout(r, 300));
     edState.q=''; edState.tier=''; edState.rev=''; edState.solo=null; renderEdRows();
     document.querySelector('#edAdd').click();
-    await new Promise(r => setTimeout(r, 600));
+    // the async id-reservation makes creation a two-round-trip affair
+    for (let i = 0; i < 20 && ORGS[0].name !== 'New Organization'; i++) await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 400));
     const newId = ORGS[0].id;
     const firstRow = +document.querySelector('#edBody tr').dataset.id === newId;
     const api = await sb.rest('orgs?select=id,data');
@@ -1359,6 +1361,39 @@ const check = (name, cond) => (cond ? ok : bad).push(name) && console.log((cond?
     // clean up so later checks see the original dataset
     ORGS.shift(); edState.fresh && edState.fresh.clear(); renderEdRows();
     return firstRow && persisted;
+  }));
+  check('no countries listed → region is Global, never Africa (null-island guard)', await page.evaluate(() => {
+    const a = regionOf({countries: [], lat: 0, lng: 20}) === 'Global';          // fresh row defaults
+    const b = regionOf({countries: [], lat: 0, lng: 0}) === 'Global';           // classic null island
+    const c = regionOf({countries: ['Global'], lat: 0, lng: 20}) === 'Global';
+    const d = regionOf({countries: ['Kenya'], lat: -0.02, lng: 37.9}) === 'Africa';  // real coords still bucket
+    return a && b && c && d;
+  }));
+  check('new-org insert survives an id collision from a teammate (fresh id, still saved)', await page.evaluate(async () => {
+    const api0 = await sb.rest('orgs?select=id');
+    const stale = Math.max(...api0.map(r => +r.id), ...ORGS.map(o => o.id)) + 1;
+    // a teammate on another laptop grabbed the next id moments ago
+    await sb.rest('orgs', {method: 'POST', body: {id: stale, data: {id: stale, name: 'Teammate Org', tier: 'represented', sources: [], causes: [], countries: [], outcomesList: [], gathering: []}}});
+    // duplicate inserts now REJECT instead of silently overwriting
+    const conflictSurfaces = await PERSIST.orgInsert({id: stale, name: 'x'})
+      .then(() => false).catch(e => /duplicate|conflict/i.test(e.message));
+    document.querySelector('#edAdd').click();
+    for (let i = 0; i < 20 && ORGS[0].name !== 'New Organization'; i++) await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 600));
+    const mine = ORGS[0];
+    const distinct = mine.name === 'New Organization' && mine.id !== stale;
+    const api = await sb.rest('orgs?select=id,data');
+    const saved = api.some(r => r.id === mine.id);
+    ORGS.shift(); edState.fresh && edState.fresh.clear(); renderEdRows();   // cleanup
+    return conflictSurfaces && distinct && saved;
+  }));
+  check('editing a row missing from the database errors loudly (no silent loss)', await page.evaluate(async () => {
+    const rejected = await sb.rest('rpc/org_set_field', {method: 'POST', body: {oid: 987654, fkey: 'blurb', fval: '"x"'}})
+      .then(() => false).catch(e => /NOT saved|not in the database/i.test(e.message));
+    PERSIST.orgField({id: 987654, name: 'Ghost Org'}, 'blurb', 'x');
+    await new Promise(r => setTimeout(r, 400));
+    const flashed = document.querySelector('#savedFlash').textContent.includes('NOT saved');
+    return rejected && flashed;
   }));
   check('numeric fields accept $X-$Y ranges (midpoint stored, range shown + persisted)', await page.evaluate(async () => {
     const o = ORGS.find(x => x.tier === 'top' && !x.archived);

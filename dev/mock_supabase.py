@@ -4,7 +4,7 @@ Run:  python3 dev/mock_supabase.py   (serves on http://127.0.0.1:8787)
 Test users: staff@factoryforgood.com / pw  ·  member@example.com / pw
 """
 import json, re, urllib.parse, itertools
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 import os
 ORGS = {}
@@ -155,7 +155,9 @@ class H(BaseHTTPRequestHandler):
             if not u2 or u2['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
             b2 = self._body()
             oid = int(b2['oid'])
-            if oid in ORGS: ORGS[oid]['data'][b2['fkey']] = b2['fval']
+            if oid not in ORGS:   # mirrors the org_set_field guard: ghost rows must error, not no-op
+                return self._send(400, {'message': 'org %d is not in the database — the edit was NOT saved' % oid})
+            ORGS[oid]['data'][b2['fkey']] = b2['fval']
             return self._send(200, None)
         if p.path == '/rest/v1/rpc/circle_stats':
             u2 = user_from(self.headers)
@@ -174,6 +176,8 @@ class H(BaseHTTPRequestHandler):
             DONATIONS.append(d); return self._send(201, [d])
         if p.path == '/rest/v1/orgs':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
+            if b['id'] in ORGS:   # mirrors the primary-key constraint: duplicate ids conflict, not overwrite
+                return self._send(409, {'message': 'duplicate key value violates unique constraint "orgs_pkey"'})
             ORGS[b['id']] = {'id': b['id'], 'data': b['data']}; return self._send(201, [ORGS[b['id']]])
         if p.path == '/rest/v1/org_comments':
             if u['role'] != 'staff': return self._send(403, {'message': 'RLS: staff only'})
@@ -393,4 +397,5 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     print('mock supabase on http://127.0.0.1:8787 · orgs:', len(ORGS))
-    HTTPServer(('127.0.0.1', 8787), H).serve_forever()
+    # threaded: a browser holding sockets open must never stall other requests
+    ThreadingHTTPServer(('127.0.0.1', 8787), H).serve_forever()
